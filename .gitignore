@@ -1,0 +1,6 @@
+.vs/
+.vsbuild/
+.vscode/
+build/
+build-output/
+cmake-out/
