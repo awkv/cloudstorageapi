@@ -42,6 +42,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/binaries/${ARCH})
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
+# Pick the right MSVC runtime libraries.
+include(SelectMSVCRuntime)
+
 include(FindCurlWithTargets)
 find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
