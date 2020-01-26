@@ -31,5 +31,31 @@ public:
 
 std::ostream& operator<<(std::ostream& os, GetFileMetadataRequest const& r);
 
+/**
+ * Represents a request to rename/move file.
+ */
+class RenameFileRequest
+    : public GenericObjectRequest<RenameFileRequest>
+{
+public:
+    //using GenericObjectRequest::GenericObjectRequest;
+    RenameFileRequest(std::string id, std::string newName, std::string parentId, std::string newParentId)
+        : GenericObjectRequest<RenameFileRequest>(id),
+        m_newName(std::move(newName)),
+        m_parentId(std::move(parentId)),
+        m_newParentId(std::move(newParentId))
+    {}
+
+    std::string GetParentId() const { return m_parentId; }
+    std::string GetNewParentId() const { return m_newParentId; }
+    std::string GetNewName() const { return m_newName; }
+
+private:
+    std::string m_newName;
+    std::string m_parentId;
+    std::string m_newParentId;
+};
+
+std::ostream& operator<<(std::ostream& os, RenameFileRequest const& r);
 }  // namespace internal
 }  // namespace csa

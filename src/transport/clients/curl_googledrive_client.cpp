@@ -120,5 +120,36 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::GetFileMetadata(GetFileMetadata
     return GoogleMetadataParser::ParseFileMetadata(response->m_payload);
 }
 
+StatusOrVal<FileMetadata> CurlGoogleDriveClient::RenameFile(RenameFileRequest const& request)
+{
+    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(), m_storageFactory);
+    auto status = SetupBuilder(builder, request, "PATCH");
+    if (!status.Ok())
+    {
+        return status;
+    }
+
+    auto& parentId = request.GetParentId();
+    auto& newParentId = request.GetNewParentId();
+    if (!parentId.empty() && !newParentId.empty())
+    {
+        builder.AddQueryParameter("addParents", request.GetNewParentId());
+        builder.AddQueryParameter("removeParents", request.GetParentId());
+    }
+    builder.AddQueryParameter("fields", ObjectMetadataFields);
+    builder.AddHeader("Content-Type: application/json");
+    auto response = builder.BuildRequest().MakeRequest("{\"name\":\""+request.GetNewName()+"\"}");
+    if (!response.Ok())
+    {
+        return std::move(response).GetStatus();
+    }
+    if (response->m_statusCode >= 300)
+    {
+        return AsStatus(*response);
+    }
+
+    return GoogleMetadataParser::ParseFileMetadata(response->m_payload);
+}
+
 }  // namespace internal
 }  // namespace csa

@@ -127,8 +127,13 @@ public:
         return m_RawClient->GetFileMetadata(request);
     }
 
+    StatusOrVal<FileMetadata> RenameFile(std::string const& id, std::string const& newName, std::string const& parentId = "", std::string const& newParentId = "") // includes move
+    {
+        internal::RenameFileRequest request(id, newName, parentId, newParentId);
+        return m_RawClient->RenameFile(request);
+    }
+
     // TODO: to be implemented.
-    //StatusOrVal<FileMetadata> RenameFile(std::string const& id, std::string const& newParentId, std::string const& newName); // includes move
     //StatusOrVal<FileMetadata> UploadFile(std::string const& srcFileName, std::string const& parentId, std::string const& name, content: blob, bool overwrite);// Use multipart upload if size > 100MB
     ////StatusOrVal<FileMetadata> UpdateFileContent(std::string const& id, content: blob);
     //StatusOrVal<FileWriteStream> WriteFile(std::string const& id); // TODO: add parameters like offset, range, etc.

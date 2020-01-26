@@ -43,6 +43,7 @@ public:
     //{@
     // @name File operations
      virtual StatusOrVal<FileMetadata> GetFileMetadata(GetFileMetadataRequest const& request) = 0;
+     virtual StatusOrVal<FileMetadata> RenameFile(RenameFileRequest const& request) = 0;
     //@}
 };
 

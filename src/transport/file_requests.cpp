@@ -24,10 +24,19 @@ namespace internal {
 
 std::ostream& operator<<(std::ostream& os, GetFileMetadataRequest const& r)
 {
-    os << "GetFileMetadataRequest={file_name=" << r.GetObjectId();
+    os << "GetFileMetadataRequest={file_id=" << r.GetObjectId();
     r.DumpOptions(os, ", ");
     return os << "}";
 }
 
+std::ostream& operator<<(std::ostream& os, RenameFileRequest const& r)
+{
+    os << "RenameFileRequest={file_id=" << r.GetObjectId()
+       << ", new_name=" << r.GetNewName()
+       << ", parent_id=" << r.GetParentId()
+       << ", new_parent_id=" << r.GetNewParentId();
+    r.DumpOptions(os, ", ");
+    return os << "}";
+}
 } // namespace internal
 } // namespace csa

@@ -50,6 +50,7 @@ public:
     StatusOrVal<FolderMetadata> GetFolderMetadata(GetFolderMetadataRequest const& request) override;
 
     StatusOrVal<FileMetadata> GetFileMetadata(GetFileMetadataRequest const& request) override;
+    StatusOrVal<FileMetadata> RenameFile(RenameFileRequest const& request) override;
 
 private:
     // The constructor is protected because the class must always be created
