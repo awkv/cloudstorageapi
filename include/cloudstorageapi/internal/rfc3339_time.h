@@ -37,5 +37,22 @@ namespace internal {
 std::chrono::system_clock::time_point ParseRfc3339(
     std::string const& timestamp);
 
+/**
+ * Formats @p tp as a RFC-3339 timestamp.
+ *
+ * This function is used convert from `std::chrono::system_clock::time_point`
+ * to the RFC-3339 format.
+ *
+ * There are many possible formats for RFC-3339 timestamps, this function always
+ * uses YYYY-MM-DDTHH:MM:SS.FFFZ. The fractional seconds always represent the
+ * full precision of `std::chrono::system_clock::time_point`. Note, however,
+ * that C++ does not specify the minimum precision of these time points. In
+ * most platforms time points have sub-second precision, and microseconds are
+ * common.
+ *
+ * @see https://tools.ietf.org/html/rfc3339
+ */
+std::string FormatRfc3339(std::chrono::system_clock::time_point tp);
+
 }  // namespace internal
 }  // namespace csa

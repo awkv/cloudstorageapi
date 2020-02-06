@@ -51,11 +51,16 @@ public:
 
     StatusOrVal<FileMetadata> GetFileMetadata(GetFileMetadataRequest const& request) override;
     StatusOrVal<FileMetadata> RenameFile(RenameFileRequest const& request) override;
+    StatusOrVal<FileMetadata> InsertFile(InsertFileRequest const& request) override;
 
 private:
     // The constructor is protected because the class must always be created
     // as a shared_ptr<>.
     explicit CurlGoogleDriveClient(ClientOptions options);
+
+    std::string PickBoundary(std::string const& textToAvoid);
+    StatusOrVal<FileMetadata> InsertFileSimple(InsertFileRequest const& request);
+    StatusOrVal<FileMetadata> InsertFileMultipart(InsertFileRequest const& request);
 };
 
 }  // namespace internal

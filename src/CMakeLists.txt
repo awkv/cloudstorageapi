@@ -37,7 +37,8 @@ set(csa_sources
     file_metadata.cpp
     folder_metadata.cpp
     json_utils.cpp
-    rfc3339_timestamp_parser.cpp
+    random.cpp
+    rfc3339_time.cpp
     status.cpp
     terminate_handler.cpp
     utils.cpp

@@ -124,7 +124,7 @@ void GetFileMetadata(csa::CloudStorageClient* client, int& argc, char* argv[])
 void RenameFile(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
     if (!client || (argc != 3 && argc != 5))
-        throw NeedUsage("rename-file <file-id> <new name> [<parent-id> <new-parent-id>]");
+        throw NeedUsage("rename-file <file-id> <new-name> [<parent-id> <new-parent-id>]");
 
     auto fileId = ConsumeArg(argc, argv);
     auto newName = ConsumeArg(argc, argv);
@@ -144,6 +144,24 @@ void RenameFile(csa::CloudStorageClient* client, int& argc, char* argv[])
     std::cout << "Rename file succeeded: id=\'" << fileId << "\' "
         << *fileMetadata << std::endl;
 }
+
+void InsertFile(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 4)
+        throw NeedUsage("insert-file <parent-folder-id> <file-name> <file-content (string)>");
+
+    auto folderId = ConsumeArg(argc, argv);
+    auto fileName = ConsumeArg(argc, argv);
+    auto contents = ConsumeArg(argc, argv);
+
+    auto fileMetadata = client->InsertFile(folderId, fileName, contents);
+    if (!fileMetadata)
+        throw std::runtime_error(fileMetadata.GetStatus().Message());
+
+    std::cout << "Insert file succeded: id=\'" << fileMetadata->GetCloudId() << "\' "
+        << *fileMetadata << std::endl;
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) try 
@@ -154,7 +172,8 @@ int main(int argc, char* argv[]) try
         {"list-folder-with-page-size", &ListFolderWithPageSize},
         {"get-folder-metadata", &GetFolderMetadata},
         {"get-file-metadata", &GetFileMetadata},
-        {"rename-file", &RenameFile}
+        {"rename-file", &RenameFile},
+        {"insert-file", &InsertFile}
     };
     for (auto&& cmd : cmdMap)
     {

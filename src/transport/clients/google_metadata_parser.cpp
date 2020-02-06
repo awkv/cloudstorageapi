@@ -15,9 +15,27 @@
 #include "cloudstorageapi/internal/clients/google_metadata_parser.h"
 #include "cloudstorageapi/internal/json_utils.h"
 #include "cloudstorageapi/internal/nljson.h"
+#include "cloudstorageapi/internal/rfc3339_time.h"
 
 namespace csa {
 namespace internal {
+namespace {
+/**
+ * Sets a string field in @p json when @p value is not empty.
+ *
+ * This simplifies the implementation of ToJsonString() because we repeat this
+ * check for many attributes.
+ */
+void SetIfNotEmpty(internal::nl::json& json, char const* key,
+                   std::string const& value)
+{
+    if (value.empty())
+    {
+        return;
+    }
+    json[key] = value;
+}
+}  // namespace
 
 StatusOrVal<FileMetadata> GoogleMetadataParser::ParseFileMetadata(nl::json const& json)
 {
@@ -84,6 +102,29 @@ StatusOrVal<FolderMetadata> GoogleMetadataParser::ParseFolderMetadata(std::strin
     return ParseFolderMetadata(json);
 }
 
+StatusOrVal<nl::json> GoogleMetadataParser::ComposeFileMetadata(FileMetadata const& meta)
+{
+    nl::json jmeta({});
+    jmeta["kind"] = "drive#file";
+    auto status = ComposeCommonMetadata(jmeta, meta);
+    if (!status.Ok())
+        return status;
+    if (!meta.GetMimeTypeOpt())
+        jmeta["mimeType"] = meta.GetMimeTypeOpt().value();
+
+    return jmeta;
+}
+
+StatusOrVal<nl::json> GoogleMetadataParser::ComposeFolderMetadata(FolderMetadata const& meta)
+{
+    nl::json jmeta({});
+    jmeta["kind"] = "drive#file";
+    auto status = ComposeCommonMetadata(jmeta, meta);
+    if (!status.Ok())
+        return status;
+    return jmeta;
+}
+
 Status GoogleMetadataParser::ParseCommonMetadata(CommonMetadata& result, nl::json const& json)
 {
     if (!json.is_object())
@@ -104,6 +145,20 @@ Status GoogleMetadataParser::ParseCommonMetadata(CommonMetadata& result, nl::jso
     result.SetChangeTime(modifiedTime);
     result.SetModifyTime(modifiedTime);
     result.SetAccessTime(modifiedTime);
+
+    return Status();
+}
+
+Status GoogleMetadataParser::ComposeCommonMetadata(nl::json& result, CommonMetadata const& meta)
+{
+    if (meta.GetCloudId().empty())
+        return Status(StatusCode::InvalidArgument, "Object cloud id is missing.");
+    
+    SetIfNotEmpty(result, "id", meta.GetCloudId());
+    SetIfNotEmpty(result, "name", meta.GetName());
+    result["parents"].emplace_back(meta.GetParentId());
+    // ? result["createdTime"] = FormatRfc3339Time(meta.GetChangeTime());
+    result["modifiedTime"] = FormatRfc3339(meta.GetChangeTime());
 
     return Status();
 }

@@ -38,5 +38,14 @@ std::ostream& operator<<(std::ostream& os, RenameFileRequest const& r)
     r.DumpOptions(os, ", ");
     return os << "}";
 }
+
+std::ostream& operator<<(std::ostream& os, InsertFileRequest const& r)
+{
+    os << "InsertFileRequest={folder_id=" << r.GetFolderId()
+       << ", name=" << r.GetName()
+       << ", content=" << r.GetContent();
+    r.DumpOptions(os, ", ");
+    return os << "}";
+}
 } // namespace internal
 } // namespace csa

@@ -60,6 +60,7 @@ std::string UrlEscapeString(std::string const& value)
 CurlClientBase::CurlClientBase(ClientOptions options)
     : m_options(std::move(options)),
     m_share(curl_share_init(), &curl_share_cleanup),
+    m_generator(csa::internal::MakeDefaultPRNG()),
     m_storageFactory(CreateHandleFactory(m_options)),
     m_uploadFactory(CreateHandleFactory(m_options))
 {

@@ -127,21 +127,37 @@ public:
         return m_RawClient->GetFileMetadata(request);
     }
 
-    StatusOrVal<FileMetadata> RenameFile(std::string const& id, std::string const& newName, std::string const& parentId = "", std::string const& newParentId = "") // includes move
+    StatusOrVal<FileMetadata> RenameFile(std::string const& id,
+                                         std::string const& newName,
+                                         std::string const& parentId = "",
+                                         std::string const& newParentId = "") // includes move
     {
         internal::RenameFileRequest request(id, newName, parentId, newParentId);
         return m_RawClient->RenameFile(request);
     }
 
+    /**
+     * Creates an object given its name and contents.
+     */
+    template <typename... Options>
+    StatusOrVal<FileMetadata> InsertFile(std::string const& folderId,
+                                          std::string const& name,
+                                          std::string content,
+                                          Options&&... options)
+    {
+        internal::InsertFileRequest request(folderId, name, std::move(content));
+        request.SetMultipleOptions(std::forward<Options>(options)...);
+        return m_RawClient->InsertFile(request);
+    }
+
     // TODO: to be implemented.
     //StatusOrVal<FileMetadata> UploadFile(std::string const& srcFileName, std::string const& parentId, std::string const& name, content: blob, bool overwrite);// Use multipart upload if size > 100MB
-    ////StatusOrVal<FileMetadata> UpdateFileContent(std::string const& id, content: blob);
     //StatusOrVal<FileWriteStream> WriteFile(std::string const& id); // TODO: add parameters like offset, range, etc.
+    //StatusOrVal<FileMetadata> UpdateFile(std::string const& id, FileMetadata metadata);
     //Status DownloadFile(std::string const& id, std::string const& dstFileName, std::string const& contentTypeOpt) const;
     //Status DownloadFileThumbnail(std::string const& id, std::string const& dstFileName, uint16_t size = 256, std::string const& imgFormat = "png") const; // Only for box, dropbox and gdrive
     //StatusOrVal<FileReadStream> ReadFile(std::string const& id) const;
     //StatusOrVal<FileMetadata> CopyFile(std::string const& id, std::string const& newParentId, std::string const& newNameOpt);
-    //StatusOrVal<FileMetadata> UpdateFile(std::string const& id, FileMetadata metadata);
 
     // TODO: to be implemented.
     //// Multipart uploading operations

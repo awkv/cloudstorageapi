@@ -16,9 +16,10 @@
 
 #pragma once
 
-#include "cloudstorageapi/internal/curl_handle_factory.h"
-#include "cloudstorageapi/internal/raw_client.h"
 #include "cloudstorageapi/auth/credentials.h"
+#include "cloudstorageapi/internal/curl_handle_factory.h"
+#include "cloudstorageapi/internal/random.h"
+#include "cloudstorageapi/internal/raw_client.h"
 #include <mutex>
 
 namespace csa {
@@ -70,7 +71,10 @@ protected:
     std::mutex m_muPsl;
     CurlShare m_share;
 
-    // The factories must be listed *after* the CurlShare. libcurl keeps a
+    std::mutex m_muRNG;
+    DefaultPRNG m_generator;  // GUARDED_BY(m_muRNG);
+
+     // The factories must be listed *after* the CurlShare. libcurl keeps a
     // usage count on each CURLSH* handle, which is only released once the CURL*
     // handle is *closed*. So we want the order of destruction to be (1)
     // factories, as that will delete all the CURL* handles, and then (2) CURLSH*.

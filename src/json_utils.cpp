@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/json_utils.h"
-#include "cloudstorageapi/internal/rfc3339_timestamp_parser.h"
+#include "cloudstorageapi/internal/rfc3339_time.h"
 #include <stdexcept>
 #include <sstream>
 

@@ -14,7 +14,9 @@
 
 #pragma once
 
+#include "cloudstorageapi/file_metadata.h"
 #include "cloudstorageapi/internal/generic_object_request.h"
+#include "cloudstorageapi/well_known_headers.h"
 
 namespace csa {
 namespace internal {
@@ -38,7 +40,6 @@ class RenameFileRequest
     : public GenericObjectRequest<RenameFileRequest>
 {
 public:
-    //using GenericObjectRequest::GenericObjectRequest;
     RenameFileRequest(std::string id, std::string newName, std::string parentId, std::string newParentId)
         : GenericObjectRequest<RenameFileRequest>(id),
         m_newName(std::move(newName)),
@@ -57,5 +58,26 @@ private:
 };
 
 std::ostream& operator<<(std::ostream& os, RenameFileRequest const& r);
+
+class InsertFileRequest : public GenericObjectRequest<InsertFileRequest, ContentType, WithFileMetadata>
+{
+public:
+    InsertFileRequest(std::string folderId, std::string name, std::string content)
+        : m_folderId(std::move(folderId)),
+        m_name(std::move(name)),
+        m_content(std::move(content))
+    {}
+
+    std::string GetFolderId() const { return m_folderId; }
+    std::string GetName() const { return m_name; }
+    std::string const& GetContent() const { return m_content; }
+
+private:
+    std::string m_folderId;
+    std::string m_name;
+    std::string m_content;
+};
+
+std::ostream& operator<<(std::ostream& os, InsertFileRequest const& r);
 }  // namespace internal
 }  // namespace csa

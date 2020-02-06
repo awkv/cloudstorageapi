@@ -34,8 +34,12 @@ public:
     static StatusOrVal<FolderMetadata> ParseFolderMetadata(nl::json const& json);
     static StatusOrVal<FolderMetadata> ParseFolderMetadata(std::string const& payload);
 
+    static StatusOrVal<nl::json> ComposeFileMetadata(FileMetadata const& meta);
+    static StatusOrVal<nl::json> ComposeFolderMetadata(FolderMetadata const& meta);
+
 private:
     static Status ParseCommonMetadata(CommonMetadata& result, nl::json const& json);
+    static Status ComposeCommonMetadata(nl::json& result, CommonMetadata const& meta);
 };
 }  // namespace internal
 }  // namespace csa
