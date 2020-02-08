@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include "cloudstorageapi/internal/empty_response.h"
 #include "cloudstorageapi/internal/file_requests.h"
 #include "cloudstorageapi/internal/folder_requests.h"
 #include "cloudstorageapi/client_options.h"
@@ -33,6 +34,11 @@ public:
 
     virtual ClientOptions const& GetClientOptions() const = 0;
     virtual std::string GetProviderName() const = 0;
+
+    //{@
+    // @name Common operations
+    virtual StatusOrVal<EmptyResponse> Delete(DeleteRequest const& request) = 0;
+    //}@
 
     //{@
     // @name Folder operations

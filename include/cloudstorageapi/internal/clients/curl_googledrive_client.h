@@ -46,6 +46,8 @@ public:
 
     std::string GetProviderName() const override { return ProviderNames.at(EProvider::GoogleDrive);  }
 
+    StatusOrVal<EmptyResponse> Delete(DeleteRequest const& request) override;
+
     StatusOrVal<ListFolderResponse> ListFolder(ListFolderRequest const& request) override;
     StatusOrVal<FolderMetadata> GetFolderMetadata(GetFolderMetadataRequest const& request) override;
 

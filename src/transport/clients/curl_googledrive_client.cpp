@@ -68,11 +68,29 @@ namespace {
         return CheckAndParse(std::bind(static_cast<ParseFolderMetadataFunc>(&GoogleMetadataParser::ParseFolderMetadata),
             std::placeholders::_1), response);
     }
+
+    StatusOrVal<EmptyResponse> ReturnEmptyResponse(StatusOrVal<HttpResponse> response)
+    {
+        auto emptyResponseReturner = [](std::string const&) { return StatusOrVal(EmptyResponse{}); };
+        return CheckAndParse(emptyResponseReturner, response);
+    }
 } // namespace
 
 CurlGoogleDriveClient::CurlGoogleDriveClient(ClientOptions options)
     : CurlClientBase(std::move(options))
 {
+}
+
+StatusOrVal<EmptyResponse> CurlGoogleDriveClient::Delete(DeleteRequest const& request)
+{
+    // Assume file name is verified by caller.
+    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(), m_storageFactory);
+    auto status = SetupBuilder(builder, request, "DELETE");
+    if (!status.Ok())
+    {
+        return status;
+    }
+    return ReturnEmptyResponse(builder.BuildRequest().MakeRequest(std::string{}));
 }
 
 StatusOrVal<ListFolderResponse> CurlGoogleDriveClient::ListFolder(ListFolderRequest const& request)

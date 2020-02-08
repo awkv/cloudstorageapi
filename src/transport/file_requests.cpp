@@ -47,5 +47,12 @@ std::ostream& operator<<(std::ostream& os, InsertFileRequest const& r)
     r.DumpOptions(os, ", ");
     return os << "}";
 }
+
+std::ostream& operator<<(std::ostream& os, DeleteRequest const& r)
+{
+    os << "DeleteRequest={file_id=" << r.GetObjectId();
+    r.DumpOptions(os, ", ");
+    return os << "}";
+}
 } // namespace internal
 } // namespace csa

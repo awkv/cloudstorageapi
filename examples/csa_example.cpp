@@ -53,10 +53,23 @@ char const* ConsumeArg(int& argc, char* argv[])
     return result;
 }
 
+void Delete(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 2)
+        throw NeedUsage("delete <object-id>");
+
+    auto objectId = ConsumeArg(argc, argv);
+    auto status = client->Delete(objectId);
+    if (status.Ok())
+        std::cout << "Successfully deleted object " << objectId;
+    else
+        std::cout << "Faild to delete object " << objectId << status;
+}
+
 void ListFolder(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
     if (!client || argc != 2)
-        throw NeedUsage("list-folder <folder-path>");
+        throw NeedUsage("list-folder <folder-id>");
 
     auto folderName = ConsumeArg(argc, argv);
     for (auto&& metadata : client->ListFolder(folderName))
@@ -168,6 +181,7 @@ int main(int argc, char* argv[]) try
 {
     using CmdFn = std::function<void(csa::CloudStorageClient*, int&, char*[])>;
     std::map<std::string, CmdFn> cmdMap = {
+        {"delete", &Delete},
         {"list-folder", &ListFolder},
         {"list-folder-with-page-size", &ListFolderWithPageSize},
         {"get-folder-metadata", &GetFolderMetadata},

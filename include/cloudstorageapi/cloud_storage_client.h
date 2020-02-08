@@ -73,10 +73,21 @@ public:
     // */
     //std::string GetUserId() const;
 
-    // TODO: to be implemented.
-    //// Common operations (folders and files)
+    // Common operations (folders and files)
     //StatusOrVal<bool> Exists(const std::string& path) const;
-    //StatusOrVal<bool> Delete(std::string const& id, bool permanent, bool recursive); // permanent only for box, gdrive, sharepoint, onedrivebiz, sharefile
+
+    /**
+     * Delete object (file or folder) by given id.
+     * it deletes object permanently and recursively at least for gdrive.
+     *
+     * TODO: if needed provide 'bool permanent' and 'bool recursive' parameters.
+     *       Permanent is only possible for box, gdrive, sharepoint, onedrivebiz and sharefile
+     */
+    Status Delete(std::string const& id)
+    {
+        internal::DeleteRequest request(id);
+        return m_RawClient->Delete(request).GetStatus();
+    }
 
     // Folder operations
     /**

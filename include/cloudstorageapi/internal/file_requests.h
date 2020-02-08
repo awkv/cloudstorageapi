@@ -79,5 +79,14 @@ private:
 };
 
 std::ostream& operator<<(std::ostream& os, InsertFileRequest const& r);
+
+class DeleteRequest : public GenericObjectRequest<DeleteRequest>
+{
+public:
+    using GenericObjectRequest::GenericObjectRequest;
+};
+
+std::ostream& operator<<(std::ostream& os, DeleteRequest const& r);
+
 }  // namespace internal
 }  // namespace csa
