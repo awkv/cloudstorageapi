@@ -20,6 +20,9 @@
 namespace csa {
 namespace internal {
 class CurlRequestBuilder;
+class UploadChunkRequest;
+class QueryResumableUploadRequest;
+struct ResumableUploadResponse;
 
 /**
  * Implements the low-level RPCs to Cloud Storage using libcurl.
@@ -46,6 +49,10 @@ public:
 
     std::string GetProviderName() const override { return ProviderNames.at(EProvider::GoogleDrive);  }
 
+    StatusOrVal<ResumableUploadResponse> UploadChunk(UploadChunkRequest const&) override;
+    StatusOrVal<ResumableUploadResponse> QueryResumableUpload(QueryResumableUploadRequest const&) override;
+    std::size_t GetFileChunkQuantum() const override;
+
     StatusOrVal<EmptyResponse> Delete(DeleteRequest const& request) override;
 
     StatusOrVal<ListFolderResponse> ListFolder(ListFolderRequest const& request) override;
@@ -54,6 +61,10 @@ public:
     StatusOrVal<FileMetadata> GetFileMetadata(GetFileMetadataRequest const& request) override;
     StatusOrVal<FileMetadata> RenameFile(RenameFileRequest const& request) override;
     StatusOrVal<FileMetadata> InsertFile(InsertFileRequest const& request) override;
+    StatusOrVal<std::unique_ptr<ResumableUploadSession>>
+        CreateResumableSession(ResumableUploadRequest const& request) override;
+    StatusOrVal<std::unique_ptr<ResumableUploadSession>>
+        RestoreResumableSession(std::string const& session_id) override;
 
 private:
     // The constructor is protected because the class must always be created
@@ -63,6 +74,10 @@ private:
     std::string PickBoundary(std::string const& textToAvoid);
     StatusOrVal<FileMetadata> InsertFileSimple(InsertFileRequest const& request);
     StatusOrVal<FileMetadata> InsertFileMultipart(InsertFileRequest const& request);
+
+    template <typename RequestType>
+    StatusOrVal<std::unique_ptr<ResumableUploadSession>>
+        CreateResumableSessionGeneric(RequestType const& request);
 };
 
 }  // namespace internal

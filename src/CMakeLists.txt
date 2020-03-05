@@ -25,12 +25,14 @@ set(csa_sources
     transport/curl_handle_factory.cpp
     transport/curl_request.cpp
     transport/curl_request_builder.cpp
+    transport/curl_resumable_upload_session.cpp
     transport/curl_wrappers.cpp
     transport/empty_response.cpp
     transport/file_requests.cpp
     transport/folder_requests.cpp
     transport/http_empty_response.cpp
     transport/http_response.cpp
+    transport/resumable_upload_session.cpp
     client_options.cpp
     cloud_storage_client.cpp
     common_metadata.cpp

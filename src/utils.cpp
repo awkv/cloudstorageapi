@@ -135,5 +135,18 @@ std::string BinaryDataAsDebugString(char const* data, std::size_t size,
     return result;
 }
 
+std::size_t RoundUpToQuantum(std::size_t maxChunkSize, std::size_t quantumSize)
+{
+    // If you are tempted to use bit manipulation to do this, modern compilers
+    // known how to optimize this (tested at godbolt.org):
+    //   https://godbolt.org/z/xxUsjg
+    if (maxChunkSize % quantumSize == 0)
+    {
+        return maxChunkSize;
+    }
+    auto n = maxChunkSize / quantumSize;
+    return (n + 1) * quantumSize;
+}
+
 }  // namespace internal
 }  // namespace csa

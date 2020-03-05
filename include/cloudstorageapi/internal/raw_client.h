@@ -19,6 +19,7 @@
 #include "cloudstorageapi/internal/empty_response.h"
 #include "cloudstorageapi/internal/file_requests.h"
 #include "cloudstorageapi/internal/folder_requests.h"
+#include "cloudstorageapi/internal/resumable_upload_session.h"
 #include "cloudstorageapi/client_options.h"
 #include "cloudstorageapi/status.h"
 #include "cloudstorageapi/status_or_val.h"
@@ -34,6 +35,7 @@ public:
 
     virtual ClientOptions const& GetClientOptions() const = 0;
     virtual std::string GetProviderName() const = 0;
+    virtual std::size_t GetFileChunkQuantum() const = 0;
 
     //{@
     // @name Common operations
@@ -51,6 +53,11 @@ public:
      virtual StatusOrVal<FileMetadata> GetFileMetadata(GetFileMetadataRequest const& request) = 0;
      virtual StatusOrVal<FileMetadata> RenameFile(RenameFileRequest const& request) = 0;
      virtual StatusOrVal<FileMetadata> InsertFile(InsertFileRequest const& request) = 0;
+     virtual StatusOrVal<std::unique_ptr<ResumableUploadSession>>
+         CreateResumableSession(ResumableUploadRequest const& request) = 0;
+     virtual StatusOrVal<std::unique_ptr<ResumableUploadSession>>
+         RestoreResumableSession(std::string const& session_id) = 0;
+
     //@}
 };
 

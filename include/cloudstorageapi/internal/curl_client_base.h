@@ -25,6 +25,9 @@
 namespace csa {
 namespace internal {
 class CurlRequestBuilder;
+class UploadChunkRequest;
+class QueryResumableUploadRequest;
+struct ResumableUploadResponse;
 
 /**
  * Implements the low-level RPCs to Cloud Storage using libcurl.
@@ -47,6 +50,19 @@ public:
 
     void LockShared(curl_lock_data data);
     void UnlockShared(curl_lock_data data);
+
+    //@{
+    // @name Implement the CurlResumableSession operations.
+    // Note that these member functions are not inherited from RawClient, they are
+    // called only by `CurlResumableUploadSession`, because the retry loop for
+    // them is very different from the standard retry loop. Also note that these
+    // are virtual functions only because we need to override them in the unit
+    // tests.
+    virtual StatusOrVal<ResumableUploadResponse> UploadChunk(
+        UploadChunkRequest const&) = 0;
+    virtual StatusOrVal<ResumableUploadResponse> QueryResumableUpload(
+        QueryResumableUploadRequest const&) = 0;
+    //@}
 
 protected:
     // The constructor is protected because the class must always be created

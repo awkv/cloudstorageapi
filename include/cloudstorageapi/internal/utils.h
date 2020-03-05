@@ -105,5 +105,11 @@ std::string GenerateMessageBoundary(std::string const& message,
     return candidate;
 }
 
+/**
+ * Some cloud storages require file chunks to be a multiple of some quantum in size.
+ * This function rounds up given chunk size to be multiply of quantum.
+ */
+std::size_t RoundUpToQuantum(std::size_t maxChunkSize, std::size_t quantumSize);
+
 }  // namespace internal
 }  // namespace csa

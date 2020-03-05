@@ -24,6 +24,7 @@
 #include "cloudstorageapi/internal/folder_requests.h"
 #include "cloudstorageapi/internal/raw_client.h"
 #include "cloudstorageapi/status_or_val.h"
+#include "cloudstorageapi/upload_options.h"
 
 namespace csa {
 
@@ -152,17 +153,41 @@ public:
      */
     template <typename... Options>
     StatusOrVal<FileMetadata> InsertFile(std::string const& folderId,
-                                          std::string const& name,
-                                          std::string content,
-                                          Options&&... options)
+                                         std::string const& name,
+                                         std::string content,
+                                         Options&&... options)
     {
         internal::InsertFileRequest request(folderId, name, std::move(content));
         request.SetMultipleOptions(std::forward<Options>(options)...);
         return m_RawClient->InsertFile(request);
     }
 
+    /**
+     *  Uploads given local file to the storage.
+     *
+     * @note
+     * Only regular files are supported. If you need to upload the results of
+     * reading a device, Named Pipe, FIFO, or other type of file system object
+     * that is **not** a regular file then `WriteObject()` is probably a better
+     * alternative.
+     */
+    template<typename... Options>
+    StatusOrVal<FileMetadata> UploadFile(std::string const& srcFileName,
+                                         std::string const& parentId,
+                                         std::string const& name,
+                                         //bool overwrite,
+                                         Options&&... options)// Use multipart upload if size > 100MB
+    {
+        // Determine, at compile time, which version of UploadFileImpl we should
+        // call. This needs to be done at compile time because InsertFile
+        // does not support (nor should it support) the UseResumableUploadSession
+        // option.
+        using HasUseResumableUpload = std::disjunction<
+            std::is_same<UseResumableUploadSession, Options>...>;
+        return UploadFileImpl(srcFileName, parentId, name, HasUseResumableUpload{}, std::forward<Options>(options)...);
+    }
+
     // TODO: to be implemented.
-    //StatusOrVal<FileMetadata> UploadFile(std::string const& srcFileName, std::string const& parentId, std::string const& name, content: blob, bool overwrite);// Use multipart upload if size > 100MB
     //StatusOrVal<FileWriteStream> WriteFile(std::string const& id); // TODO: add parameters like offset, range, etc.
     //StatusOrVal<FileMetadata> UpdateFile(std::string const& id, FileMetadata metadata);
     //Status DownloadFile(std::string const& id, std::string const& dstFileName, std::string const& contentTypeOpt) const;
@@ -199,6 +224,54 @@ private:
 
     static std::shared_ptr<internal::RawClient> CreateDefaultRawClient(
         ClientOptions options);
+
+    // The version of UploadFile() where UseResumableUploadSession is one of the
+    // options. Note how this does not use InsertFile at all.
+    template <typename... Options>
+    StatusOrVal<FileMetadata> UploadFileImpl(std::string const& srcFileName,
+        std::string const& parentId,
+        std::string const& name,
+        std::true_type,
+        Options&&... options)
+    {
+        internal::ResumableUploadRequest request(parentId, name);
+        request.SetMultipleOptions(std::forward<Options>(options)...);
+        return UploadFileResumable(srcFileName, request);
+    }
+
+    // The version of UploadFile() where UseResumableUploadSession is *not* one of
+    // the options. In this case we can use InsertFileRequest because it
+    // is safe.
+    template <typename... Options>
+    StatusOrVal<FileMetadata> UploadFileImpl(std::string const& srcFileName,
+        std::string const& parentId,
+        std::string const& name,
+        std::false_type,
+        Options&&... options)
+    {
+        if (UseSimpleUpload(srcFileName))
+        {
+            internal::InsertFileRequest request(parentId, name,
+                std::string{});
+            request.SetMultipleOptions(std::forward<Options>(options)...);
+            return UploadFileSimple(srcFileName, request);
+        }
+        internal::ResumableUploadRequest request(parentId, name);
+        request.SetMultipleOptions(std::forward<Options>(options)...);
+        return UploadFileResumable(srcFileName, request);
+    }
+
+    bool UseSimpleUpload(std::string const& fileName) const;
+
+    StatusOrVal<FileMetadata> UploadFileSimple(
+        std::string const& fileName, internal::InsertFileRequest request);
+
+    StatusOrVal<FileMetadata> UploadFileResumable(
+        std::string const& fileName,
+        internal::ResumableUploadRequest const& request);
+
+    StatusOrVal<FileMetadata> UploadStreamResumable(
+        std::istream& source, internal::ResumableUploadRequest const& request);
 };
 
 } // namespace csa

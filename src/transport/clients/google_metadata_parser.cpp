@@ -109,7 +109,7 @@ StatusOrVal<nl::json> GoogleMetadataParser::ComposeFileMetadata(FileMetadata con
     auto status = ComposeCommonMetadata(jmeta, meta);
     if (!status.Ok())
         return status;
-    if (!meta.GetMimeTypeOpt())
+    if (meta.GetMimeTypeOpt())
         jmeta["mimeType"] = meta.GetMimeTypeOpt().value();
 
     return jmeta;
@@ -150,15 +150,14 @@ Status GoogleMetadataParser::ParseCommonMetadata(CommonMetadata& result, nl::jso
 }
 
 Status GoogleMetadataParser::ComposeCommonMetadata(nl::json& result, CommonMetadata const& meta)
-{
-    if (meta.GetCloudId().empty())
-        return Status(StatusCode::InvalidArgument, "Object cloud id is missing.");
-    
+{    
     SetIfNotEmpty(result, "id", meta.GetCloudId());
     SetIfNotEmpty(result, "name", meta.GetName());
-    result["parents"].emplace_back(meta.GetParentId());
+    SetIfNotEmpty(result, "parents", meta.GetParentId());
     // ? result["createdTime"] = FormatRfc3339Time(meta.GetChangeTime());
-    result["modifiedTime"] = FormatRfc3339(meta.GetChangeTime());
+    const auto epochTimePoint = std::chrono::time_point<std::chrono::system_clock>{};
+    if (meta.GetChangeTime() > epochTimePoint)
+        result["modifiedTime"] = FormatRfc3339(meta.GetChangeTime());
 
     return Status();
 }

@@ -175,6 +175,39 @@ void InsertFile(csa::CloudStorageClient* client, int& argc, char* argv[])
         << *fileMetadata << std::endl;
 }
 
+void UploadFile(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 4)
+        throw NeedUsage("upload-file <src-file-name> <parent-folder-id> <file-name>");
+
+    auto srcFileName = ConsumeArg(argc, argv);
+    auto folderId = ConsumeArg(argc, argv);
+    auto fileName = ConsumeArg(argc, argv);
+
+    auto fileMetadata = client->UploadFile(srcFileName, folderId, fileName);
+    if (!fileMetadata)
+        throw std::runtime_error(fileMetadata.GetStatus().Message());
+
+    std::cout << "Uploaded file " << srcFileName << " succeded to cloud file: id=\'" << fileMetadata->GetCloudId() << "\' "
+        << *fileMetadata << std::endl;
+}
+
+void UploadFileResumable(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 4)
+        throw NeedUsage("upload-file-resumable <src-file-name> <parent-folder-id> <file-name>");
+
+    auto srcFileName = ConsumeArg(argc, argv);
+    auto folderId = ConsumeArg(argc, argv);
+    auto fileName = ConsumeArg(argc, argv);
+
+    auto fileMetadata = client->UploadFile(srcFileName, folderId, fileName, csa::NewResumableUploadSession());
+    if (!fileMetadata)
+        throw std::runtime_error(fileMetadata.GetStatus().Message());
+
+    std::cout << "Uploaded file " << srcFileName << " succeded to cloud file: id=\'" << fileMetadata->GetCloudId() << "\' "
+        << *fileMetadata << std::endl;
+}
 } // namespace
 
 int main(int argc, char* argv[]) try 
@@ -187,7 +220,9 @@ int main(int argc, char* argv[]) try
         {"get-folder-metadata", &GetFolderMetadata},
         {"get-file-metadata", &GetFileMetadata},
         {"rename-file", &RenameFile},
-        {"insert-file", &InsertFile}
+        {"insert-file", &InsertFile},
+        {"upload-file", &UploadFile},
+        {"upload-file-resumable", &UploadFileResumable},
     };
     for (auto&& cmd : cmdMap)
     {

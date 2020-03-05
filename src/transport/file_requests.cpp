@@ -54,5 +54,34 @@ std::ostream& operator<<(std::ostream& os, DeleteRequest const& r)
     r.DumpOptions(os, ", ");
     return os << "}";
 }
+
+std::ostream& operator<<(std::ostream& os, ResumableUploadRequest const& r)
+{
+    os << "ResumableUploadRequest={parent_folder_id=" << r.GetFolderId()
+        << ", object_name=" << r.GetFileName();
+    r.DumpOptions(os, ", ");
+    return os << "}";
+}
+
+std::ostream& operator<<(std::ostream& os, UploadChunkRequest const& r)
+{
+    os << "UploadChunkRequest={file_id="
+    << ", session_url=" << r.GetUploadSessionUrl()
+    << ", range=(" << r.GetRangeBegin() << " : " << r.GetRangeEnd() << ")"
+    << ", source_size=" << r.GetSourceSize()
+    << ", last_chunk=" << (r.IsLastChunk() ? "true" : "false");
+
+    r.DumpOptions(os, ", ");
+    return os << "}";
+}
+
+std::ostream& operator<<(std::ostream& os,
+    QueryResumableUploadRequest const& r) {
+    os << "QueryResumableUploadRequest={upload_session_url="
+        << r.GetUploadSessionUrl();
+    r.DumpOptions(os, ", ");
+    return os << "}";
+}
+
 } // namespace internal
 } // namespace csa

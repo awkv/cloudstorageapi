@@ -15,7 +15,9 @@
 #include "cloudstorageapi/internal/clients/google_metadata_parser.h"
 #include "cloudstorageapi/internal/clients/google_response_parser.h"
 #include "cloudstorageapi/internal/clients/curl_googledrive_client.h"
+#include "cloudstorageapi/internal/curl_resumable_upload_session.h"
 #include "cloudstorageapi/internal/curl_request_builder.h"
+#include "cloudstorageapi/internal/resumable_upload_session.h"
 #include "cloudstorageapi/internal/utils.h"
 
 #include <functional>
@@ -30,6 +32,41 @@ namespace {
     constexpr auto UserInfoEndPoint = "https://www.googleapis.com/oauth2/v1/userinfo";
     constexpr auto OAuthRoot = "https://accounts.google.com/o/oauth2";
     constexpr auto ObjectMetadataFields = "kind,id,name,mimeType,parents,capabilities/canDownload,capabilities/canAddChildren,size,modifiedTime";
+
+    // Chunks must be multiples of 256 KiB:
+    // https://developers.google.com/drive/api/v3/manage-uploads#resumable
+    constexpr std::size_t ChunkSizeQuantum = 256 * 1024UL;
+
+    std::string GetRangeHeader(UploadChunkRequest const& request)
+    {
+        std::ostringstream os;
+        os << "Content-Range: bytes ";
+        auto& payload = request.GetPayload();
+        if (payload.empty())
+        {
+            // This typically happens when the sender realizes too late that the
+            // previous chunk was really the last chunk (e.g. the file is exactly a
+            // multiple of the quantum, reading the last chunk from a file, or sending
+            // it as part of a stream that does not detect the EOF), the formatting of
+            // the range is special in this case.
+            os << "*";
+        }
+        else
+        {
+            os << request.GetRangeBegin() << "-" << request.GetRangeEnd();
+        }
+
+        if (!request.IsLastChunk())
+        {
+            os << "/*";
+        }
+        else
+        {
+            os << "/" << request.GetSourceSize();
+        }
+
+        return std::move(os).str();
+    }
 
     template <typename ParseFunctor>
     auto CheckAndParse(ParseFunctor f, StatusOrVal<HttpResponse> response)
@@ -79,6 +116,58 @@ namespace {
 CurlGoogleDriveClient::CurlGoogleDriveClient(ClientOptions options)
     : CurlClientBase(std::move(options))
 {
+}
+
+StatusOrVal<ResumableUploadResponse> CurlGoogleDriveClient::UploadChunk(UploadChunkRequest const& request)
+{
+    CurlRequestBuilder builder(request.GetUploadSessionUrl(), m_uploadFactory);
+    auto status = SetupBuilder(builder, request, "PUT");
+    if (!status.Ok())
+    {
+        return status;
+    }
+    builder.AddHeader(GetRangeHeader(request));
+    builder.AddHeader("Content-Type: application/octet-stream");
+    builder.AddHeader("Content-Length: " +
+        std::to_string(request.GetPayload().size()));
+    auto response = builder.BuildRequest().MakeRequest(request.GetPayload());
+    if (!response.Ok())
+    {
+        return std::move(response).GetStatus();
+    }
+    if (response->m_statusCode < 300 || response->m_statusCode == 308)
+    {
+        return GoogleResponseParser::ParseResponse<ResumableUploadResponse>(*std::move(response));
+    }
+    return AsStatus(*response);
+}
+
+StatusOrVal<ResumableUploadResponse> CurlGoogleDriveClient::QueryResumableUpload(QueryResumableUploadRequest const& request)
+{
+    CurlRequestBuilder builder(request.GetUploadSessionUrl(), m_uploadFactory);
+    auto status = SetupBuilder(builder, request, "PUT");
+    if (!status.Ok())
+    {
+        return status;
+    }
+    builder.AddHeader("Content-Range: bytes */*");
+    builder.AddHeader("Content-Type: application/octet-stream");
+    builder.AddHeader("Content-Length: 0");
+    auto response = builder.BuildRequest().MakeRequest(std::string{});
+    if (!response.Ok())
+    {
+        return std::move(response).GetStatus();
+    }
+    if (response->m_statusCode < 300 || response->m_statusCode == 308)
+    {
+        return GoogleResponseParser::ParseResponse<ResumableUploadResponse>(*std::move(response));
+    }
+    return AsStatus(*response);
+}
+
+std::size_t CurlGoogleDriveClient::GetFileChunkQuantum() const
+{
+    return ChunkSizeQuantum;
 }
 
 StatusOrVal<EmptyResponse> CurlGoogleDriveClient::Delete(DeleteRequest const& request)
@@ -175,6 +264,24 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::InsertFile(InsertFileRequest co
         return InsertFileSimple(request);
 }
 
+StatusOrVal<std::unique_ptr<ResumableUploadSession>>
+CurlGoogleDriveClient::CreateResumableSession(ResumableUploadRequest const& request)
+{
+    return CreateResumableSessionGeneric(request);
+}
+
+StatusOrVal<std::unique_ptr<ResumableUploadSession>>
+CurlGoogleDriveClient::RestoreResumableSession(std::string const& sessionId)
+{
+    auto session =
+        std::make_unique<CurlResumableUploadSession>(shared_from_this(), sessionId);
+    auto response = session->ResetSession();
+    if (response.GetStatus().Ok())
+    {
+        return std::unique_ptr<ResumableUploadSession>(std::move(session));
+    }
+    return std::move(response).GetStatus();
+}
 
 std::string CurlGoogleDriveClient::PickBoundary(std::string const& textToAvoid)
 {
@@ -280,6 +387,106 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::InsertFileMultipart(InsertFileR
     builder.AddQueryParameter("fields", ObjectMetadataFields);
     auto response = builder.BuildRequest().MakeRequest(contents);
     return ParseFileMetadata(response);
+}
+
+template <typename RequestType>
+StatusOrVal<std::unique_ptr<ResumableUploadSession>>
+CurlGoogleDriveClient::CreateResumableSessionGeneric(RequestType const& request)
+{
+    if (request.template HasOption<UseResumableUploadSession>())
+    {
+        auto sessionId =
+            request.template GetOption<UseResumableUploadSession>().Value();
+        if (!sessionId.empty())
+        {
+            return RestoreResumableSession(sessionId);
+        }
+    }
+
+    CurlRequestBuilder builder(FilesUploadEndPoint, m_uploadFactory);
+    auto status = SetupBuilderCommon(builder, "POST");
+    if (!status.Ok())
+    {
+        return status;
+    }
+
+    // In most cases we use `SetupBuilder()` to setup all these options in the
+    // request. But in this case we cannot because that might also set
+    // `Content-Type` to the wrong value. Instead we have to explicitly list all
+    // the options here. Somebody could write a clever meta-function to say
+    // "set all the options except `ContentType`, but I think that is going to be
+    // very hard to understand.
+    builder.AddOption(request.template GetOption<CustomHeader>());
+    builder.AddOption(request.template GetOption<Fields>());
+    builder.AddOption(request.template GetOption<IfMatchEtag>());
+    builder.AddOption(request.template GetOption<IfNoneMatchEtag>());
+
+    builder.AddQueryParameter("uploadType", "resumable");
+    builder.AddHeader("Content-Type: application/json; charset=UTF-8");
+    nl::json resource;
+    // Set meta information
+    {
+        FileMetadata fmeta;
+        if (request.template HasOption<WithFileMetadata>())
+        {
+            fmeta = request.template GetOption<WithFileMetadata>().Value();
+        }
+        
+        if(fmeta.GetName().empty())
+        {
+            fmeta.SetName(request.GetFileName());
+        }
+        if(fmeta.GetParentId().empty())
+        {
+            fmeta.SetParentId(request.GetFolderId());
+        }
+        resource = GoogleMetadataParser::ComposeFileMetadata(fmeta).Value();
+    }
+
+    if (request.template HasOption<ContentEncoding>())
+    {
+        resource["contentEncoding"] =
+            request.template GetOption<ContentEncoding>().value();
+    }
+    if (request.template HasOption<ContentType>())
+    {
+        resource["contentType"] = request.template GetOption<ContentType>().value();
+    }
+
+    std::string requestPayload;
+    if (!resource.empty())
+    {
+        requestPayload = resource.dump();
+    }
+    builder.AddHeader("Content-Length: " +
+        std::to_string(requestPayload.size()));
+    builder.AddQueryParameter("fields", ObjectMetadataFields);
+
+    auto httpResponse = builder.BuildRequest().MakeRequest(requestPayload);
+    if (!httpResponse.Ok())
+    {
+        return std::move(httpResponse).GetStatus();
+    }
+    if (httpResponse->m_statusCode >= 300)
+    {
+        return AsStatus(*httpResponse);
+    }
+    auto response =
+        GoogleResponseParser::ParseResponse<ResumableUploadResponse>(*std::move(httpResponse));
+    if (!response.Ok())
+    {
+        return std::move(response).GetStatus();
+    }
+    if (response->m_uploadSessionUrl.empty())
+    {
+        std::ostringstream os;
+        os << __func__ << " - invalid server response, parsed to " << *response;
+        return Status(StatusCode::Internal, std::move(os).str());
+    }
+
+    return std::unique_ptr<ResumableUploadSession>(
+        std::make_unique<CurlResumableUploadSession>(
+            shared_from_this(), std::move(response->m_uploadSessionUrl)));
 }
 
 }  // namespace internal

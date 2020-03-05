@@ -16,6 +16,7 @@
 
 #include "cloudstorageapi/file_metadata.h"
 #include "cloudstorageapi/internal/generic_object_request.h"
+#include "cloudstorageapi/upload_options.h"
 #include "cloudstorageapi/well_known_headers.h"
 
 namespace csa {
@@ -71,6 +72,11 @@ public:
     std::string GetFolderId() const { return m_folderId; }
     std::string GetName() const { return m_name; }
     std::string const& GetContent() const { return m_content; }
+    InsertFileRequest& SetContent(std::string&& cnt)
+    {
+        m_content = std::move(cnt);
+        return *this;
+    }
 
 private:
     std::string m_folderId;
@@ -87,6 +93,102 @@ public:
 };
 
 std::ostream& operator<<(std::ostream& os, DeleteRequest const& r);
+
+/**
+ * Represents a request to start a resumable upload in `Files: insert`.
+ *
+ * This request type is used to start resumable uploads. A resumable upload is
+ * started with a `File: insert` request with the `uploadType=resumable`
+ * query parameter. The payload for the initial request includes the (optional)
+ * object metadata. The response includes a URL to send requests that upload
+ * the media.
+ */
+class ResumableUploadRequest
+    : public GenericObjectRequest<ResumableUploadRequest, ContentEncoding,
+    ContentType, UseResumableUploadSession, WithFileMetadata>
+{
+public:
+    ResumableUploadRequest() = default;
+
+    ResumableUploadRequest(std::string folderId, std::string fileName)
+        : GenericObjectRequest(),
+        m_folderId(folderId),
+        m_name(fileName)
+    {}
+
+    std::string GetFolderId() const { return m_folderId; }
+    std::string GetFileName() const { return m_name; }
+
+private:
+    std::string m_folderId;
+    std::string m_name;
+};
+
+std::ostream& operator<<(std::ostream& os, ResumableUploadRequest const& r);
+
+/**
+ * A request to send one chunk in an upload session.
+ */
+class UploadChunkRequest : public GenericRequest<UploadChunkRequest>
+{
+public:
+    UploadChunkRequest() = default;
+    UploadChunkRequest(std::string uploadSessionUrl, std::uint64_t rangeBegin,
+        std::string payload)
+        : GenericRequest(),
+        m_uploadSessionUrl(std::move(uploadSessionUrl)),
+        m_rangeBegin(rangeBegin),
+        m_payload(std::move(payload)),
+        m_sourceSize(0),
+        m_lastChunk(false)
+    {}
+
+    UploadChunkRequest(std::string uploadSessionUrl, std::uint64_t rangeBegin,
+        std::string payload, std::uint64_t sourceSize)
+        : GenericRequest(),
+        m_uploadSessionUrl(std::move(uploadSessionUrl)),
+        m_rangeBegin(rangeBegin),
+        m_payload(std::move(payload)),
+        m_sourceSize(sourceSize),
+        m_lastChunk(true)
+    {}
+
+    std::string const& GetUploadSessionUrl() const { return m_uploadSessionUrl; }
+    std::uint64_t GetRangeBegin() const { return m_rangeBegin; }
+    std::uint64_t GetRangeEnd() const { return m_rangeBegin + m_payload.size() - 1; }
+    std::uint64_t GetSourceSize() const { return m_sourceSize; }
+    std::string const& GetPayload() const { return m_payload; }
+    bool IsLastChunk() const { return m_lastChunk; }
+
+private:
+    std::string m_uploadSessionUrl;
+    std::uint64_t m_rangeBegin = 0;
+    std::string m_payload;
+    std::uint64_t m_sourceSize = 0;
+    bool m_lastChunk = false;
+};
+
+std::ostream& operator<<(std::ostream& os, UploadChunkRequest const& r);
+
+/**
+ * A request to query the status of a resumable upload.
+ */
+class QueryResumableUploadRequest
+    : public GenericRequest<QueryResumableUploadRequest>
+{
+public:
+    QueryResumableUploadRequest() = default;
+    explicit QueryResumableUploadRequest(std::string uploadSessionUrl)
+        : GenericRequest(), m_uploadSessionUrl(std::move(uploadSessionUrl)) {}
+
+    std::string const& GetUploadSessionUrl() const { return m_uploadSessionUrl; }
+
+private:
+    std::string m_uploadSessionUrl;
+};
+
+std::ostream& operator<<(std::ostream& os,
+    QueryResumableUploadRequest const& r);
 
 }  // namespace internal
 }  // namespace csa
