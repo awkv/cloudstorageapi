@@ -32,6 +32,8 @@ set(csa_sources
     transport/folder_requests.cpp
     transport/http_empty_response.cpp
     transport/http_response.cpp
+    transport/logging_client.cpp
+    transport/logging_resumable_upload_session.cpp
     transport/resumable_upload_session.cpp
     client_options.cpp
     cloud_storage_client.cpp
@@ -39,6 +41,7 @@ set(csa_sources
     file_metadata.cpp
     folder_metadata.cpp
     json_utils.cpp
+    log.cpp
     random.cpp
     rfc3339_time.cpp
     status.cpp
@@ -54,7 +57,8 @@ target_link_libraries(cloudstorageapi
                       PUBLIC CURL::libcurl
                              OpenSSL::SSL
                              OpenSSL::Crypto
-                             ZLIB::ZLIB)
+                             ZLIB::ZLIB
+                             spdlog::spdlog)
 
 target_include_directories(cloudstorageapi
                            PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>

@@ -149,8 +149,8 @@ StatusOrVal<FileMetadata> CloudStorageClient::UploadStreamResumable(
         if (session->GetNextExpectedByte() != expected)
         {
             CSA_LOG_WARNING("Unexpected last committed byte: "
-                << " expected=" << expected
-                << " got=" << session->GetNextExpectedByte());
+                " expected={} got={}", expected,
+                session->GetNextExpectedByte());
             source.seekg(session->GetNextExpectedByte(), std::ios::beg);
         }
     }

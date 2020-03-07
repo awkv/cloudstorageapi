@@ -22,6 +22,7 @@ set(csa_tests
     curl_wrappers_locking_already_present_test.cpp
     curl_wrappers_locking_disabled_test.cpp
     curl_wrappers_locking_enabled_test.cpp
+    log_test.cpp
     main.cpp
     nljson_use_after_third_party_test.cpp
     nljson_use_third_party_test.cpp
@@ -30,11 +31,11 @@ set(csa_tests
     status_or_val_test.cpp
 	status_test.cpp)
 
-find_package(GTest REQUIRED)
+find_package(GTest CONFIG REQUIRED)
 
 add_executable(csa_tests ${csa_tests})
 target_link_libraries(csa_tests
-                      PRIVATE GTest::GTest
+                      PRIVATE GTest::gtest GTest::gtest_main GTest::gmock
                       cloudstorageapi)
 
 target_include_directories(csa_tests

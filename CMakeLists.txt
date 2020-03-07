@@ -48,6 +48,7 @@ include(SelectMSVCRuntime)
 include(FindCurlWithTargets)
 find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(spdlog REQUIRED)
 
 add_subdirectory(src)
 add_subdirectory(tests)

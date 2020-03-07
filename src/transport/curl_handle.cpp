@@ -115,8 +115,8 @@ int CurlSetSocketOptions(void* userdata, curl_socket_t curlfd,
 #endif  // WIN32
             if (r != 0)
             {
-                CSA_LOG_ERROR(__func__, "(): setting socket recv buffer size to ", size,
-                               " error=", ::strerror(errno)," [", errno, "]");
+                CSA_LOG_ERROR("{}(): setting socket recv buffer size to {} error={} [{}]", __func__, size,
+                    ::strerror(errno), errno);
                 return CURL_SOCKOPT_ERROR;
             }
         }
@@ -131,9 +131,8 @@ int CurlSetSocketOptions(void* userdata, curl_socket_t curlfd,
 #endif  // WIN32
             if (r != 0)
             {
-                CSA_LOG_ERROR( __func__,
-                               "(): setting socket send buffer size to ", size,
-                               " error=", ::strerror(errno), " [", errno, "]");
+                CSA_LOG_ERROR("{}(): setting socket send buffer size to {} error={} [{}]", __func__, size,
+                    ::strerror(errno), errno);
                 return CURL_SOCKOPT_ERROR;
             }
         }
@@ -235,7 +234,7 @@ void CurlHandle::FlushDebug(char const* where)
 {
     if (!m_debugBuffer.empty())
     {
-        CSA_LOG_DEBUG( where, ' ', m_debugBuffer);
+        CSA_LOG_DEBUG( "{} {}", where, m_debugBuffer);
         m_debugBuffer.clear();
     }
 }

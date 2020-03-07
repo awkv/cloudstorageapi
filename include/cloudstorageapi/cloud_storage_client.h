@@ -22,6 +22,7 @@
 #include "cloudstorageapi/folder_metadata.h"
 #include "cloudstorageapi/internal/file_requests.h"
 #include "cloudstorageapi/internal/folder_requests.h"
+#include "cloudstorageapi/internal/logging_client.h"
 #include "cloudstorageapi/internal/raw_client.h"
 #include "cloudstorageapi/status_or_val.h"
 #include "cloudstorageapi/upload_options.h"
@@ -53,8 +54,12 @@ public:
     {}
 
     explicit CloudStorageClient(std::shared_ptr<internal::RawClient> client)
-        : m_RawClient(std::move(client))
-    {}
+    {
+        if (client->GetClientOptions().GetEnableRawClientTracing())
+            m_RawClient = std::make_shared<internal::LoggingClient>(std::move(client));
+        else
+            m_RawClient = std::move(client);
+    }
 
     static StatusOrVal<CloudStorageClient> CreateDefaultClient(EProvider provider);
 

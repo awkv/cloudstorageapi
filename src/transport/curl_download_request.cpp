@@ -31,7 +31,8 @@ namespace internal {
 // TRACE_STATE() macro is only needed by the library developers when
 // troubleshooting this class.
 #define TRACE_STATE()                                                       \
-  CSA_LOG_TRACE( __func__ << "(), m_bufferSize={}, m_bufferOffset={}, m_spill.size()={}, m_spillOffset={}, closing={}, closed={}, paused={}, in_multi={}",\
+  CSA_LOG_TRACE(  "{}(), m_bufferSize={}, m_bufferOffset={}, m_spill.size()={}, m_spillOffset={}, closing={}, closed={}, paused={}, in_multi={}",\
+                 __func__,                \
                  m_bufferSize,            \
                  m_bufferOffset,          \
                  m_spill.size(),          \
