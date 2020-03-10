@@ -86,6 +86,11 @@ std::string const& LoggingResumableUploadSession::GetSessionId() const
     return response;
 }
 
+std::size_t LoggingResumableUploadSession::GetFileChunkSizeQuantum() const
+{
+    return m_session->GetFileChunkSizeQuantum();
+}
+
 StatusOrVal<ResumableUploadResponse> const&
 LoggingResumableUploadSession::GetLastResponse() const
 {

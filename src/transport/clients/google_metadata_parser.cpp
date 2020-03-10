@@ -153,7 +153,8 @@ Status GoogleMetadataParser::ComposeCommonMetadata(nl::json& result, CommonMetad
 {    
     SetIfNotEmpty(result, "id", meta.GetCloudId());
     SetIfNotEmpty(result, "name", meta.GetName());
-    SetIfNotEmpty(result, "parents", meta.GetParentId());
+    if (!meta.GetParentId().empty())
+        result["parents"] = nl::json::array({ meta.GetParentId() });
     // ? result["createdTime"] = FormatRfc3339Time(meta.GetChangeTime());
     const auto epochTimePoint = std::chrono::time_point<std::chrono::system_clock>{};
     if (meta.GetChangeTime() > epochTimePoint)

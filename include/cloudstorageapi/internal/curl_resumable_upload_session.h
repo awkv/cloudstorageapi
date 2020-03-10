@@ -46,6 +46,8 @@ public:
 
     std::string const& GetSessionId() const override { return m_sessionId; }
 
+    std::size_t GetFileChunkSizeQuantum() const { return m_client->GetFileChunkQuantum(); }
+
     bool Done() const override { return m_done; }
 
     StatusOrVal<ResumableUploadResponse> const& GetLastResponse() const override

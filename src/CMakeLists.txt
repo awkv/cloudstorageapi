@@ -39,6 +39,8 @@ set(csa_sources
     cloud_storage_client.cpp
     common_metadata.cpp
     file_metadata.cpp
+    file_stream.cpp
+    file_streambuf.cpp
     folder_metadata.cpp
     json_utils.cpp
     log.cpp

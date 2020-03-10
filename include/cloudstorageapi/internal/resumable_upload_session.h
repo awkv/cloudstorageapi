@@ -76,6 +76,11 @@ public:
      */
     virtual std::string const& GetSessionId() const = 0;
 
+    /**
+     * Returns the chunk size quantum
+     */
+    virtual std::size_t GetFileChunkSizeQuantum() const = 0;
+
     /// Returns whether the upload session has completed.
     virtual bool Done() const = 0;
 
@@ -145,6 +150,11 @@ public:
     }
 
     std::string const& GetSessionId() const override { return m_id; }
+
+    std::size_t GetFileChunkSizeQuantum() const override
+    {
+        return 0;
+    }
 
     bool Done() const override { return true; }
 

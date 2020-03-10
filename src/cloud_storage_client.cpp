@@ -163,4 +163,26 @@ StatusOrVal<FileMetadata> CloudStorageClient::UploadStreamResumable(
     return *std::move(uploadResponse->m_payload);
 }
 
+FileWriteStream CloudStorageClient::WriteObjectImpl(
+    internal::ResumableUploadRequest const& request)
+{
+    auto session = m_RawClient->CreateResumableSession(request);
+    if (!session)
+    {
+        auto error = std::make_unique<
+            internal ::ResumableUploadSessionError>(std::move(session).GetStatus());
+
+        FileWriteStream errorStream(std::make_unique<
+            internal::FileWriteStreambuf>(
+                std::move(error), 0));
+        errorStream.setstate(std::ios::badbit | std::ios::eofbit);
+        errorStream.Close();
+        return errorStream;
+    }
+
+    return FileWriteStream(
+        std::make_unique<internal::FileWriteStreambuf>(
+            *std::move(session),
+            m_RawClient->GetClientOptions().GetUploadBufferSize()));
+}
 }; // namespace csa

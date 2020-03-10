@@ -18,12 +18,13 @@
 
 #include "cloudstorageapi/client_options.h"
 #include "cloudstorageapi/file_metadata.h"
-#include "cloudstorageapi/list_folder_reader.h"
+#include "cloudstorageapi/file_stream.h"
 #include "cloudstorageapi/folder_metadata.h"
 #include "cloudstorageapi/internal/file_requests.h"
 #include "cloudstorageapi/internal/folder_requests.h"
 #include "cloudstorageapi/internal/logging_client.h"
 #include "cloudstorageapi/internal/raw_client.h"
+#include "cloudstorageapi/list_folder_reader.h"
 #include "cloudstorageapi/status_or_val.h"
 #include "cloudstorageapi/upload_options.h"
 
@@ -192,8 +193,51 @@ public:
         return UploadFileImpl(srcFileName, parentId, name, HasUseResumableUpload{}, std::forward<Options>(options)...);
     }
 
+    /**
+     * Writes contents into an object.
+     *
+     * This creates a `std::ostream` object to upload contents. The application
+     * can use either the regular `operator<<()`, or `std::ostream::write()` to
+     * upload data.
+     *
+     * The application can explicitly request a new resumable upload using the
+     * result of `#NewResumableUploadSession()`. To restore a previously created
+     * resumable session use `#RestoreResumableUploadSession()`.
+     *
+     * @note It is the application's responsibility to query the stream to find
+     *     the latest committed byte and to upload data starting from the next
+     *     byte expected by the upload session.
+     *
+     * @note Using the `WithObjectMetadata` option implicitly creates a resumable
+     *     upload.
+     *
+     * Without resumable uploads an interrupted upload has to be restarted from
+     * the beginning. Therefore, applications streaming large objects should try
+     * to use resumable uploads, and save the session id to restore them if
+     * needed.
+     *
+     * Non-resumable uploads may be more efficient for small and medium sized
+     * uploads, as they require fewer roundtrips to the service.
+     *
+     * For small uploads `InsertFile` is recommended.
+     *
+     * @param parentId the id of the parent folder that contains the object.
+     * @param name the name of the object to be written.
+     * @param options a list of optional query parameters and/or request headers.
+     *   Valid types for this operation include `ContentEncoding`, `ContentType`,
+     *   `UseResumableUploadSession`, and `WithObjectMetadata`.
+     */
+    template<typename... Options>
+    FileWriteStream WriteFile(std::string const& parentId,
+                              std::string const& name,
+                              Options&&... options)
+    {
+        internal::ResumableUploadRequest request(parentId, name);
+        request.SetMultipleOptions(std::forward<Options>(options)...);
+        return WriteObjectImpl(request);
+    }
+
     // TODO: to be implemented.
-    //StatusOrVal<FileWriteStream> WriteFile(std::string const& id); // TODO: add parameters like offset, range, etc.
     //StatusOrVal<FileMetadata> UpdateFile(std::string const& id, FileMetadata metadata);
     //Status DownloadFile(std::string const& id, std::string const& dstFileName, std::string const& contentTypeOpt) const;
     //Status DownloadFileThumbnail(std::string const& id, std::string const& dstFileName, uint16_t size = 256, std::string const& imgFormat = "png") const; // Only for box, dropbox and gdrive
@@ -277,6 +321,10 @@ private:
 
     StatusOrVal<FileMetadata> UploadStreamResumable(
         std::istream& source, internal::ResumableUploadRequest const& request);
+
+    FileWriteStream WriteObjectImpl(
+        internal::ResumableUploadRequest const& request);
+
 };
 
 } // namespace csa

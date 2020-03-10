@@ -39,6 +39,7 @@ public:
     StatusOrVal<ResumableUploadResponse> ResetSession() override;
     std::uint64_t GetNextExpectedByte() const override;
     std::string const& GetSessionId() const override;
+    std::size_t GetFileChunkSizeQuantum() const override;
     StatusOrVal<ResumableUploadResponse> const& GetLastResponse() const override;
     bool Done() const override;
 

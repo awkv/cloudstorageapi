@@ -167,6 +167,7 @@ void InsertFile(csa::CloudStorageClient* client, int& argc, char* argv[])
     auto fileName = ConsumeArg(argc, argv);
     auto contents = ConsumeArg(argc, argv);
 
+    // It runs multipart insertion if name is not empty.
     auto fileMetadata = client->InsertFile(folderId, fileName, contents);
     if (!fileMetadata)
         throw std::runtime_error(fileMetadata.GetStatus().Message());
@@ -208,6 +209,129 @@ void UploadFileResumable(csa::CloudStorageClient* client, int& argc, char* argv[
     std::cout << "Uploaded file " << srcFileName << " succeded to cloud file: id=\'" << fileMetadata->GetCloudId() << "\' "
         << *fileMetadata << std::endl;
 }
+
+void WriteFile(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 4)
+        throw NeedUsage("write-file <parent-folder-id> <file-name> <target-object-line-count>");
+
+    auto folderId = ConsumeArg(argc, argv);
+    auto fileName = ConsumeArg(argc, argv);
+    auto lineCount = std::stol(ConsumeArg(argc, argv));
+
+    std::string const text = "Lorem ipsum dolor sit amet";
+    auto stream = client->WriteFile(folderId, fileName);
+
+    for (int line = 0; line < lineCount; ++line)
+        stream << (line + 1) << ": " << text << std::endl;
+
+    stream.Close();
+    auto meta = std::move(stream).GetMetadata();
+    if (!meta)
+        throw std::runtime_error(meta.GetStatus().Message());
+
+    std::cout << "Successfully wrote to file " << meta->GetName()
+        << " size is: " << meta->GetSize() <<
+        " Metadata: " << *meta << std::endl;
+}
+
+void WriteLargeFile(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 4)
+        throw NeedUsage("write-large-file <parent-folder-id> <file-name> <size-in-MiB>");
+
+    auto folderId = ConsumeArg(argc, argv);
+    auto fileName = ConsumeArg(argc, argv);
+    auto sizeMiB = std::stoi(ConsumeArg(argc, argv));
+
+    // We want random-looking data, but we do not care if the data has a lot of
+    // entropy, so do not bother with a complex initialization of the PRNG seed.
+    std::mt19937_64 gen;
+    auto generateLine = [&gen]() -> std::string
+    {
+        std::string const chars =
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345789";
+        std::string line(128, '\n');
+        std::uniform_int_distribution<std::size_t> uni(0, chars.size() - 1);
+        std::generate_n(line.begin(), 127, [&] { return chars.at(uni(gen)); });
+        return line;
+    };
+
+    // Each line is 128 bytes, so the number of lines is:
+    long const MiB = 1024L * 1024;
+    long const lineCount = sizeMiB * MiB / 128;
+
+    auto stream = client->WriteFile(folderId, fileName);
+    std::generate_n(std::ostream_iterator<std::string>(stream), lineCount,
+        generateLine);
+
+    //stream.Close();
+    // TODO: print success/fail msg
+}
+
+void StartResumableUpload(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 3)
+        throw NeedUsage("start-resumable-upload <parent-folder-id> <file-name>");
+
+    auto folderId = ConsumeArg(argc, argv);
+    auto fileName = ConsumeArg(argc, argv);
+
+    auto stream = client->WriteFile(folderId, fileName);
+
+    std::cout << "Created resumable upload: " << stream.GetResumableSessionId()
+        << "\n";
+    // As it is customary in C++, the destructor automatically closes the
+    // stream, that would finish the upload and create the object. For this
+    // example we want to restore the session as-if the application had crashed,
+    // where no destructors get called.
+    stream << "This data will not get uploaded, it is too small\n";
+    std::move(stream).Suspend();
+}
+
+void ResumeResumableUpload(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 4)
+        throw NeedUsage("resume-resumable-upload <parent-folder-id> <file-name> <session-id>");
+
+    auto folderId = ConsumeArg(argc, argv);
+    auto fileName = ConsumeArg(argc, argv);
+    auto sessionId = ConsumeArg(argc, argv);
+
+    auto stream = client->WriteFile(folderId, fileName, csa::RestoreResumableUploadSession(sessionId));
+    if (!stream.IsOpen() && stream.GetMetadata().Ok())
+    {
+        std::cout << "The upload has already been finalized. The object "
+            << "metadata is: " << *stream.GetMetadata() << "\n";
+    }
+    if (stream.GetNextExpectedByte() == 0)
+    {
+        // In this example we create a small object, smaller than the resumable
+        // upload quantum (256 KiB), so either all the data is there or not.
+        // Applications use `next_expected_byte()` to find the position in their
+        // input where they need to start uploading.
+        stream << R"""(
+Lorem ipsum dolor sit amet, consectetur adipiscing
+elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit
+esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
+non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+)""";
+    }
+
+    stream.Close();
+
+    auto meta = stream.GetMetadata();
+    if (!meta)
+    {
+        throw std::runtime_error(meta.GetStatus().Message());
+    }
+
+    std::cout << "Upload completed, the new object metadata is: " << *meta
+        << "\n";
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) try 
@@ -223,6 +347,10 @@ int main(int argc, char* argv[]) try
         {"insert-file", &InsertFile},
         {"upload-file", &UploadFile},
         {"upload-file-resumable", &UploadFileResumable},
+        {"write-file", &WriteFile},
+        {"write-large-file", &WriteLargeFile},
+        {"start-resumable-upload", &StartResumableUpload},
+        {"resume-resumable-upload", &ResumeResumableUpload},
     };
     for (auto&& cmd : cmdMap)
     {
