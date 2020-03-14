@@ -29,7 +29,8 @@ set(csa_tests
     random_test.cpp
     rfc3339_time_test.cpp
     status_or_val_test.cpp
-	status_test.cpp)
+	status_test.cpp
+    utils_test.cpp)
 
 find_package(GTest CONFIG REQUIRED)
 
