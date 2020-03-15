@@ -245,12 +245,14 @@ public:
      * @param dstFileName the name of the destination file that will have the cloud file
      *   media.
      * @param options a list of optional query parameters and/or request headers.
-     *   Valid types for this operation include `ReadFromOffset` and `ReadRange`.
+     *     Valid types for this operation include `ReadFromOffset` and `ReadRange`,
+     *     and `ReadLast`.
      *
      */
     template<typename... Options>
     Status DownloadFile(std::string const& fileId,
-        std::string const& dstFileName) // TODO: figure out if content type param is needed.
+        std::string const& dstFileName,
+        Options&&... options) // TODO: figure out if content type param is needed.
                                         // Maybe for downloading google docs.
     {
         internal::ReadFileRangeRequest request(fileId);
@@ -258,8 +260,48 @@ public:
         return DownloadFileImpl(request, dstFileName);
     }
 
+    /**
+     * Reads the contents of a file.
+     *
+     * Returns an object derived from `std::istream` which can be used to read the
+     * contents of the cloud file. The application should check the `badbit` (e.g.
+     * by calling `stream.bad()`) on the returned object to detect if there was
+     * an error reading from the file. If `badbit` is set, the application can
+     * check the `status()` variable to get details about the failure.
+     * Applications can also set the exception mask on the returned stream, in
+     * which case an exception is thrown if an error is detected.
+     *
+     * @param fileId the id of the file to be read.
+     * @param options a list of optional query parameters and/or request headers.
+     *     Valid types for this operation include `ReadFromOffset`, `ReadRange`
+     *     and `ReadLast`.
+     */
+    template <typename... Options>
+    FileReadStream ReadFile(std::string const& fileId,
+        Options&&... options)
+    {
+        struct HasReadRange : public std::disjunction<
+            std::is_same<ReadRange, Options>...> {};
+        struct HasReadFromOffset : public std::disjunction<
+            std::is_same<ReadFromOffset, Options>...> {};
+        struct HasReadLast : public std::disjunction<
+            std::is_same<ReadLast, Options>...> {};
+
+        struct HasIncompatibleRangeOptions
+            : public std::integral_constant<bool, HasReadLast::value &&
+            (HasReadFromOffset::value ||
+                HasReadRange::value)> {};
+
+        static_assert(!HasIncompatibleRangeOptions::value,
+            "Cannot set ReadLast option with either ReadFromOffset or "
+            "ReadRange.");
+
+        internal::ReadFileRangeRequest request(fileId);
+        request.SetMultipleOptions(std::forward<Options>(options)...);
+        return ReadObjectImpl(request);
+    }
+    
     // TODO: to be implemented.
-    //StatusOrVal<FileReadStream> ReadFile(std::string const& id)
     //StatusOrVal<FileMetadata> UpdateFile(std::string const& id, FileMetadata metadata);
     //Status DownloadFileThumbnail(std::string const& id, std::string const& dstFileName, uint16_t size = 256, std::string const& imgFormat = "png") const; // Only for box, dropbox and gdrive
     //StatusOrVal<FileMetadata> CopyFile(std::string const& id, std::string const& newParentId, std::string const& newNameOpt);

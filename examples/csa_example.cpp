@@ -16,6 +16,7 @@
 
 #include "cloudstorageapi/cloud_storage_client.h"
 #include <functional>
+#include <string>
 
 namespace {
 class NeedUsage : public std::exception
@@ -349,6 +350,41 @@ void DownloadFile(csa::CloudStorageClient* client, int& argc, char* argv[])
 
     std::cout << "Downloaded file \"" << fileId << "\" to " << dstFileName;
 }
+
+void ReadFile(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 2)
+        throw NeedUsage{ "read-file <file-id>" };
+
+    auto fileId = ConsumeArg(argc, argv);
+
+    auto stream = client->ReadFile(fileId);
+    int lineCount = 0;
+    std::string line;
+    while (std::getline(stream, line, '\n'))
+        ++lineCount;
+
+    std::cout << "The file \"" << fileId << "\" has " << lineCount << " lines." << std::endl;
+}
+
+void ReadFileRange(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 4)
+        throw NeedUsage{ "read-file-range <file-id> <start> <end>" };
+
+    auto fileId = ConsumeArg(argc, argv);
+    auto start = std::stoll(ConsumeArg(argc, argv));
+    auto end = std::stoll(ConsumeArg(argc, argv));
+
+    auto stream = client->ReadFile(fileId, csa::ReadRange(start, end));
+    int lineCount = 0;
+    std::string line;
+    while (std::getline(stream, line, '\n'))
+        ++lineCount;
+
+    std::cout << "The requested range of file \"" << fileId << "\" has " << lineCount << " lines.";
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) try 
@@ -369,6 +405,8 @@ int main(int argc, char* argv[]) try
         {"start-resumable-upload", &StartResumableUpload},
         {"resume-resumable-upload", &ResumeResumableUpload},
         {"download-file", &DownloadFile},
+        {"read-file", &ReadFile},
+        {"read-file-range", &ReadFileRange},
     };
     for (auto&& cmd : cmdMap)
     {
