@@ -23,6 +23,7 @@ class CurlRequestBuilder;
 class UploadChunkRequest;
 class QueryResumableUploadRequest;
 struct ResumableUploadResponse;
+class ObjectReadSource;
 
 /**
  * Implements the low-level RPCs to Cloud Storage using libcurl.
@@ -57,6 +58,8 @@ public:
 
     StatusOrVal<ListFolderResponse> ListFolder(ListFolderRequest const& request) override;
     StatusOrVal<FolderMetadata> GetFolderMetadata(GetFolderMetadataRequest const& request) override;
+    StatusOrVal<std::unique_ptr<ObjectReadSource>> ReadFile(
+        ReadFileRangeRequest const& request) override;
 
     StatusOrVal<FileMetadata> GetFileMetadata(GetFileMetadataRequest const& request) override;
     StatusOrVal<FileMetadata> RenameFile(RenameFileRequest const& request) override;

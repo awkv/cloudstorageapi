@@ -30,6 +30,54 @@ class FileMetadata;
 
 namespace internal {
 
+class ReadFileRangeRequest;
+
+/**
+ * Defines a compilation barrier for libcurl.
+ *
+ * We do not want to expose the libcurl objects through `FileReadStream`,
+ * this class abstracts away the implementation so applications are not impacted
+ * by the implementation details.
+ */
+class FileReadStreambuf : public std::basic_streambuf<char>
+{
+public:
+    FileReadStreambuf(ReadFileRangeRequest const& request,
+        std::unique_ptr<ObjectReadSource> source);
+
+    /// Create a streambuf in a permanent error status.
+    FileReadStreambuf(ReadFileRangeRequest const& request, Status status);
+
+    ~FileReadStreambuf() override = default;
+
+    FileReadStreambuf(FileReadStreambuf&&) noexcept = delete;
+    FileReadStreambuf& operator=(FileReadStreambuf&&) noexcept = delete;
+    FileReadStreambuf(FileReadStreambuf const&) = delete;
+    FileReadStreambuf& operator=(FileReadStreambuf const&) = delete;
+
+    bool IsOpen() const;
+    void Close();
+
+    Status const& GetStatus() const { return m_status; }
+    std::multimap<std::string, std::string> const& GetHeaders() const
+    {
+        return m_headers;
+    }
+
+private:
+    int_type ReportError(Status status);
+    void SetEmptyRegion();
+    StatusOrVal<int_type> Peek();
+
+    int_type underflow() override;
+    std::streamsize xsgetn(char* s, std::streamsize count) override;
+
+    std::unique_ptr<ObjectReadSource> m_source;
+    std::vector<char> m_currentIosBuffer;
+    Status m_status;
+    std::multimap<std::string, std::string> m_headers;
+};
+    
 /**
  * Defines a compilation barrier for libcurl.
  *

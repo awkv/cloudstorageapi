@@ -121,6 +121,13 @@ StatusOrVal<FileMetadata> LoggingClient::GetFileMetadata(GetFileMetadataRequest 
     return MakeCall(*m_client, &RawClient::GetFileMetadata, request, __func__);
 }
 
+StatusOrVal<std::unique_ptr<ObjectReadSource>> LoggingClient::ReadFile(
+    ReadFileRangeRequest const& request)
+{
+    return MakeCallNoResponseLogging(*m_client, &RawClient::ReadFile, request,
+        __func__);
+}
+
 StatusOrVal<FileMetadata> LoggingClient::RenameFile(RenameFileRequest const& request)
 {
     return MakeCall(*m_client, &RawClient::RenameFile, request, __func__);

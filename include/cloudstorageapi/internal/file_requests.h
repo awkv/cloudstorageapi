@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include "cloudstorageapi/download_options.h"
 #include "cloudstorageapi/file_metadata.h"
 #include "cloudstorageapi/internal/generic_object_request.h"
 #include "cloudstorageapi/upload_options.h"
@@ -112,8 +113,8 @@ public:
 
     ResumableUploadRequest(std::string folderId, std::string fileName)
         : GenericObjectRequest(),
-        m_folderId(folderId),
-        m_name(fileName)
+        m_folderId(std::move(folderId)),
+        m_name(std::move(fileName))
     {}
 
     std::string GetFolderId() const { return m_folderId; }
@@ -189,6 +190,31 @@ private:
 
 std::ostream& operator<<(std::ostream& os,
     QueryResumableUploadRequest const& r);
+
+/**
+ * Represents a request to the `Objects: get` API with `alt=media`.
+ */
+class ReadFileRangeRequest
+    : public GenericObjectRequest<
+    ReadFileRangeRequest,
+    Generation, ReadFromOffset, ReadRange, ReadLast>
+{
+public:
+    ReadFileRangeRequest(std::string folderId, std::string fileId)
+        : GenericObjectRequest(std::move(fileId)),
+        m_folderId(std::move(folderId))
+    {}
+
+    bool RequiresRangeHeader() const;
+    std::int64_t GetStartingByte() const;
+
+    std::string GetFolderId() const { return m_folderId; }
+
+private:
+    std::string m_folderId;
+};
+
+std::ostream& operator<<(std::ostream& os, ReadFileRangeRequest const& r);
 
 }  // namespace internal
 }  // namespace csa

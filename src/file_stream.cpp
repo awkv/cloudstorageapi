@@ -20,6 +20,44 @@
 
 namespace csa {
 
+static_assert(std::is_move_assignable<FileReadStream>::value,
+    "FileReadStream must be move assignable.");
+static_assert(std::is_move_constructible<FileReadStream>::value,
+    "FileReadStream must be move constructible.");
+
+FileReadStream::~FileReadStream()
+{
+    if (!IsOpen())
+    {
+        return;
+    }
+    try {
+        Close();
+    }
+    catch (std::exception const& ex) {
+        CSA_LOG_INFO("Ignored exception while trying to close stream: {}",
+            ex.what());
+    }
+    catch (...) {
+        CSA_LOG_INFO("Ignored unknown exception while trying to close stream");
+    }
+}
+
+void FileReadStream::Close()
+{
+    if (!IsOpen())
+    {
+        return;
+    }
+    m_buf->Close();
+    if (!GetStatus().Ok())
+    {
+        setstate(std::ios_base::badbit);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 FileWriteStream::FileWriteStream(
     std::unique_ptr<internal::FileWriteStreambuf> buf)
     : std::basic_ostream<char>(nullptr), m_buf(std::move(buf))

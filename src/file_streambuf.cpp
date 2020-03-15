@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/file_streambuf.h"
+#include "cloudstorageapi/internal/file_requests.h"
 #include "cloudstorageapi/internal/utils.h"
 #include "cloudstorageapi/internal/log.h"
 #include <algorithm>
@@ -22,6 +23,176 @@
 
 namespace csa {
 namespace internal {
+
+FileReadStreambuf::FileReadStreambuf(
+    ReadFileRangeRequest const& request,
+    std::unique_ptr<ObjectReadSource> source)
+    : m_source(std::move(source))
+{
+}
+
+FileReadStreambuf::FileReadStreambuf(ReadFileRangeRequest const& request,
+    Status status)
+    : m_source(new ObjectReadErrorSource(status))
+{
+    m_status = std::move(status);
+}
+
+bool FileReadStreambuf::IsOpen() const
+{
+    return m_source->IsOpen();
+}
+
+void FileReadStreambuf::Close()
+{
+    auto response = m_source->Close();
+    if (!response.Ok())
+    {
+        ReportError(std::move(response).GetStatus());
+    }
+}
+
+StatusOrVal<FileReadStreambuf::int_type> FileReadStreambuf::Peek()
+{
+    if (!IsOpen())
+    {
+        // The stream is closed, reading from a closed stream can happen if there is
+        // no object to read from, or the object is empty. In that case just setup
+        // an empty (but valid) region and verify the checksums.
+        SetEmptyRegion();
+        return traits_type::eof();
+    }
+
+    m_currentIosBuffer.resize(128 * 1024);
+    std::size_t n = m_currentIosBuffer.size();
+    StatusOrVal<ReadSourceResult> readResult =
+        m_source->Read(m_currentIosBuffer.data(), n);
+    if (!readResult.Ok())
+    {
+        return std::move(readResult).GetStatus();
+    }
+    // assert(n <= m_currentIosBuffer.size())
+    m_currentIosBuffer.resize(readResult->m_bytesReceived);
+
+    for (auto const& kv : readResult->m_response.m_headers)
+    {
+        m_headers.emplace(kv.first, kv.second);
+    }
+    if (readResult->m_response.m_statusCode >= 300)
+    {
+        return AsStatus(readResult->m_response);
+    }
+
+    if (!m_currentIosBuffer.empty())
+    {
+        char* data = m_currentIosBuffer.data();
+        setg(data, data, data + m_currentIosBuffer.size());
+        return traits_type::to_int_type(*data);
+    }
+
+    // This is an actual EOF, there is no more data to download, create an
+    // empty (but valid) region:
+    SetEmptyRegion();
+    return traits_type::eof();
+}
+
+FileReadStreambuf::int_type FileReadStreambuf::underflow()
+{
+    auto nextChar = Peek();
+    if (!nextChar) {
+        return ReportError(nextChar.GetStatus());
+    }
+
+    return *nextChar;
+}
+
+std::streamsize FileReadStreambuf::xsgetn(char* s, std::streamsize count)
+{
+    CSA_LOG_INFO("{}(): count={}, in_avail={}, status={}", __func__, count,
+         in_avail(), m_status);
+    // This function optimizes stream.read(), the data is copied directly from the
+    // data source (typically libcurl) into a buffer provided by the application.
+    std::streamsize offset = 0;
+    if (!m_status.Ok())
+    {
+        return 0;
+    }
+
+    // Maybe the internal get area is enough to satisfy this request, no need to
+    // read more in that case:
+    auto fromInternal = (std::min)(count, in_avail());
+    std::memcpy(s, gptr(), static_cast<std::size_t>(fromInternal));
+    gbump(static_cast<int>(fromInternal));
+    offset += fromInternal;
+    if (offset >= count)
+    {
+        CSA_LOG_INFO("{}(): count={}, in_avail={}, offset={}", __func__, count,
+            in_avail(), offset);
+        ReportError(Status());
+        return offset;
+    }
+
+    StatusOrVal<ReadSourceResult> readResult =
+        m_source->Read(s + offset, static_cast<std::size_t>(count - offset));
+    // If there was an error set the internal state, but we still return the
+    // number of bytes.
+    if (!readResult)
+    {
+        CSA_LOG_INFO("{}(): count={}, in_avail={}, offset={}, status={}", __func__ , count,
+            in_avail(), offset, readResult.GetStatus());
+        ReportError(std::move(readResult).GetStatus());
+        return offset;
+    }
+    CSA_LOG_INFO("{}(): count={}, in_avail={}, offset={}, readResult->bytes_received={}",
+        __func__, count, in_avail(), offset, readResult->m_bytesReceived);
+
+    offset += readResult->m_bytesReceived;
+
+    for (auto const& kv : readResult->m_response.m_headers)
+    {
+        m_headers.emplace(kv.first, kv.second);
+    }
+    if (readResult->m_response.m_statusCode >= 300)
+    {
+        ReportError(AsStatus(readResult->m_response));
+        return 0;
+    }
+
+    ReportError(Status());
+    return offset;
+}
+
+FileReadStreambuf::int_type FileReadStreambuf::ReportError(Status status)
+{
+    // The only way to report errors from a std::basic_streambuf<> (which this
+    // class derives from) is to throw exceptions:
+    //   https://stackoverflow.com/questions/50716688/how-to-set-the-badbit-of-a-stream-by-a-customized-streambuf
+    // but we need to be able to report errors when the application has disabled
+    // exceptions via `-fno-exceptions` or a similar option. In that case we set
+    // `m_status`, and report the error as an EOF. This is obviously not ideal,
+    // but it is the best we can do when the application disables the standard
+    // mechanism to signal errors.
+    if (status.Ok())
+    {
+        return traits_type::eof();
+    }
+    m_status = std::move(status);
+
+    // ? google::cloud::internal::ThrowStatus(m_status);
+
+    return traits_type::eof();
+}
+
+void FileReadStreambuf::SetEmptyRegion()
+{
+    m_currentIosBuffer.clear();
+    m_currentIosBuffer.push_back('\0');
+    char* data = &m_currentIosBuffer[0];
+    setg(data, data + 1, data + 1);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 FileWriteStreambuf::FileWriteStreambuf(
     std::unique_ptr<ResumableUploadSession> uploadSession,
     std::size_t maxBufferSize)

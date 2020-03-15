@@ -19,6 +19,7 @@
 #include "cloudstorageapi/internal/empty_response.h"
 #include "cloudstorageapi/internal/file_requests.h"
 #include "cloudstorageapi/internal/folder_requests.h"
+#include "cloudstorageapi/internal/object_read_source.h"
 #include "cloudstorageapi/internal/resumable_upload_session.h"
 #include "cloudstorageapi/client_options.h"
 #include "cloudstorageapi/status.h"
@@ -46,6 +47,9 @@ public:
     // @name Folder operations
     virtual StatusOrVal<ListFolderResponse> ListFolder(ListFolderRequest const& request) = 0;
     virtual StatusOrVal<FolderMetadata> GetFolderMetadata(GetFolderMetadataRequest const& request) = 0;
+    virtual StatusOrVal<std::unique_ptr<ObjectReadSource>> ReadFile(
+        ReadFileRangeRequest const& request) = 0;
+
     //@}
 
     //{@

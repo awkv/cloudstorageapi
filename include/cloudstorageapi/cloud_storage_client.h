@@ -237,9 +237,19 @@ public:
         return WriteObjectImpl(request);
     }
 
+    template<typename... Options>
+    Status DownloadFile(std::string const& parentId,
+        std::string const& fileId,
+        std::string const& dstFileName) // TODO: figure out if content type param is needed.
+                                        // Maybe for downloading google docs.
+    {
+        internal::ReadFileRangeRequest request(parentId, fileId);
+        request.SetMultipleOptions(std::forward<Options>(options)...);
+        return DownloadFileImpl(request, dstFileName);
+    }
+
     // TODO: to be implemented.
     //StatusOrVal<FileMetadata> UpdateFile(std::string const& id, FileMetadata metadata);
-    //Status DownloadFile(std::string const& id, std::string const& dstFileName, std::string const& contentTypeOpt) const;
     //Status DownloadFileThumbnail(std::string const& id, std::string const& dstFileName, uint16_t size = 256, std::string const& imgFormat = "png") const; // Only for box, dropbox and gdrive
     //StatusOrVal<FileReadStream> ReadFile(std::string const& id) const;
     //StatusOrVal<FileMetadata> CopyFile(std::string const& id, std::string const& newParentId, std::string const& newNameOpt);
@@ -325,6 +335,11 @@ private:
     FileWriteStream WriteObjectImpl(
         internal::ResumableUploadRequest const& request);
 
+    FileReadStream ReadObjectImpl(
+        internal::ReadFileRangeRequest const& request);
+
+    Status DownloadFileImpl(internal::ReadFileRangeRequest const& request,
+        std::string const& dstFileName);
 };
 
 } // namespace csa

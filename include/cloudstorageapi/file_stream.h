@@ -24,6 +24,88 @@
 namespace csa {
 
 /**
+ * Defines a `std::basic_istream<char>` to read from a cloud storage file.
+ */
+class FileReadStream : public std::basic_istream<char>
+{
+public:
+    /**
+     * Creates a stream not associated with any buffer.
+     *
+     * Attempts to use this stream will result in failures.
+     */
+    FileReadStream() : std::basic_istream<char>(nullptr), m_buf()
+    {}
+
+    /**
+     * Creates a stream associated with the given `streambuf`.
+     */
+    explicit FileReadStream(std::unique_ptr<internal::FileReadStreambuf> buf)
+        : std::basic_istream<char>(nullptr), m_buf(std::move(buf))
+    {
+        // Initialize the basic_ios<> class
+        init(m_buf.get());
+    }
+
+    FileReadStream(FileReadStream&& rhs) noexcept
+        : FileReadStream(std::move(rhs.m_buf))
+    {
+        // We cannot use set_rdbuf() because older versions of libstdc++ do not
+        // implement this function. Unfortunately `move()` resets `rdbuf()`, and
+        // `rdbuf()` resets the state, so we have to manually copy the rest of
+        // the state.
+        setstate(rhs.rdstate());
+        copyfmt(rhs);
+        rhs.rdbuf(nullptr);
+    }
+
+    FileReadStream& operator=(FileReadStream&& rhs) noexcept
+    {
+        m_buf = std::move(rhs.m_buf);
+        // Use rdbuf() (instead of set_rdbuf()) because older versions of libstdc++
+        // do not implement this function. Unfortunately `rdbuf()` resets the state,
+        // and `move()` resets `rdbuf()`, so we have to manually copy the rest of
+        // the state.
+        rdbuf(m_buf.get());
+        setstate(rhs.rdstate());
+        copyfmt(rhs);
+        rhs.rdbuf(nullptr);
+        return *this;
+    }
+
+    FileReadStream(FileReadStream const&) = delete;
+    FileReadStream& operator=(FileReadStream const&) = delete;
+
+    /// Closes the stream (if necessary).
+    ~FileReadStream() override;
+
+    bool IsOpen() const { return (bool)m_buf && m_buf->IsOpen(); }
+
+    /**
+     * Terminate the download, possibly before completing it.
+     */
+    void Close();
+
+    //@{
+    /**
+     * Report any download errors.
+     *
+     * Note that errors may go undetected until the download completes.
+     */
+    Status const& GetStatus() const& { return m_buf->GetStatus(); }
+
+    /// The headers returned by the service, for debugging only.
+    std::multimap<std::string, std::string> const& GetHeaders() const
+    {
+        return m_buf->GetHeaders();
+    }
+    //@}
+
+private:
+    std::unique_ptr<internal::FileReadStreambuf> m_buf;
+};
+    
+/**
  * Defines a `std::basic_ostream<char>` to write to a cloud file.
  */
 class FileWriteStream : public std::basic_ostream<char>

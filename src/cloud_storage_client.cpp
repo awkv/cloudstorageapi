@@ -185,4 +185,81 @@ FileWriteStream CloudStorageClient::WriteObjectImpl(
             *std::move(session),
             m_RawClient->GetClientOptions().GetUploadBufferSize()));
 }
+
+FileReadStream CloudStorageClient::ReadObjectImpl(
+    internal::ReadFileRangeRequest const& request)
+{
+    auto source = m_RawClient->ReadFile(request);
+    if (!source)
+    {
+        FileReadStream errorStream(
+            std::make_unique<internal::FileReadStreambuf>(
+                request, std::move(source).GetStatus()));
+        errorStream.setstate(std::ios::badbit | std::ios::eofbit);
+        return errorStream;
+    }
+    auto stream = FileReadStream(
+        std::make_unique<internal::FileReadStreambuf>(
+            request, *std::move(source)));
+    (void)stream.peek();
+
+    // Without exceptions the streambuf cannot report errors, so we have to
+    // manually update the status bits.
+    if (!stream.GetStatus().Ok())
+    {
+        stream.setstate(std::ios::badbit | std::ios::eofbit);
+    }
+
+    return stream;
+}
+
+Status CloudStorageClient::DownloadFileImpl(internal::ReadFileRangeRequest const& request,
+    std::string const& dstFileName)
+{
+    auto report_error = [&request, dstFileName](char const* func, char const* what,
+        Status const& status)
+    {
+        std::ostringstream msg;
+        msg << func << "(" << request << ", " << dstFileName << "): " << what
+            << " - status.message=" << status.Message();
+        return Status(status.Code(), std::move(msg).str());
+    };
+
+    auto stream = ReadObjectImpl(request);
+    if (!stream.GetStatus().Ok())
+    {
+        return report_error(__func__, "cannot open download source object",
+            stream.GetStatus());
+    }
+
+    // Open the destination file, and immediate raise an exception on failure.
+    std::ofstream os(dstFileName, std::ios::binary);
+    if (!os.is_open()) {
+        return report_error(
+            __func__, "cannot open download destination file",
+            Status(StatusCode::InvalidArgument, "ofstream::open()"));
+    }
+
+    std::string buffer;
+    buffer.resize(m_RawClient->GetClientOptions().GetDownloadBufferSize(), '\0');
+    do
+    {
+        stream.read(&buffer[0], buffer.size());
+        os.write(buffer.data(), stream.gcount());
+    } while (os.good() && stream.good());
+
+    os.close();
+    if (!os.good())
+    {
+        return report_error(__func__, "cannot close download destination file",
+            Status(StatusCode::Unknown, "ofstream::close()"));
+    }
+    if (!stream.GetStatus().Ok())
+    {
+        return report_error(__func__, "error reading download source object",
+            stream.GetStatus());
+    }
+    return Status();
+}
+
 }; // namespace csa

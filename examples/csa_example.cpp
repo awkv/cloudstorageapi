@@ -332,6 +332,24 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
         << "\n";
 }
 
+void DownloadFile(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 4)
+        throw NeedUsage{ "download-file <parent-folder-id> <file-id> <destination-file-name>" };
+
+    auto folderId = ConsumeArg(argc, argv);
+    auto fileId = ConsumeArg(argc, argv);
+    auto dstFileName = ConsumeArg(argc, argv);
+
+    auto status = client->DownloadFile(folderId, fileId, dstFileName);
+
+    if (!status.Ok())
+    {
+        throw std::runtime_error(status.Message());
+    }
+
+    std::cout << "Downloaded file \"" << fileId << "\" to " << dstFileName;
+}
 } // namespace
 
 int main(int argc, char* argv[]) try 
@@ -351,6 +369,7 @@ int main(int argc, char* argv[]) try
         {"write-large-file", &WriteLargeFile},
         {"start-resumable-upload", &StartResumableUpload},
         {"resume-resumable-upload", &ResumeResumableUpload},
+        {"download-file", &DownloadFile},
     };
     for (auto&& cmd : cmdMap)
     {

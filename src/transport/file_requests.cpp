@@ -83,5 +83,44 @@ std::ostream& operator<<(std::ostream& os,
     return os << "}";
 }
 
+bool ReadFileRangeRequest::RequiresRangeHeader() const
+{
+    if (HasOption<ReadRange>())
+    {
+        return true;
+    }
+    if (HasOption<ReadFromOffset>() && GetOption<ReadFromOffset>().Value() != 0)
+    {
+        return true;
+    }
+    return HasOption<ReadLast>();
+}
+
+std::int64_t ReadFileRangeRequest::GetStartingByte() const
+{
+    std::int64_t result = 0;
+    if (HasOption<ReadRange>())
+    {
+        result = (std::max)(result, GetOption<ReadRange>().Value().m_begin);
+    }
+    if (HasOption<ReadFromOffset>())
+    {
+        result = (std::max)(result, GetOption<ReadFromOffset>().Value());
+    }
+    if (HasOption<ReadLast>()) {
+        // The value of `StartingByte()` is unknown if `ReadLast` is set
+        result = -1;
+    }
+    return result;
+}
+
+std::ostream& operator<<(std::ostream& os, ReadFileRangeRequest const& r)
+{
+    os << "ReadFileRangeRequest={parent_folder_id=" << r.GetFolderId()
+        << ", file_id" << r.GetObjectId();
+    r.DumpOptions(os, ", ");
+    return os << "}";
+}
+
 } // namespace internal
 } // namespace csa

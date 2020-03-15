@@ -17,6 +17,7 @@
 #include "cloudstorageapi/internal/clients/curl_googledrive_client.h"
 #include "cloudstorageapi/internal/curl_resumable_upload_session.h"
 #include "cloudstorageapi/internal/curl_request_builder.h"
+#include "cloudstorageapi/internal/object_read_source.h"
 #include "cloudstorageapi/internal/resumable_upload_session.h"
 #include "cloudstorageapi/internal/utils.h"
 
@@ -66,6 +67,38 @@ namespace {
         }
 
         return std::move(os).str();
+    }
+
+    std::string GetRangeHeader(ReadFileRangeRequest const& request)
+    {
+        if (request.HasOption<ReadRange>() && request.HasOption<ReadFromOffset>())
+        {
+            auto range = request.GetOption<ReadRange>().Value();
+            auto offset = request.GetOption<ReadFromOffset>().Value();
+            auto begin = (std::max)(range.m_begin, offset);
+            return "Range: bytes=" + std::to_string(begin) + "-" +
+                std::to_string(range.m_end - 1);
+        }
+        if (request.HasOption<ReadRange>())
+        {
+            auto range = request.GetOption<ReadRange>().Value();
+            return "Range: bytes=" + std::to_string(range.m_begin) + "-" +
+                std::to_string(range.m_end - 1);
+        }
+        if (request.HasOption<ReadFromOffset>())
+        {
+            auto offset = request.GetOption<ReadFromOffset>().Value();
+            if (offset != 0)
+            {
+                return "Range: bytes=" + std::to_string(offset) + "-";
+            }
+        }
+        if (request.HasOption<ReadLast>())
+        {
+            auto last = request.GetOption<ReadLast>().Value();
+            return "Range: bytes=-" + std::to_string(last);
+        }
+        return "";
     }
 
     template <typename ParseFunctor>
@@ -217,6 +250,25 @@ StatusOrVal<FolderMetadata> CurlGoogleDriveClient::GetFolderMetadata(GetFolderMe
 
     auto response = builder.BuildRequest().MakeRequest(std::string{});
     return ParseFolderMetadata(response);
+}
+
+StatusOrVal<std::unique_ptr<ObjectReadSource>> CurlGoogleDriveClient::ReadFile(
+    ReadFileRangeRequest const& request)
+{
+    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(), m_storageFactory);
+    auto status = SetupBuilder(builder, request, "GET");
+    if (!status.Ok())
+    {
+        return status;
+    }
+    builder.AddQueryParameter("alt", "media");
+    if (request.RequiresRangeHeader())
+    {
+        builder.AddHeader(GetRangeHeader(request));
+    }
+
+    return std::unique_ptr<ObjectReadSource>(
+        new CurlDownloadRequest(builder.BuildDownloadRequest(std::string{})));
 }
 
 StatusOrVal<FileMetadata> CurlGoogleDriveClient::GetFileMetadata(GetFileMetadataRequest const& request)
