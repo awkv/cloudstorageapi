@@ -116,8 +116,7 @@ std::int64_t ReadFileRangeRequest::GetStartingByte() const
 
 std::ostream& operator<<(std::ostream& os, ReadFileRangeRequest const& r)
 {
-    os << "ReadFileRangeRequest={parent_folder_id=" << r.GetFolderId()
-        << ", file_id" << r.GetObjectId();
+    os << "ReadFileRangeRequest={file_id" << r.GetObjectId();
     r.DumpOptions(os, ", ");
     return os << "}";
 }

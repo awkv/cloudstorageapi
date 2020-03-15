@@ -200,18 +200,10 @@ class ReadFileRangeRequest
     Generation, ReadFromOffset, ReadRange, ReadLast>
 {
 public:
-    ReadFileRangeRequest(std::string folderId, std::string fileId)
-        : GenericObjectRequest(std::move(fileId)),
-        m_folderId(std::move(folderId))
-    {}
+    using GenericObjectRequest::GenericObjectRequest;
 
     bool RequiresRangeHeader() const;
     std::int64_t GetStartingByte() const;
-
-    std::string GetFolderId() const { return m_folderId; }
-
-private:
-    std::string m_folderId;
 };
 
 std::ostream& operator<<(std::ostream& os, ReadFileRangeRequest const& r);

@@ -334,14 +334,13 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
 void DownloadFile(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
-    if (!client || argc != 4)
-        throw NeedUsage{ "download-file <parent-folder-id> <file-id> <destination-file-name>" };
+    if (!client || argc != 3)
+        throw NeedUsage{ "download-file <file-id> <destination-file-name>" };
 
-    auto folderId = ConsumeArg(argc, argv);
     auto fileId = ConsumeArg(argc, argv);
     auto dstFileName = ConsumeArg(argc, argv);
 
-    auto status = client->DownloadFile(folderId, fileId, dstFileName);
+    auto status = client->DownloadFile(fileId, dstFileName);
 
     if (!status.Ok())
     {

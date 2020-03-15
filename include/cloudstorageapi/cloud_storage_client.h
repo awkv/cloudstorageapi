@@ -237,21 +237,31 @@ public:
         return WriteObjectImpl(request);
     }
 
+    /**
+     * Downloads a cloud storage file to a local file.
+     *
+     * @param parentId the id of the folder that contains the file.
+     * @param fileId the id of the file to be downloaded.
+     * @param dstFileName the name of the destination file that will have the cloud file
+     *   media.
+     * @param options a list of optional query parameters and/or request headers.
+     *   Valid types for this operation include `ReadFromOffset` and `ReadRange`.
+     *
+     */
     template<typename... Options>
-    Status DownloadFile(std::string const& parentId,
-        std::string const& fileId,
+    Status DownloadFile(std::string const& fileId,
         std::string const& dstFileName) // TODO: figure out if content type param is needed.
                                         // Maybe for downloading google docs.
     {
-        internal::ReadFileRangeRequest request(parentId, fileId);
+        internal::ReadFileRangeRequest request(fileId);
         request.SetMultipleOptions(std::forward<Options>(options)...);
         return DownloadFileImpl(request, dstFileName);
     }
 
     // TODO: to be implemented.
+    //StatusOrVal<FileReadStream> ReadFile(std::string const& id)
     //StatusOrVal<FileMetadata> UpdateFile(std::string const& id, FileMetadata metadata);
     //Status DownloadFileThumbnail(std::string const& id, std::string const& dstFileName, uint16_t size = 256, std::string const& imgFormat = "png") const; // Only for box, dropbox and gdrive
-    //StatusOrVal<FileReadStream> ReadFile(std::string const& id) const;
     //StatusOrVal<FileMetadata> CopyFile(std::string const& id, std::string const& newParentId, std::string const& newNameOpt);
 
     // TODO: to be implemented.
