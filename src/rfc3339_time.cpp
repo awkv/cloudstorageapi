@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/rfc3339_time.h"
+#include <array>
 #include <cctype>
 #include <cstdio>
 #include <iomanip>
@@ -37,38 +38,46 @@ bool IsLeapYear(int year)
     return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
 }
 
+namespace {
+    auto constexpr MonthsInYear = 12;
+    auto constexpr HoursInDay = 24;
+    auto constexpr MinutesInHour =
+        std::chrono::seconds(std::chrono::minutes(1)).count();
+    auto constexpr SecondsInMinute =
+        std::chrono::minutes(std::chrono::hours(1)).count();
+
+} // namespace
+
 std::chrono::system_clock::time_point ParseDateTime(
     char const*& buffer, std::string const& timestamp)
 {
     // Use std::mktime to compute the number of seconds because RFC 3339 requires
     // working with civil time, including the annoying leap seconds, and mktime
     // does.
-    int year = 0, month = 0, day = 0;
-    char dateTimeSeparator = 0;
-    int hours = 0, minutes = 0, seconds = 0;
+    int year, month, day;
+    char date_time_separator;
+    int hours, minutes, seconds;
 
-    int pos = 0;
-    auto count = std::sscanf(buffer, "%4d-%2d-%2d%c%2d:%2d:%2d%n", &year, &month, &day,
-            &dateTimeSeparator, &hours, &minutes, &seconds, &pos);
-            
+    int pos;
+    auto count =
+        std::sscanf(buffer, "%4d-%2d-%2d%c%2d:%2d:%2d%n", &year, &month, &day,
+            &date_time_separator, &hours, &minutes, &seconds, &pos);
     // All the fields up to this point have fixed width, so total width must be:
-    constexpr int ExpectedWidth = 19;
-    constexpr int ExpectedFields = 7;
+    auto constexpr ExpectedWidth = 19;
+    auto constexpr ExpectedFields = 7;
     if (count != ExpectedFields || pos != ExpectedWidth)
     {
         ReportError(timestamp,
             "Invalid format for RFC 3339 timestamp detected while parsing"
             " the base date and time portion.");
     }
-    if (dateTimeSeparator != 'T' && dateTimeSeparator != 't')
+    if (date_time_separator != 'T' && date_time_separator != 't')
     {
         ReportError(timestamp, "Invalid date-time separator, expected 'T' or 't'.");
     }
-    if (month < 1 || month > 12)
-    {
-        ReportError(timestamp, "Out of range month.");
-    }
-    constexpr int MaxDaysInMonth[] = {
+
+    // Double braces are needed to workaround a clang-3.8 bug.
+    std::array<int, MonthsInYear> constexpr MaxDaysInMonth{{
         31,  // January
         29,  // February (non-leap years checked below)
         31,  // March
@@ -81,20 +90,25 @@ std::chrono::system_clock::time_point ParseDateTime(
         31,  // October
         30,  // November
         31,  // December
-    };
+    }};
+    auto constexpr kMkTimeBaseYear = 1900;
+    if (month < 1 || month > MonthsInYear)
+    {
+        ReportError(timestamp, "Out of range month.");
+    }
     if (day < 1 || day > MaxDaysInMonth[month - 1])
     {
         ReportError(timestamp, "Out of range day for given month.");
     }
-    if (2 == month && day > 28 && !IsLeapYear(year))
+    if (2 == month && day > MaxDaysInMonth[1] - 1 && !IsLeapYear(year))
     {
         ReportError(timestamp, "Out of range day for given month.");
     }
-    if (hours < 0 || hours > 23)
+    if (hours < 0 || hours >= HoursInDay)
     {
         ReportError(timestamp, "Out of range hour.");
     }
-    if (minutes < 0 || minutes > 59)
+    if (minutes < 0 || minutes >= MinutesInHour)
     {
         ReportError(timestamp, "Out of range minute.");
     }
@@ -103,14 +117,15 @@ std::chrono::system_clock::time_point ParseDateTime(
     // should valid that `seconds` is smaller than 59 for negative leap seconds).
     // This would require loading a table, and adds too much complexity for little
     // value.
-    if (seconds < 0 || seconds > 60) {
+    if (seconds < 0 || seconds > SecondsInMinute)
+    {
         ReportError(timestamp, "Out of range second.");
     }
     // Advance the pointer for all the characters read.
     buffer += pos;
 
     std::tm tm{};
-    tm.tm_year = year - 1900;
+    tm.tm_year = year - kMkTimeBaseYear;
     tm.tm_mon = month - 1;
     tm.tm_mday = day;
     tm.tm_hour = hours;
@@ -128,17 +143,19 @@ std::chrono::system_clock::duration ParseFractionalSeconds(
     }
     ++buffer;
 
-    long fractionalSeconds = 0;
-    int pos = 0;
-    auto count = std::sscanf(buffer, "%9ld%n", &fractionalSeconds, &pos);
+    long fractional_seconds;
+    int pos;
+    auto count = std::sscanf(buffer, "%9ld%n", &fractional_seconds, &pos);
     if (count != 1)
     {
         ReportError(timestamp, "Invalid fractional seconds component.");
     }
+    auto constexpr MaxNanosecondDigits = 9;
+    auto constexpr NanosecondsBase = 10;
     // Normalize the fractional seconds to nanoseconds.
-    for (int digits = pos; digits < 9; ++digits)
+    for (int digits = pos; digits < MaxNanosecondDigits; ++digits)
     {
-        fractionalSeconds *= 10;
+        fractional_seconds *= NanosecondsBase;
     }
     // Skip any other digits. This loses precision for sub-nanosecond timestamps,
     // but we do not consider this a problem for Internet timestamps.
@@ -148,7 +165,7 @@ std::chrono::system_clock::duration ParseFractionalSeconds(
         ++buffer;
     }
     return std::chrono::duration_cast<std::chrono::system_clock::duration>(
-        std::chrono::nanoseconds(fractionalSeconds));
+        std::chrono::nanoseconds(fractional_seconds));
 }
 
 std::chrono::seconds ParseOffset(char const*& buffer,
@@ -159,19 +176,19 @@ std::chrono::seconds ParseOffset(char const*& buffer,
         bool positive = (buffer[0] == '+');
         ++buffer;
         // Parse the HH:MM offset.
-        int hours = 0, minutes = 0, pos = 0;
+        int hours, minutes, pos;
         auto count = std::sscanf(buffer, "%2d:%2d%n", &hours, &minutes, &pos);
-        constexpr int ExpectedOffsetWidth = 5;
-        constexpr int ExpectedOffsetFields = 2;
+        auto constexpr ExpectedOffsetWidth = 5;
+        auto constexpr ExpectedOffsetFields = 2;
         if (count != ExpectedOffsetFields || pos != ExpectedOffsetWidth)
         {
             ReportError(timestamp, "Invalid timezone offset, expected [+-]HH:MM.");
         }
-        if (hours < 0 || hours > 23)
+        if (hours < 0 || hours >= HoursInDay)
         {
             ReportError(timestamp, "Out of range offset hour.");
         }
-        if (minutes < 0 || minutes > 59)
+        if (minutes < 0 || minutes >= MinutesInHour)
         {
             ReportError(timestamp, "Out of range offset minute.");
         }
@@ -200,25 +217,39 @@ std::string FormatFractional(std::chrono::nanoseconds ns)
         return "";
     }
 
-    char buffer[16];
+    using std::chrono::milliseconds;
+    using std::chrono::nanoseconds;
+    using std::chrono::seconds;
+    auto constexpr MaxNanosecondsDigits = 9;
+    auto constexpr BufferSize = 16;
+    static_assert(BufferSize > (MaxNanosecondsDigits  // digits
+        + 1                    // period
+        + 1),                  // NUL terminator
+        "Buffer is not large enough for printing nanoseconds");
+    auto constexpr NanosecondsPerMillisecond =
+        nanoseconds(milliseconds(1)).count();
+    auto constexpr MillisecondsPerSecond = milliseconds(seconds(1)).count();
+
+    std::array<char, BufferSize> buffer{};
+
     // If the fractional seconds can be just expressed as milliseconds, do that,
     // we do not want to print 1.123000000
-    auto d = std::lldiv(ns.count(), 1000000LL);
+    auto d = std::lldiv(ns.count(), NanosecondsPerMillisecond);
     if (d.rem == 0)
     {
-        std::snprintf(buffer, sizeof(buffer), ".%03lld", d.quot);
-        return buffer;
+        std::snprintf(buffer.data(), buffer.size(), ".%03lld", d.quot);
+        return buffer.data();
     }
-    d = std::lldiv(ns.count(), 1000LL);
+    d = std::lldiv(ns.count(), MillisecondsPerSecond);
     if (d.rem == 0)
     {
-        std::snprintf(buffer, sizeof(buffer), ".%06lld", d.quot);
-        return buffer;
+        std::snprintf(buffer.data(), buffer.size(), ".%06lld", d.quot);
+        return buffer.data();
     }
 
-    std::snprintf(buffer, sizeof(buffer), ".%09lld",
+    std::snprintf(buffer.data(), buffer.size(), ".%09lld",
         static_cast<long long>(ns.count()));
-    return buffer;
+    return buffer.data();
 }
 
 std::tm AsUtcTm(std::chrono::system_clock::time_point tp)
@@ -267,7 +298,8 @@ std::chrono::system_clock::time_point ParseRfc3339(
     auto fractionalSeconds = ParseFractionalSeconds(buffer, timestamp);
     std::chrono::seconds offset = ParseOffset(buffer, timestamp);
 
-    if (buffer[0] != '\0') {
+    if (buffer[0] != '\0')
+    {
         ReportError(timestamp, "Additional text after RFC 3339 date.");
     }
 
@@ -279,11 +311,22 @@ std::chrono::system_clock::time_point ParseRfc3339(
 
 std::string FormatRfc3339(std::chrono::system_clock::time_point tp)
 {
-    std::tm tm = AsUtcTm(tp);
-    char buffer[256];
-    std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S", &tm);
+    auto constexpr TimestampFormatSize = 256;
+    static_assert(TimestampFormatSize > ((4 + 1)    // YYYY-
+                                        + (2 + 1)  // MM-
+                                        + 2        // DD
+                                        + 1        // T
+                                        + (2 + 1)  // HH:
+                                        + (2 + 1)  // MM:
+                                        + 2        // SS
+                                        + 1),      // Z
+                                        "Buffer size not large enough for YYYY-MM-DDTHH:MM:SSZ format");
 
-    std::string result(buffer);
+    std::tm tm = AsUtcTm(tp);
+    std::array<char, TimestampFormatSize> buffer{};
+    std::strftime(buffer.data(), buffer.size(), "%Y-%m-%dT%H:%M:%S", &tm);
+
+    std::string result(buffer.data());
     // Add the fractional seconds...
     auto duration = tp.time_since_epoch();
     using std::chrono::duration_cast;
