@@ -30,6 +30,7 @@ set(csa_tests
     rfc3339_time_test.cpp
     status_or_val_test.cpp
 	status_test.cpp
+    terminate_handler_test.cpp
     utils_test.cpp)
 
 find_package(GTest CONFIG REQUIRED)
