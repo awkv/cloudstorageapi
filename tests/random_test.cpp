@@ -16,6 +16,8 @@
 
 #include "cloudstorageapi/internal/random.h"
 #include <gmock/gmock.h>
+#include <future>
+#include <vector>
 
 TEST(BenchmarksRandom, Basic)
 {
@@ -29,4 +31,38 @@ TEST(BenchmarksRandom, Basic)
     std::string s0 = gen_string();
     std::string s1 = gen_string();
     EXPECT_NE(s0, s1);
+}
+
+/**
+ * @test verify that multiple threads can call MakeDefaultPRNG() simultaneously.
+ *
+ * This test verifies PRNG works around a bug in libstdc++:
+ *     https://gcc.gnu.org/bugzilla/show_bug.cgi?id=94087
+ * When this bug is triggered, the standard library throws an exception and
+ * the test would just crash (or not compile, as we use EXPECT_NO_THROW). It is
+ * simpler to compile the test only when exceptions are enabled.
+ */
+TEST(Random, Threads) {
+    auto constexpr NumWorkers = 64;
+    auto constexpr Iterations = 100;
+    std::vector<std::future<int>> workers(NumWorkers);
+
+    std::generate_n(workers.begin(), workers.size(), [&] {
+        return std::async(std::launch::async, [&] {
+            for (auto i = 0; i != Iterations; ++i)
+            {
+                auto g = csa::internal::MakeDefaultPRNG();
+                (void)g();
+            }
+            return Iterations;
+            });
+        });
+
+    int count = 0;
+    for (auto& f : workers) {
+        SCOPED_TRACE("testing with worker " + std::to_string(count++));
+        int result = 0;
+        EXPECT_NO_THROW(result = f.get());
+        EXPECT_EQ(result, Iterations);
+    }
 }
