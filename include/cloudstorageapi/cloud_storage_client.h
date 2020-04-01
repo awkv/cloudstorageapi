@@ -145,6 +145,26 @@ public:
         return m_RawClient->GetFileMetadata(request);
     }
 
+    /**
+     * Patches the metadata in a cloud storage.
+     *
+     * This function creates a patch request to change the writeable attributes in
+     * @p original to the values in @p updated. Non-writeable attributes are
+     * ignored, and attributes not present in @p updated are removed. Typically
+     * this function is used after the application obtained a value with
+     * `GetObjectMetadata` and has modified these parameters.
+     *
+     * @param fileId file's cloud id.
+     * @param original the initial value of the object metadata.
+     * @param updated the updated value for the object metadata.
+     */
+    StatusOrVal<FileMetadata> PatchFileMetadata(std::string fileId,
+        FileMetadata original, FileMetadata updated)
+    {
+        internal::PatchFileMetadataRequest request(fileId, std::move(original), std::move(updated));
+        return m_RawClient->PatchFileMetadata(request);
+    }
+
     StatusOrVal<FileMetadata> RenameFile(std::string const& id,
                                          std::string const& newName,
                                          std::string const& parentId = "",
@@ -302,7 +322,6 @@ public:
     }
     
     // TODO: to be implemented.
-    //StatusOrVal<FileMetadata> UpdateFile(std::string const& id, FileMetadata metadata);
     //Status DownloadFileThumbnail(std::string const& id, std::string const& dstFileName, uint16_t size = 256, std::string const& imgFormat = "png") const; // Only for box, dropbox and gdrive
     //StatusOrVal<FileMetadata> CopyFile(std::string const& id, std::string const& newParentId, std::string const& newNameOpt);
 

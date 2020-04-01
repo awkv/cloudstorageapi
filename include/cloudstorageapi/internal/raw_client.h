@@ -47,19 +47,20 @@ public:
     // @name Folder operations
     virtual StatusOrVal<ListFolderResponse> ListFolder(ListFolderRequest const& request) = 0;
     virtual StatusOrVal<FolderMetadata> GetFolderMetadata(GetFolderMetadataRequest const& request) = 0;
-    virtual StatusOrVal<std::unique_ptr<ObjectReadSource>> ReadFile(
-        ReadFileRangeRequest const& request) = 0;
 
     //@}
 
     //{@
     // @name File operations
-     virtual StatusOrVal<FileMetadata> GetFileMetadata(GetFileMetadataRequest const& request) = 0;
-     virtual StatusOrVal<FileMetadata> RenameFile(RenameFileRequest const& request) = 0;
-     virtual StatusOrVal<FileMetadata> InsertFile(InsertFileRequest const& request) = 0;
-     virtual StatusOrVal<std::unique_ptr<ResumableUploadSession>>
+    virtual StatusOrVal<FileMetadata> GetFileMetadata(GetFileMetadataRequest const& request) = 0;
+    virtual StatusOrVal<FileMetadata> PatchFileMetadata(PatchFileMetadataRequest const& request) = 0;
+    virtual StatusOrVal<FileMetadata> RenameFile(RenameFileRequest const& request) = 0;
+    virtual StatusOrVal<FileMetadata> InsertFile(InsertFileRequest const& request) = 0;
+    virtual StatusOrVal<std::unique_ptr<ObjectReadSource>> ReadFile(
+        ReadFileRangeRequest const& request) = 0;
+    virtual StatusOrVal<std::unique_ptr<ResumableUploadSession>>
          CreateResumableSession(ResumableUploadRequest const& request) = 0;
-     virtual StatusOrVal<std::unique_ptr<ResumableUploadSession>>
+    virtual StatusOrVal<std::unique_ptr<ResumableUploadSession>>
          RestoreResumableSession(std::string const& session_id) = 0;
 
     //@}

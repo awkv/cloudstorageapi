@@ -135,6 +135,41 @@ void GetFileMetadata(csa::CloudStorageClient* client, int& argc, char* argv[])
         *fileMetadata << "\n";
 }
 
+void PatchDeleteFileMetadata(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 3)
+        throw NeedUsage("patch-delete-file-metadata <file-id> <key>");
+
+    auto fileId = ConsumeArg(argc, argv);
+    std::string key = ConsumeArg(argc, argv);
+
+    csa::StatusOrVal<csa::FileMetadata> fileMeta = client->GetFileMetadata(fileId);
+    if (!fileMeta)
+    {
+        throw std::runtime_error(fileMeta.GetStatus().Message());
+    }
+
+    csa::FileMetadata updateFileMeta = *fileMeta;
+    if (key == "mimeType")
+        updateFileMeta.SetMimeTypeOpt(std::nullopt);
+    else if (key == "modifiedTime")
+    {
+        auto epochStart = std::chrono::time_point<std::chrono::system_clock>{};
+        updateFileMeta.SetModifyTime(epochStart);
+    }
+    else if (key == "name")
+        updateFileMeta.SetName("");
+
+    auto newUpdateFileMeta = client->PatchFileMetadata(fileId, fileMeta.Value(), updateFileMeta);
+    if (!newUpdateFileMeta)
+    {
+        throw std::runtime_error(newUpdateFileMeta.GetStatus().Message());
+    }
+
+    std::cout << "The file \"" << fileMeta->GetName() << "\" updated. Updated metadata: "
+        << *newUpdateFileMeta << std::endl;
+}
+
 void RenameFile(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
     if (!client || (argc != 3 && argc != 5))
@@ -396,6 +431,7 @@ int main(int argc, char* argv[]) try
         {"list-folder-with-page-size", &ListFolderWithPageSize},
         {"get-folder-metadata", &GetFolderMetadata},
         {"get-file-metadata", &GetFileMetadata},
+        {"patch-delete-file-metadata", &PatchDeleteFileMetadata},
         {"rename-file", &RenameFile},
         {"insert-file", &InsertFile},
         {"upload-file", &UploadFile},

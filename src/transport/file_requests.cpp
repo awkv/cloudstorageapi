@@ -29,6 +29,15 @@ std::ostream& operator<<(std::ostream& os, GetFileMetadataRequest const& r)
     return os << "}";
 }
 
+std::ostream& operator<<(std::ostream& os, PatchFileMetadataRequest const& r)
+{
+    os << "PatchFileMetadataRequest={file_id=" << r.GetObjectId()
+        << ", original_metadata=" << r.GetOriginalMetadata()
+        << ", updated_metadata=" << r.GetUpdatedMetadata();
+    r.DumpOptions(os, ", ");
+    return os << "}";
+}
+
 std::ostream& operator<<(std::ostream& os, RenameFileRequest const& r)
 {
     os << "RenameFileRequest={file_id=" << r.GetObjectId()

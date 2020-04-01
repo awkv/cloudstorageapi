@@ -121,11 +121,9 @@ StatusOrVal<FileMetadata> LoggingClient::GetFileMetadata(GetFileMetadataRequest 
     return MakeCall(*m_client, &RawClient::GetFileMetadata, request, __func__);
 }
 
-StatusOrVal<std::unique_ptr<ObjectReadSource>> LoggingClient::ReadFile(
-    ReadFileRangeRequest const& request)
+StatusOrVal<FileMetadata> LoggingClient::PatchFileMetadata(PatchFileMetadataRequest const& request)
 {
-    return MakeCallNoResponseLogging(*m_client, &RawClient::ReadFile, request,
-        __func__);
+    return MakeCall(*m_client, &RawClient::PatchFileMetadata, request, __func__);
 }
 
 StatusOrVal<FileMetadata> LoggingClient::RenameFile(RenameFileRequest const& request)
@@ -136,6 +134,13 @@ StatusOrVal<FileMetadata> LoggingClient::RenameFile(RenameFileRequest const& req
 StatusOrVal<FileMetadata> LoggingClient::InsertFile(InsertFileRequest const& request)
 {
     return MakeCall(*m_client, &RawClient::InsertFile, request, __func__);
+}
+
+StatusOrVal<std::unique_ptr<ObjectReadSource>> LoggingClient::ReadFile(
+    ReadFileRangeRequest const& request)
+{
+    return MakeCallNoResponseLogging(*m_client, &RawClient::ReadFile, request,
+        __func__);
 }
 
 StatusOrVal<std::unique_ptr<ResumableUploadSession>>

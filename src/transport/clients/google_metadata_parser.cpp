@@ -26,7 +26,7 @@ namespace {
  * This simplifies the implementation of ToJsonString() because we repeat this
  * check for many attributes.
  */
-void SetIfNotEmpty(internal::nl::json& json, char const* key,
+void SetIfNotEmpty(nl::json& json, char const* key,
                    std::string const& value)
 {
     if (value.empty())
@@ -34,6 +34,13 @@ void SetIfNotEmpty(internal::nl::json& json, char const* key,
         return;
     }
     json[key] = value;
+}
+
+void SetIfDifferent(nl::json& json, char const* key,
+    std::string const& originalValue, std::string const& updatedValue)
+{
+    if (originalValue != updatedValue)
+        json[key] = updatedValue;
 }
 }  // namespace
 
@@ -125,6 +132,19 @@ StatusOrVal<nl::json> GoogleMetadataParser::ComposeFolderMetadata(FolderMetadata
     return jmeta;
 }
 
+StatusOrVal<nl::json> GoogleMetadataParser::PatchFileMetadata(
+    FileMetadata const& original, FileMetadata const& updated)
+{
+    nl::json jmeta({});
+    auto status = PatchCommonMetadata(jmeta, original, updated);
+    if (!status.Ok())
+        return status;
+    if (original.GetMimeTypeOpt() != updated.GetMimeTypeOpt())
+        if (updated.GetMimeTypeOpt())
+            jmeta["mimeType"] = updated.GetMimeTypeOpt().value();
+    return jmeta;
+}
+
 Status GoogleMetadataParser::ParseCommonMetadata(CommonMetadata& result, nl::json const& json)
 {
     if (!json.is_object())
@@ -159,6 +179,17 @@ Status GoogleMetadataParser::ComposeCommonMetadata(nl::json& result, CommonMetad
     const auto epochTimePoint = std::chrono::time_point<std::chrono::system_clock>{};
     if (meta.GetChangeTime() > epochTimePoint)
         result["modifiedTime"] = FormatRfc3339(meta.GetChangeTime());
+
+    return Status();
+}
+
+Status GoogleMetadataParser::PatchCommonMetadata(nl::json& result,
+    CommonMetadata const& original, CommonMetadata const& updated)
+{
+    // Set only relevant fields: https://developers.google.com/drive/api/v3/reference/files/update
+    if (original.GetModifyTime() != updated.GetModifyTime())
+        result["modifiedTime"] = FormatRfc3339(updated.GetModifyTime());
+    SetIfDifferent(result, "name", original.GetName(), updated.GetName());
 
     return Status();
 }

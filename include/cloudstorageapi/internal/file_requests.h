@@ -36,6 +36,31 @@ public:
 std::ostream& operator<<(std::ostream& os, GetFileMetadataRequest const& r);
 
 /**
+ * Represents a request to the `Files: update` API.
+ */
+class PatchFileMetadataRequest
+    : public GenericObjectRequest<PatchFileMetadataRequest>
+{
+public:
+    PatchFileMetadataRequest() = default;
+    explicit PatchFileMetadataRequest(std::string fileId, FileMetadata original,
+        FileMetadata updated)
+        : GenericObjectRequest(std::move(fileId)),
+        m_OriginalMeta(std::move(original)),
+        m_UpdatedMeta(std::move(updated))
+    {}
+
+    FileMetadata const& GetOriginalMetadata() const { return m_OriginalMeta; }
+    FileMetadata const& GetUpdatedMetadata() const { return m_UpdatedMeta; }
+
+private:
+    FileMetadata m_OriginalMeta;
+    FileMetadata m_UpdatedMeta;
+};
+
+std::ostream& operator<<(std::ostream& os, PatchFileMetadataRequest const& r);
+
+/**
  * Represents a request to rename/move file.
  */
 class RenameFileRequest

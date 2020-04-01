@@ -252,25 +252,6 @@ StatusOrVal<FolderMetadata> CurlGoogleDriveClient::GetFolderMetadata(GetFolderMe
     return ParseFolderMetadata(response);
 }
 
-StatusOrVal<std::unique_ptr<ObjectReadSource>> CurlGoogleDriveClient::ReadFile(
-    ReadFileRangeRequest const& request)
-{
-    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(), m_storageFactory);
-    auto status = SetupBuilder(builder, request, "GET");
-    if (!status.Ok())
-    {
-        return status;
-    }
-    builder.AddQueryParameter("alt", "media");
-    if (request.RequiresRangeHeader())
-    {
-        builder.AddHeader(GetRangeHeader(request));
-    }
-
-    return std::unique_ptr<ObjectReadSource>(
-        new CurlDownloadRequest(builder.BuildDownloadRequest(std::string{})));
-}
-
 StatusOrVal<FileMetadata> CurlGoogleDriveClient::GetFileMetadata(GetFileMetadataRequest const& request)
 {
     CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(), m_storageFactory);
@@ -282,6 +263,25 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::GetFileMetadata(GetFileMetadata
 
     builder.AddQueryParameter("fields", ObjectMetadataFields);
     auto response = builder.BuildRequest().MakeRequest(std::string{});
+    return ParseFileMetadata(response);
+}
+
+StatusOrVal<FileMetadata> CurlGoogleDriveClient::PatchFileMetadata(PatchFileMetadataRequest const& request)
+{
+    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(),
+        m_storageFactory);
+    auto status = SetupBuilder(builder, request, "PATCH");
+    if (!status.Ok())
+    {
+        return status;
+    }
+    builder.AddHeader("Content-Type: application/json");
+    auto metaJson = GoogleMetadataParser::PatchFileMetadata(
+        request.GetOriginalMetadata(), request.GetUpdatedMetadata());
+    if (!metaJson.Ok())
+        return metaJson.GetStatus();
+    builder.AddQueryParameter("fields", ObjectMetadataFields);
+    auto response = builder.BuildRequest().MakeRequest(metaJson.Value().dump());
     return ParseFileMetadata(response);
 }
 
@@ -314,6 +314,25 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::InsertFile(InsertFileRequest co
         return InsertFileMultipart(request);
     else   // Otherwise do a simple upload.
         return InsertFileSimple(request);
+}
+
+StatusOrVal<std::unique_ptr<ObjectReadSource>> CurlGoogleDriveClient::ReadFile(
+    ReadFileRangeRequest const& request)
+{
+    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(), m_storageFactory);
+    auto status = SetupBuilder(builder, request, "GET");
+    if (!status.Ok())
+    {
+        return status;
+    }
+    builder.AddQueryParameter("alt", "media");
+    if (request.RequiresRangeHeader())
+    {
+        builder.AddHeader(GetRangeHeader(request));
+    }
+
+    return std::unique_ptr<ObjectReadSource>(
+        new CurlDownloadRequest(builder.BuildDownloadRequest(std::string{})));
 }
 
 StatusOrVal<std::unique_ptr<ResumableUploadSession>>
