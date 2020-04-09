@@ -62,7 +62,8 @@ public:
          CreateResumableSession(ResumableUploadRequest const& request) = 0;
     virtual StatusOrVal<std::unique_ptr<ResumableUploadSession>>
          RestoreResumableSession(std::string const& session_id) = 0;
-
+    // TODO: The name is expected to be `CopyFile`. But there is a macro in windows.h with this name.
+    virtual StatusOrVal<FileMetadata> CopyFileObject(CopyFileRequest const& request) = 0;
     //@}
 };
 

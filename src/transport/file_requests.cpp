@@ -130,5 +130,14 @@ std::ostream& operator<<(std::ostream& os, ReadFileRangeRequest const& r)
     return os << "}";
 }
 
+std::ostream& operator<<(std::ostream& os, CopyFileRequest const& r)
+{
+    os << "CopyFileRequest={file_id" << r.GetObjectId()
+        << ", new_parent_id = " << r.GetNewParentId()
+        << ", new_file_name = " << r.GetNewFileName();
+    r.DumpOptions(os, ", ");
+    return os << "}";
+}
+
 } // namespace internal
 } // namespace csa

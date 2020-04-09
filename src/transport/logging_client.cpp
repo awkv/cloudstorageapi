@@ -166,5 +166,11 @@ LoggingClient::RestoreResumableSession(std::string const& sessionId)
         *m_client, &RawClient::RestoreResumableSession, sessionId, __func__);
 }
 
+StatusOrVal<FileMetadata> 
+LoggingClient::CopyFileObject(CopyFileRequest const& request)
+{
+    return MakeCall(*m_client, &RawClient::CopyFileObject, request, __func__);
+}
+
 } // namespace internal
 } // namespace csa

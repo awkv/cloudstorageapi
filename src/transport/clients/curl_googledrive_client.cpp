@@ -354,6 +354,35 @@ CurlGoogleDriveClient::RestoreResumableSession(std::string const& sessionId)
     return std::move(response).GetStatus();
 }
 
+StatusOrVal<FileMetadata> CurlGoogleDriveClient::CopyFileObject(CopyFileRequest const& request)
+{
+    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId() + "/copy",
+        m_storageFactory);
+    auto status = SetupBuilder(builder, request, "POST");
+    if (!status.Ok())
+    {
+        return status;
+    }
+
+    FileMetadata fmeta;
+    if (request.HasOption<WithFileMetadata>())
+    {
+        fmeta = request.GetOption<WithFileMetadata>().Value();
+    }
+    if (!request.GetNewFileName().empty())
+        fmeta.SetName(request.GetNewFileName());
+    if (!request.GetNewParentId().empty())
+        fmeta.SetParentId(request.GetNewParentId());
+    auto jmeta = GoogleMetadataParser::ComposeFileMetadata(fmeta);
+    if (!jmeta.Ok())
+        return jmeta.GetStatus();
+
+    builder.AddQueryParameter("fields", ObjectMetadataFields);
+    builder.AddHeader("Content-Type: application/json");
+    auto response = builder.BuildRequest().MakeRequest(jmeta.Value().dump());
+    return ParseFileMetadata(response);
+}
+
 std::string CurlGoogleDriveClient::PickBoundary(std::string const& textToAvoid)
 {
     // We need to find a string that is *not* found in `text_to_avoid`, we pick

@@ -321,9 +321,19 @@ public:
         return ReadObjectImpl(request);
     }
     
+    template<typename... Options>
+    StatusOrVal<FileMetadata> CopyFile(std::string const& id,
+        std::string const& newParentId,
+        std::string const& newName,
+        Options&&... options)
+    {
+        internal::CopyFileRequest request(id, newParentId, newName);
+        request.SetMultipleOptions(std::forward<Options>(options)...);
+        return m_RawClient->CopyFileObject(request);
+    }
+
     // TODO: to be implemented.
     //Status DownloadFileThumbnail(std::string const& id, std::string const& dstFileName, uint16_t size = 256, std::string const& imgFormat = "png") const; // Only for box, dropbox and gdrive
-    //StatusOrVal<FileMetadata> CopyFile(std::string const& id, std::string const& newParentId, std::string const& newNameOpt);
 
     // TODO: to be implemented.
     //// Multipart uploading operations

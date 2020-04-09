@@ -44,10 +44,12 @@ public:
     StatusOrVal<FileMetadata> InsertFile(InsertFileRequest const& request) override;
     StatusOrVal<std::unique_ptr<ObjectReadSource>> ReadFile(
         ReadFileRangeRequest const& request) override;
-   StatusOrVal<std::unique_ptr<ResumableUploadSession>>
+    StatusOrVal<std::unique_ptr<ResumableUploadSession>>
         CreateResumableSession(ResumableUploadRequest const& request) override;
     StatusOrVal<std::unique_ptr<ResumableUploadSession>>
         RestoreResumableSession(std::string const& sessionId) override;
+    StatusOrVal<FileMetadata> CopyFileObject(CopyFileRequest const& request) override;
+
 private:
     std::shared_ptr<RawClient> m_client;
 };

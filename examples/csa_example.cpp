@@ -420,6 +420,23 @@ void ReadFileRange(csa::CloudStorageClient* client, int& argc, char* argv[])
     std::cout << "The requested range of file \"" << fileId << "\" has " << lineCount << " lines.";
 }
 
+void CopyFile(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 4)
+        throw NeedUsage{ "copy-file <file-id> <destination-parent-folder-id> <destination-name>" };
+
+    auto fileId = ConsumeArg(argc, argv);
+    auto dstParentId = ConsumeArg(argc, argv);
+    auto dstFileName = ConsumeArg(argc, argv);
+
+    auto fileMeta = client->CopyFile(fileId, dstParentId, dstFileName);
+    if (!fileMeta)
+        throw std::runtime_error(fileMeta.GetStatus().Message());
+
+    std::cout << "Successfully copied \"" << fileId << "\" to "
+        << dstFileName << ", full metadata: " << *fileMeta;
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) try 
@@ -443,6 +460,7 @@ int main(int argc, char* argv[]) try
         {"download-file", &DownloadFile},
         {"read-file", &ReadFile},
         {"read-file-range", &ReadFileRange},
+        {"copy-file", CopyFile},
     };
     for (auto&& cmd : cmdMap)
     {

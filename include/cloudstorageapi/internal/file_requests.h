@@ -233,5 +233,33 @@ public:
 
 std::ostream& operator<<(std::ostream& os, ReadFileRangeRequest const& r);
 
+/**
+ * Represents a request to the `Files: copy` API.
+ */
+class CopyFileRequest
+    : public GenericObjectRequest<
+    CopyFileRequest,
+    Generation, WithFileMetadata>
+{
+public:
+    using GenericObjectRequest::GenericObjectRequest;
+    CopyFileRequest(std::string fileId,
+        std::string newParentId,
+        std::string newFileName)
+        : GenericObjectRequest(std::move(fileId)),
+        m_newParentId(std::move(newParentId)),
+        m_newFileName(std::move(newFileName))
+    {}
+
+    std::string const& GetNewParentId() const { return m_newParentId; }
+    std::string const& GetNewFileName() const { return m_newFileName; }
+
+private:
+    std::string m_newParentId;
+    std::string m_newFileName;
+};
+
+std::ostream& operator<<(std::ostream& os, CopyFileRequest const& r);
+
 }  // namespace internal
 }  // namespace csa
