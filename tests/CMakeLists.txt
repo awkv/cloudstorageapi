@@ -26,6 +26,7 @@ set(csa_tests
     main.cpp
     nljson_use_after_third_party_test.cpp
     nljson_use_third_party_test.cpp
+    pagination_range_test.cpp
     random_test.cpp
     rfc3339_time_test.cpp
     status_or_val_test.cpp

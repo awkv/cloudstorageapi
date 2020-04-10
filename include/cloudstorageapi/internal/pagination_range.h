@@ -97,7 +97,7 @@ private:
     friend bool operator!=(PaginationIterator const& lhs,
         PaginationIterator const& rhs)
     {
-        return std::rel_ops::operator!=(lhs, rhs);
+        return !(lhs == rhs);
     }
 
     explicit PaginationIterator(Range* owner, value_type value)
@@ -107,9 +107,29 @@ private:
     value_type m_value;
 };
 
+/**
+ * Adapt pagination APIs to look like input ranges.
+ *
+ * A number of APIs iterate over the elements in a "collection" using
+ * pagination APIs. The application calls a `List*()` RPC which returns
+ * a "page" of elements and a token, calling the same `List*()` RPC with the
+ * token returns the next "page". We want to expose these APIs as input ranges
+ * in the C++ client libraries. This class performs that work.
+ *
+ * @tparam T the type of the items, typically a proto describing the resources
+ * @tparam Request the type of the request object for the `List` RPC.
+ * @tparam Response the type of the response object for the `List` RPC.
+ */
 template <typename T, typename Request, typename Response>
 class PaginationRange {
 public:
+    /**
+     * Create a new range to paginate over some elements.
+     *
+     * @param request the first request to start the iteration, the library may
+     *    initialize this request with any filtering constraints.
+     * @param loader makes the RPC request to fetch a new page of items.
+     */
     explicit PaginationRange(
         Request request,
         std::function<StatusOrVal<Response>(Request const& r)> loader)
