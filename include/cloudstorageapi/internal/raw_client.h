@@ -47,7 +47,7 @@ public:
     // @name Folder operations
     virtual StatusOrVal<ListFolderResponse> ListFolder(ListFolderRequest const& request) = 0;
     virtual StatusOrVal<FolderMetadata> GetFolderMetadata(GetFolderMetadataRequest const& request) = 0;
-
+    virtual StatusOrVal<FolderMetadata> CreateFolder(CreateFolderRequest const& request) = 0;
     //@}
 
     //{@

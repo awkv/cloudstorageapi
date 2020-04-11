@@ -129,8 +129,14 @@ public:
     }
 
 
+    template<typename... Options>
+    StatusOrVal<FolderMetadata> CreateFolder(std::string const& parentId, std::string const& newName)
+    {
+        internal::CreateFolderRequest request(parentId, newName);
+        return m_RawClient->CreateFolder(request);
+    }
+
     // TODO: to me implemented
-    //StatusOrVal<FolderMetadata> CreateFolder(std::string const& parentId, std::string const& newName, bool conflictIfExists);
     //StatusOrVal<FolderMetadata> RenameFolder(std::string const& id, std::string const& newParentId, std::string const& newName);
     //StatusOrVal<FolderMetadata> CopyFolder(std::string const& id, std::string const& newParentId, std::string const& newName); // Some limitation, not all clouds support it
     //StatusOrVal<FolderMetadata> UpdateFolder(std::string const& id, FolderMetadata metadata);

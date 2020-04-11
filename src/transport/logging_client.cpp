@@ -116,6 +116,11 @@ StatusOrVal<FolderMetadata> LoggingClient::GetFolderMetadata(GetFolderMetadataRe
     return MakeCall(*m_client, &RawClient::GetFolderMetadata, request, __func__);
 }
 
+StatusOrVal<FolderMetadata> LoggingClient::CreateFolder(CreateFolderRequest const& request)
+{
+    return MakeCall(*m_client, &RawClient::CreateFolder, request, __func__);
+}
+
 StatusOrVal<FileMetadata> LoggingClient::GetFileMetadata(GetFileMetadataRequest const& request)
 {
     return MakeCall(*m_client, &RawClient::GetFileMetadata, request, __func__);

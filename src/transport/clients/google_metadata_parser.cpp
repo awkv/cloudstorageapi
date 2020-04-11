@@ -129,6 +129,7 @@ StatusOrVal<nl::json> GoogleMetadataParser::ComposeFolderMetadata(FolderMetadata
     auto status = ComposeCommonMetadata(jmeta, meta);
     if (!status.Ok())
         return status;
+    jmeta["mimeType"] = "application/vnd.google-apps.folder";
     return jmeta;
 }
 

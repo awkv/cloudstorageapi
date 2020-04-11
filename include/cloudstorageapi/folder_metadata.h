@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "common_metadata.h"
+#include "internal/complex_option.h"
 
 namespace csa {
 
@@ -46,6 +47,13 @@ private:
 };
 
 std::ostream& operator<<(std::ostream& os, FolderMetadata const& rhs);
+
+struct WithFolderMetadata
+    : public internal::ComplexOption<WithFolderMetadata, FolderMetadata>
+{
+    using ComplexOption<WithFolderMetadata, FolderMetadata>::ComplexOption;
+    static char const* name() { return "object-metadata"; }
+};
 
 using FolderMetadataSharedPtr = std::shared_ptr<FolderMetadata>;
 } // namespace csa

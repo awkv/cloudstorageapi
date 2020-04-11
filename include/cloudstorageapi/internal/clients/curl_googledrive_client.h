@@ -58,6 +58,7 @@ public:
 
     StatusOrVal<ListFolderResponse> ListFolder(ListFolderRequest const& request) override;
     StatusOrVal<FolderMetadata> GetFolderMetadata(GetFolderMetadataRequest const& request) override;
+    StatusOrVal<FolderMetadata> CreateFolder(CreateFolderRequest const& request) override;
 
     StatusOrVal<FileMetadata> GetFileMetadata(GetFileMetadataRequest const& request) override;
     StatusOrVal<FileMetadata> PatchFileMetadata(PatchFileMetadataRequest const& request) override;

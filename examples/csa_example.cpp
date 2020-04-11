@@ -437,6 +437,22 @@ void CopyFile(csa::CloudStorageClient* client, int& argc, char* argv[])
         << dstFileName << ", full metadata: " << *fileMeta;
 }
 
+void CreateFolder(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 3)
+        throw NeedUsage{ "create-folder <parent-id> <name>" };
+
+    auto parentId = ConsumeArg(argc, argv);
+    auto name = ConsumeArg(argc, argv);
+
+    auto folderMeta = client->CreateFolder(parentId, name);
+    if (!folderMeta)
+        throw std::runtime_error(folderMeta.GetStatus().Message());
+
+    std::cout << "Successfully created folder \"" << name << "\", "
+        "full metadata: " << *folderMeta;
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) try 
@@ -446,6 +462,7 @@ int main(int argc, char* argv[]) try
         {"delete", &Delete},
         {"list-folder", &ListFolder},
         {"list-folder-with-page-size", &ListFolderWithPageSize},
+        {"create-folder", CreateFolder},
         {"get-folder-metadata", &GetFolderMetadata},
         {"get-file-metadata", &GetFileMetadata},
         {"patch-delete-file-metadata", &PatchDeleteFileMetadata},

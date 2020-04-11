@@ -144,6 +144,18 @@ namespace {
         auto emptyResponseReturner = [](std::string const&) { return StatusOrVal(EmptyResponse{}); };
         return CheckAndParse(emptyResponseReturner, response);
     }
+
+    FolderMetadata CreateDefaultFolderMetadata(std::string const& parent, std::string const& name)
+    {
+        auto now = std::chrono::system_clock::now();
+        FolderMetadata fmeta;
+        fmeta.SetModifyTime(now);
+        fmeta.SetAccessTime(now);
+        fmeta.SetChangeTime(now);
+        fmeta.SetParentId(parent);
+        fmeta.SetName(name);
+        return fmeta;
+    }
 } // namespace
 
 CurlGoogleDriveClient::CurlGoogleDriveClient(ClientOptions options)
@@ -249,6 +261,43 @@ StatusOrVal<FolderMetadata> CurlGoogleDriveClient::GetFolderMetadata(GetFolderMe
     builder.AddQueryParameter("fields", ObjectMetadataFields);
 
     auto response = builder.BuildRequest().MakeRequest(std::string{});
+    return ParseFolderMetadata(response);
+}
+
+StatusOrVal<FolderMetadata> CurlGoogleDriveClient::CreateFolder(CreateFolderRequest const& request)
+{
+    CurlRequestBuilder builder(FilesEndPoint, m_uploadFactory);
+    auto status = SetupBuilder(builder, request, "POST");
+    if (!status.Ok())
+    {
+        return status;
+    }
+
+    FolderMetadata fmeta;
+    if (request.HasOption<WithFolderMetadata>())
+    {
+        fmeta = request.GetOption<WithFolderMetadata>().Value();
+        auto& name = request.GetName();
+        if (!name.empty())
+            fmeta.SetName(name);
+        auto& parentId = request.GetParent();
+        if (!parentId.empty())
+            fmeta.SetParentId(parentId);
+    }
+    else
+    {
+        fmeta = CreateDefaultFolderMetadata(request.GetParent(),
+            request.GetName());
+    }
+
+    auto jmeta = GoogleMetadataParser::ComposeFolderMetadata(fmeta);
+    if (!jmeta.Ok())
+        return jmeta.GetStatus();
+    
+    builder.AddHeader("content-type: application/json");
+    builder.AddQueryParameter("fields", ObjectMetadataFields);
+    auto response = builder.BuildRequest().MakeRequest(jmeta.Value().dump());
+
     return ParseFolderMetadata(response);
 }
 

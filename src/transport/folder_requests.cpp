@@ -44,5 +44,12 @@ std::ostream& operator<<(std::ostream& os, GetFolderMetadataRequest const& r)
     return os << "}";
 }
 
+std::ostream& operator<<(std::ostream& os, CreateFolderRequest const& r)
+{
+    os << "CreateFolderRequest={parent_id=" << r.GetParent()
+        << ", folder_name=" << r.GetName();
+    r.DumpOptions(os, ", ");
+    return os << "}";
+}
 } // namespace internal
 } // namespace csa

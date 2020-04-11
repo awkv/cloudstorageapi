@@ -69,5 +69,25 @@ public:
 
 std::ostream& operator<<(std::ostream& os, GetFolderMetadataRequest const& r);
 
+/**
+ * 
+ */
+class CreateFolderRequest : public GenericObjectRequest<CreateFolderRequest, WithFolderMetadata>
+{
+public:
+    CreateFolderRequest(std::string parentId, std::string newName)
+        : m_parentId(std::move(parentId)), m_name(std::move(newName))
+    {}
+
+    std::string GetParent() const { return m_parentId; }
+    std::string GetName() const { return m_name; }
+
+private:
+    std::string m_parentId;
+    std::string m_name;
+};
+
+std::ostream& operator<<(std::ostream& os, CreateFolderRequest const& r);
+
 }  // namespace internal
 }  // namespace csa
