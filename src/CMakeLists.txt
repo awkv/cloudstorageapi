@@ -30,6 +30,7 @@ set(csa_sources
     transport/empty_response.cpp
     transport/file_requests.cpp
     transport/folder_requests.cpp
+    transport/generic_object_requests.cpp
     transport/http_empty_response.cpp
     transport/http_response.cpp
     transport/logging_client.cpp

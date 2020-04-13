@@ -301,6 +301,11 @@ StatusOrVal<FolderMetadata> CurlGoogleDriveClient::CreateFolder(CreateFolderRequ
     return ParseFolderMetadata(response);
 }
 
+StatusOrVal<FolderMetadata> CurlGoogleDriveClient::RenameFolder(RenameRequest const& request)
+{
+    return ParseFolderMetadata(RenameGeneric(request));
+}
+
 StatusOrVal<FileMetadata> CurlGoogleDriveClient::GetFileMetadata(GetFileMetadataRequest const& request)
 {
     CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(), m_storageFactory);
@@ -334,26 +339,9 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::PatchFileMetadata(PatchFileMeta
     return ParseFileMetadata(response);
 }
 
-StatusOrVal<FileMetadata> CurlGoogleDriveClient::RenameFile(RenameFileRequest const& request)
+StatusOrVal<FileMetadata> CurlGoogleDriveClient::RenameFile(RenameRequest const& request)
 {
-    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(), m_storageFactory);
-    auto status = SetupBuilder(builder, request, "PATCH");
-    if (!status.Ok())
-    {
-        return status;
-    }
-
-    auto& parentId = request.GetParentId();
-    auto& newParentId = request.GetNewParentId();
-    if (!parentId.empty() && !newParentId.empty())
-    {
-        builder.AddQueryParameter("addParents", request.GetNewParentId());
-        builder.AddQueryParameter("removeParents", request.GetParentId());
-    }
-    builder.AddQueryParameter("fields", ObjectMetadataFields);
-    builder.AddHeader("Content-Type: application/json");
-    auto response = builder.BuildRequest().MakeRequest("{\"name\":\""+request.GetNewName()+"\"}");
-    return ParseFileMetadata(response);
+    return ParseFileMetadata(RenameGeneric(request));
 }
 
 StatusOrVal<FileMetadata> CurlGoogleDriveClient::InsertFile(InsertFileRequest const& request)
@@ -636,6 +624,27 @@ CurlGoogleDriveClient::CreateResumableSessionGeneric(RequestType const& request)
     return std::unique_ptr<ResumableUploadSession>(
         std::make_unique<CurlResumableUploadSession>(
             shared_from_this(), std::move(response->m_uploadSessionUrl)));
+}
+
+StatusOrVal<HttpResponse> CurlGoogleDriveClient::RenameGeneric(RenameRequest const& request)
+{
+    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(), m_storageFactory);
+    auto status = SetupBuilder(builder, request, "PATCH");
+    if (!status.Ok())
+    {
+        return status;
+    }
+
+    auto& parentId = request.GetParentId();
+    auto& newParentId = request.GetNewParentId();
+    if (!parentId.empty() && !newParentId.empty())
+    {
+        builder.AddQueryParameter("addParents", request.GetNewParentId());
+        builder.AddQueryParameter("removeParents", request.GetParentId());
+    }
+    builder.AddQueryParameter("fields", ObjectMetadataFields);
+    builder.AddHeader("Content-Type: application/json");
+    return builder.BuildRequest().MakeRequest("{\"name\":\"" + request.GetNewName() + "\"}");
 }
 
 }  // namespace internal

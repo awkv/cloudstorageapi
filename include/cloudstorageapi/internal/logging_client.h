@@ -38,10 +38,11 @@ public:
     StatusOrVal<ListFolderResponse> ListFolder(ListFolderRequest const& request) override;
     StatusOrVal<FolderMetadata> GetFolderMetadata(GetFolderMetadataRequest const& request) override;
     StatusOrVal<FolderMetadata> CreateFolder(CreateFolderRequest const& request) override;
+    StatusOrVal<FolderMetadata> RenameFolder(RenameRequest const& request) override;
 
     StatusOrVal<FileMetadata> GetFileMetadata(GetFileMetadataRequest const& request) override;
     StatusOrVal<FileMetadata> PatchFileMetadata(PatchFileMetadataRequest const& request) override;
-    StatusOrVal<FileMetadata> RenameFile(RenameFileRequest const& request) override;
+    StatusOrVal<FileMetadata> RenameFile(RenameRequest const& request) override;
     StatusOrVal<FileMetadata> InsertFile(InsertFileRequest const& request) override;
     StatusOrVal<std::unique_ptr<ObjectReadSource>> ReadFile(
         ReadFileRangeRequest const& request) override;

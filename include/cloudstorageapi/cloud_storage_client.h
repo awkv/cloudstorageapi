@@ -136,8 +136,16 @@ public:
         return m_RawClient->CreateFolder(request);
     }
 
+    StatusOrVal<FolderMetadata> RenameFolder(std::string const& id,
+        std::string const& newName,
+        std::string const& parentId,
+        std::string const& newParentId)
+    {
+        internal::RenameRequest request(id, newName, parentId, newParentId);
+        return m_RawClient->RenameFolder(request);
+    }
+
     // TODO: to me implemented
-    //StatusOrVal<FolderMetadata> RenameFolder(std::string const& id, std::string const& newParentId, std::string const& newName);
     //StatusOrVal<FolderMetadata> CopyFolder(std::string const& id, std::string const& newParentId, std::string const& newName); // Some limitation, not all clouds support it
     //StatusOrVal<FolderMetadata> UpdateFolder(std::string const& id, FolderMetadata metadata);
 
@@ -176,7 +184,7 @@ public:
                                          std::string const& parentId = "",
                                          std::string const& newParentId = "") // includes move
     {
-        internal::RenameFileRequest request(id, newName, parentId, newParentId);
+        internal::RenameRequest request(id, newName, parentId, newParentId);
         return m_RawClient->RenameFile(request);
     }
 

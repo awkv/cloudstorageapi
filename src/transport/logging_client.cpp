@@ -121,6 +121,11 @@ StatusOrVal<FolderMetadata> LoggingClient::CreateFolder(CreateFolderRequest cons
     return MakeCall(*m_client, &RawClient::CreateFolder, request, __func__);
 }
 
+StatusOrVal<FolderMetadata> LoggingClient::RenameFolder(RenameRequest const& request)
+{
+    return MakeCall(*m_client, &RawClient::RenameFolder, request, __func__);
+}
+
 StatusOrVal<FileMetadata> LoggingClient::GetFileMetadata(GetFileMetadataRequest const& request)
 {
     return MakeCall(*m_client, &RawClient::GetFileMetadata, request, __func__);
@@ -131,7 +136,7 @@ StatusOrVal<FileMetadata> LoggingClient::PatchFileMetadata(PatchFileMetadataRequ
     return MakeCall(*m_client, &RawClient::PatchFileMetadata, request, __func__);
 }
 
-StatusOrVal<FileMetadata> LoggingClient::RenameFile(RenameFileRequest const& request)
+StatusOrVal<FileMetadata> LoggingClient::RenameFile(RenameRequest const& request)
 {
     return MakeCall(*m_client, &RawClient::RenameFile, request, __func__);
 }

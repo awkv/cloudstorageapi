@@ -41,5 +41,31 @@ private:
     std::string m_objectId;
 };
 
+/**
+ * Represents a request to rename/move object.
+ */
+class RenameRequest
+    : public GenericObjectRequest<RenameRequest>
+{
+public:
+    RenameRequest(std::string id, std::string newName, std::string parentId, std::string newParentId)
+        : GenericObjectRequest<RenameRequest>(id),
+        m_newName(std::move(newName)),
+        m_parentId(std::move(parentId)),
+        m_newParentId(std::move(newParentId))
+    {}
+
+    std::string GetParentId() const { return m_parentId; }
+    std::string GetNewParentId() const { return m_newParentId; }
+    std::string GetNewName() const { return m_newName; }
+
+private:
+    std::string m_newName;
+    std::string m_parentId;
+    std::string m_newParentId;
+};
+
+std::ostream& operator<<(std::ostream& os, RenameRequest const& r);
+
 }  // namespace internal
 }  // namespace csa

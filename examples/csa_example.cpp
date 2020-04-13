@@ -119,6 +119,30 @@ void GetFolderMetadata(csa::CloudStorageClient* client, int& argc, char* argv[])
         *folderMetadata << "\n";
 }
 
+void RenameFolder(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || (argc != 3 && argc != 5))
+        throw NeedUsage("rename-folder <folder-id> <new-name> [<parent-id> <new-parent-id>]");
+
+    auto folderId = ConsumeArg(argc, argv);
+    auto newName = ConsumeArg(argc, argv);
+    std::string parentId;
+    std::string newParentid;
+    if (argc == 3)// total 5, 2 are consumed above.
+    {
+        parentId = ConsumeArg(argc, argv);
+        newParentid = ConsumeArg(argc, argv);
+    }
+    csa::StatusOrVal<csa::FolderMetadata> folderMetadata = client->RenameFolder(folderId, newName, parentId, newParentid);
+    if (!folderMetadata)
+    {
+        throw std::runtime_error(folderMetadata.GetStatus().Message());
+    }
+
+    std::cout << "Rename folder succeeded: id=\'" << folderId << "\' "
+        << *folderMetadata << std::endl;
+}
+
 void GetFileMetadata(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
     if (!client || argc != 2)
@@ -464,6 +488,7 @@ int main(int argc, char* argv[]) try
         {"list-folder-with-page-size", &ListFolderWithPageSize},
         {"create-folder", CreateFolder},
         {"get-folder-metadata", &GetFolderMetadata},
+        {"rename-folder", &RenameFolder},
         {"get-file-metadata", &GetFileMetadata},
         {"patch-delete-file-metadata", &PatchDeleteFileMetadata},
         {"rename-file", &RenameFile},

@@ -16,7 +16,7 @@
 
 #include "cloudstorageapi/download_options.h"
 #include "cloudstorageapi/file_metadata.h"
-#include "cloudstorageapi/internal/generic_object_request.h"
+#include "cloudstorageapi/internal/generic_object_requests.h"
 #include "cloudstorageapi/upload_options.h"
 #include "cloudstorageapi/well_known_headers.h"
 
@@ -59,32 +59,6 @@ private:
 };
 
 std::ostream& operator<<(std::ostream& os, PatchFileMetadataRequest const& r);
-
-/**
- * Represents a request to rename/move file.
- */
-class RenameFileRequest
-    : public GenericObjectRequest<RenameFileRequest>
-{
-public:
-    RenameFileRequest(std::string id, std::string newName, std::string parentId, std::string newParentId)
-        : GenericObjectRequest<RenameFileRequest>(id),
-        m_newName(std::move(newName)),
-        m_parentId(std::move(parentId)),
-        m_newParentId(std::move(newParentId))
-    {}
-
-    std::string GetParentId() const { return m_parentId; }
-    std::string GetNewParentId() const { return m_newParentId; }
-    std::string GetNewName() const { return m_newName; }
-
-private:
-    std::string m_newName;
-    std::string m_parentId;
-    std::string m_newParentId;
-};
-
-std::ostream& operator<<(std::ostream& os, RenameFileRequest const& r);
 
 class InsertFileRequest : public GenericObjectRequest<InsertFileRequest, ContentType, WithFileMetadata>
 {

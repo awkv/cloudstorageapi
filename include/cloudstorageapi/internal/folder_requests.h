@@ -16,7 +16,7 @@
 
 #include "cloudstorageapi/file_metadata.h"
 #include "cloudstorageapi/folder_metadata.h"
-#include "cloudstorageapi/internal/generic_object_request.h"
+#include "cloudstorageapi/internal/generic_object_requests.h"
 #include "cloudstorageapi/internal/http_response.h"
 #include "cloudstorageapi/well_known_parameters.h"
 #include <variant>

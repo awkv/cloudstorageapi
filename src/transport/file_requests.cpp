@@ -38,16 +38,6 @@ std::ostream& operator<<(std::ostream& os, PatchFileMetadataRequest const& r)
     return os << "}";
 }
 
-std::ostream& operator<<(std::ostream& os, RenameFileRequest const& r)
-{
-    os << "RenameFileRequest={file_id=" << r.GetObjectId()
-       << ", new_name=" << r.GetNewName()
-       << ", parent_id=" << r.GetParentId()
-       << ", new_parent_id=" << r.GetNewParentId();
-    r.DumpOptions(os, ", ");
-    return os << "}";
-}
-
 std::ostream& operator<<(std::ostream& os, InsertFileRequest const& r)
 {
     os << "InsertFileRequest={folder_id=" << r.GetFolderId()

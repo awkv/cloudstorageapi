@@ -48,13 +48,14 @@ public:
     virtual StatusOrVal<ListFolderResponse> ListFolder(ListFolderRequest const& request) = 0;
     virtual StatusOrVal<FolderMetadata> GetFolderMetadata(GetFolderMetadataRequest const& request) = 0;
     virtual StatusOrVal<FolderMetadata> CreateFolder(CreateFolderRequest const& request) = 0;
+    virtual StatusOrVal<FolderMetadata> RenameFolder(RenameRequest const& request) = 0;
     //@}
 
     //{@
     // @name File operations
     virtual StatusOrVal<FileMetadata> GetFileMetadata(GetFileMetadataRequest const& request) = 0;
     virtual StatusOrVal<FileMetadata> PatchFileMetadata(PatchFileMetadataRequest const& request) = 0;
-    virtual StatusOrVal<FileMetadata> RenameFile(RenameFileRequest const& request) = 0;
+    virtual StatusOrVal<FileMetadata> RenameFile(RenameRequest const& request) = 0;
     virtual StatusOrVal<FileMetadata> InsertFile(InsertFileRequest const& request) = 0;
     virtual StatusOrVal<std::unique_ptr<ObjectReadSource>> ReadFile(
         ReadFileRangeRequest const& request) = 0;
