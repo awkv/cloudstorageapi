@@ -39,6 +39,8 @@ public:
 
     static StatusOrVal<nl::json> PatchFileMetadata(FileMetadata const& original,
         FileMetadata const& updated);
+    static StatusOrVal<nl::json> PatchFolderMetadata(FolderMetadata const& original,
+        FolderMetadata const& updated);
 
 private:
     static Status ParseCommonMetadata(CommonMetadata& result, nl::json const& json);

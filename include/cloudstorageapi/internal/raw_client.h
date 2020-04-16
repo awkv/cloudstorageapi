@@ -49,6 +49,7 @@ public:
     virtual StatusOrVal<FolderMetadata> GetFolderMetadata(GetFolderMetadataRequest const& request) = 0;
     virtual StatusOrVal<FolderMetadata> CreateFolder(CreateFolderRequest const& request) = 0;
     virtual StatusOrVal<FolderMetadata> RenameFolder(RenameRequest const& request) = 0;
+    virtual StatusOrVal<FolderMetadata> PatchFolderMetadata(PatchFolderMetadataRequest const& request) = 0;
     //@}
 
     //{@

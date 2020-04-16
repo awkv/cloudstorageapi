@@ -89,5 +89,30 @@ private:
 
 std::ostream& operator<<(std::ostream& os, CreateFolderRequest const& r);
 
+/**
+ * Represents a request to the `Files: update` API.
+ */
+class PatchFolderMetadataRequest
+    : public GenericObjectRequest<PatchFolderMetadataRequest>
+{
+public:
+    PatchFolderMetadataRequest() = default;
+    explicit PatchFolderMetadataRequest(std::string folderId, FolderMetadata original,
+        FolderMetadata updated)
+        : GenericObjectRequest(std::move(folderId)),
+        m_OriginalMeta(std::move(original)),
+        m_UpdatedMeta(std::move(updated))
+    {}
+
+    FolderMetadata const& GetOriginalMetadata() const { return m_OriginalMeta; }
+    FolderMetadata const& GetUpdatedMetadata() const { return m_UpdatedMeta; }
+
+private:
+    FolderMetadata m_OriginalMeta;
+    FolderMetadata m_UpdatedMeta;
+};
+
+std::ostream& operator<<(std::ostream& os, PatchFolderMetadataRequest const& r);
+
 }  // namespace internal
 }  // namespace csa

@@ -51,5 +51,15 @@ std::ostream& operator<<(std::ostream& os, CreateFolderRequest const& r)
     r.DumpOptions(os, ", ");
     return os << "}";
 }
+
+std::ostream& operator<<(std::ostream& os, PatchFolderMetadataRequest const& r)
+{
+    os << "PatchFolderMetadataRequest={file_id=" << r.GetObjectId()
+        << ", original_metadata=" << r.GetOriginalMetadata()
+        << ", updated_metadata=" << r.GetUpdatedMetadata();
+    r.DumpOptions(os, ", ");
+    return os << "}";
+}
+
 } // namespace internal
 } // namespace csa

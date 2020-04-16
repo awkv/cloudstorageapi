@@ -16,6 +16,7 @@
 
 #include "cloudstorageapi/internal/curl_client_base.h"
 #include "cloudstorageapi/file_metadata.h"
+#include "cloudstorageapi/internal/nljson.h"
 
 namespace csa {
 namespace internal {
@@ -60,6 +61,7 @@ public:
     StatusOrVal<FolderMetadata> GetFolderMetadata(GetFolderMetadataRequest const& request) override;
     StatusOrVal<FolderMetadata> CreateFolder(CreateFolderRequest const& request) override;
     StatusOrVal<FolderMetadata> RenameFolder(RenameRequest const& request) override;
+    StatusOrVal<FolderMetadata> PatchFolderMetadata(PatchFolderMetadataRequest const& request) override;
 
     StatusOrVal<FileMetadata> GetFileMetadata(GetFileMetadataRequest const& request) override;
     StatusOrVal<FileMetadata> PatchFileMetadata(PatchFileMetadataRequest const& request) override;
@@ -87,6 +89,8 @@ private:
         CreateResumableSessionGeneric(RequestType const& request);
 
     StatusOrVal<HttpResponse> RenameGeneric(RenameRequest const& request);
+    template <typename RequestType>
+    StatusOrVal<HttpResponse> PatchMetadataGeneric(RequestType const& request, nl::json const& patch);
 };
 
 }  // namespace internal

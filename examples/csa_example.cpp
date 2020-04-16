@@ -143,6 +143,39 @@ void RenameFolder(csa::CloudStorageClient* client, int& argc, char* argv[])
         << *folderMetadata << std::endl;
 }
 
+void PatchDeleteFolderMetadata(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 3)
+        throw NeedUsage("patch-delete-folder-metadata <folder-id> <key>");
+
+    auto folderId = ConsumeArg(argc, argv);
+    std::string key = ConsumeArg(argc, argv);
+
+    csa::StatusOrVal<csa::FolderMetadata> folderMeta = client->GetFolderMetadata(folderId);
+    if (!folderMeta)
+    {
+        throw std::runtime_error(folderMeta.GetStatus().Message());
+    }
+
+    csa::FolderMetadata updateFolderMeta = *folderMeta;
+    if (key == "modifiedTime")
+    {
+        auto epochStart = std::chrono::time_point<std::chrono::system_clock>{};
+        updateFolderMeta.SetModifyTime(epochStart);
+    }
+    else if (key == "name")
+        updateFolderMeta.SetName("");
+
+    auto newUpdateFolderMeta = client->PatchFolderMetadata(folderId, folderMeta.Value(), updateFolderMeta);
+    if (!newUpdateFolderMeta)
+    {
+        throw std::runtime_error(newUpdateFolderMeta.GetStatus().Message());
+    }
+
+    std::cout << "The folder \"" << folderMeta->GetName() << "\" updated. Updated metadata: "
+        << *newUpdateFolderMeta << std::endl;
+}
+
 void GetFileMetadata(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
     if (!client || argc != 2)
@@ -489,6 +522,7 @@ int main(int argc, char* argv[]) try
         {"create-folder", CreateFolder},
         {"get-folder-metadata", &GetFolderMetadata},
         {"rename-folder", &RenameFolder},
+        {"patch-delete-folder-metadata", &PatchDeleteFolderMetadata},
         {"get-file-metadata", &GetFileMetadata},
         {"patch-delete-file-metadata", &PatchDeleteFileMetadata},
         {"rename-file", &RenameFile},

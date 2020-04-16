@@ -146,6 +146,16 @@ StatusOrVal<nl::json> GoogleMetadataParser::PatchFileMetadata(
     return jmeta;
 }
 
+StatusOrVal<nl::json> GoogleMetadataParser::PatchFolderMetadata(
+    FolderMetadata const& original, FolderMetadata const& updated)
+{
+    nl::json jmeta({});
+    auto status = PatchCommonMetadata(jmeta, original, updated);
+    if (!status.Ok())
+        return status;
+    return jmeta;
+}
+
 Status GoogleMetadataParser::ParseCommonMetadata(CommonMetadata& result, nl::json const& json)
 {
     if (!json.is_object())

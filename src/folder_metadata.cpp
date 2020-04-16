@@ -30,7 +30,7 @@ std::ostream& operator<<(std::ostream& os, FolderMetadata const& rhs)
     os << std::boolalpha << "FolderMetadata={"
        << static_cast<CommonMetadata const&>(rhs)
        << ", CanCreateFolders=" << (rhs.GetCanCreateFolders())
-       << ", CanUuploadFiles=" << (rhs.GetCanUploadFile())
+       << ", CanUploadFiles=" << (rhs.GetCanUploadFile())
        << "}";
 
     return os;

@@ -126,6 +126,11 @@ StatusOrVal<FolderMetadata> LoggingClient::RenameFolder(RenameRequest const& req
     return MakeCall(*m_client, &RawClient::RenameFolder, request, __func__);
 }
 
+StatusOrVal<FolderMetadata> LoggingClient::PatchFolderMetadata(PatchFolderMetadataRequest const& request)
+{
+    return MakeCall(*m_client, &RawClient::PatchFolderMetadata, request, __func__);
+}
+
 StatusOrVal<FileMetadata> LoggingClient::GetFileMetadata(GetFileMetadataRequest const& request)
 {
     return MakeCall(*m_client, &RawClient::GetFileMetadata, request, __func__);

@@ -145,9 +145,12 @@ public:
         return m_RawClient->RenameFolder(request);
     }
 
-    // TODO: to me implemented
-    //StatusOrVal<FolderMetadata> CopyFolder(std::string const& id, std::string const& newParentId, std::string const& newName); // Some limitation, not all clouds support it
-    //StatusOrVal<FolderMetadata> UpdateFolder(std::string const& id, FolderMetadata metadata);
+    StatusOrVal<FolderMetadata> PatchFolderMetadata(std::string const& folderId,
+        FolderMetadata original, FolderMetadata updated)
+    {
+        internal::PatchFolderMetadataRequest request(folderId, std::move(original), std::move(updated));
+        return m_RawClient->PatchFolderMetadata(request);
+    }
 
     // File operations
     /**

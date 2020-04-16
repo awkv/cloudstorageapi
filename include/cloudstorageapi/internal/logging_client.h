@@ -37,8 +37,9 @@ public:
     StatusOrVal<EmptyResponse> Delete(DeleteRequest const& request) override;
     StatusOrVal<ListFolderResponse> ListFolder(ListFolderRequest const& request) override;
     StatusOrVal<FolderMetadata> GetFolderMetadata(GetFolderMetadataRequest const& request) override;
-    StatusOrVal<FolderMetadata> CreateFolder(CreateFolderRequest const& request) override;
+    StatusOrVal<FolderMetadata> CreateFolder(CreateFolderRequest const& request) ;
     StatusOrVal<FolderMetadata> RenameFolder(RenameRequest const& request) override;
+    StatusOrVal<FolderMetadata> PatchFolderMetadata(PatchFolderMetadataRequest const& request) override;
 
     StatusOrVal<FileMetadata> GetFileMetadata(GetFileMetadataRequest const& request) override;
     StatusOrVal<FileMetadata> PatchFileMetadata(PatchFileMetadataRequest const& request) override;

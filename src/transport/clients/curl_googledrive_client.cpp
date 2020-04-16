@@ -306,6 +306,15 @@ StatusOrVal<FolderMetadata> CurlGoogleDriveClient::RenameFolder(RenameRequest co
     return ParseFolderMetadata(RenameGeneric(request));
 }
 
+StatusOrVal<FolderMetadata> CurlGoogleDriveClient::PatchFolderMetadata(PatchFolderMetadataRequest const& request)
+{
+    auto metaJson = GoogleMetadataParser::PatchFolderMetadata(
+        request.GetOriginalMetadata(), request.GetUpdatedMetadata());
+    if (!metaJson.Ok())
+        return metaJson.GetStatus();
+    return ParseFolderMetadata(PatchMetadataGeneric(request, metaJson.Value()));
+}
+
 StatusOrVal<FileMetadata> CurlGoogleDriveClient::GetFileMetadata(GetFileMetadataRequest const& request)
 {
     CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(), m_storageFactory);
@@ -322,21 +331,11 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::GetFileMetadata(GetFileMetadata
 
 StatusOrVal<FileMetadata> CurlGoogleDriveClient::PatchFileMetadata(PatchFileMetadataRequest const& request)
 {
-    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(),
-        m_storageFactory);
-    auto status = SetupBuilder(builder, request, "PATCH");
-    if (!status.Ok())
-    {
-        return status;
-    }
-    builder.AddHeader("Content-Type: application/json");
     auto metaJson = GoogleMetadataParser::PatchFileMetadata(
         request.GetOriginalMetadata(), request.GetUpdatedMetadata());
     if (!metaJson.Ok())
         return metaJson.GetStatus();
-    builder.AddQueryParameter("fields", ObjectMetadataFields);
-    auto response = builder.BuildRequest().MakeRequest(metaJson.Value().dump());
-    return ParseFileMetadata(response);
+    return ParseFileMetadata(PatchMetadataGeneric(request, metaJson.Value()));
 }
 
 StatusOrVal<FileMetadata> CurlGoogleDriveClient::RenameFile(RenameRequest const& request)
@@ -645,6 +644,21 @@ StatusOrVal<HttpResponse> CurlGoogleDriveClient::RenameGeneric(RenameRequest con
     builder.AddQueryParameter("fields", ObjectMetadataFields);
     builder.AddHeader("Content-Type: application/json");
     return builder.BuildRequest().MakeRequest("{\"name\":\"" + request.GetNewName() + "\"}");
+}
+
+template <typename RequestType>
+StatusOrVal<HttpResponse> CurlGoogleDriveClient::PatchMetadataGeneric(RequestType const& request, nl::json const& patch)
+{
+    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(),
+        m_storageFactory);
+    auto status = SetupBuilder(builder, request, "PATCH");
+    if (!status.Ok())
+    {
+        return status;
+    }
+    builder.AddHeader("Content-Type: application/json");
+    builder.AddQueryParameter("fields", ObjectMetadataFields);
+    return builder.BuildRequest().MakeRequest(patch.dump());
 }
 
 }  // namespace internal
