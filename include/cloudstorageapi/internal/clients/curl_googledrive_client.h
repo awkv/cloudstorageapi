@@ -75,6 +75,8 @@ public:
         RestoreResumableSession(std::string const& session_id) override;
     StatusOrVal<FileMetadata> CopyFileObject(CopyFileRequest const& request) override;
 
+    StatusOrVal<StorageQuota> GetQuota() override;
+
 private:
     // The constructor is protected because the class must always be created
     // as a shared_ptr<>.

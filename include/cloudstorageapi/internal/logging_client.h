@@ -53,6 +53,8 @@ public:
         RestoreResumableSession(std::string const& sessionId) override;
     StatusOrVal<FileMetadata> CopyFileObject(CopyFileRequest const& request) override;
 
+    StatusOrVal<StorageQuota> GetQuota() override;
+
 private:
     std::shared_ptr<RawClient> m_client;
 };

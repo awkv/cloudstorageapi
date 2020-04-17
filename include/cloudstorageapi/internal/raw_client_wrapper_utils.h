@@ -62,5 +62,12 @@ struct Signature<StatusOrVal<Response>(
     using ReturnType = StatusOrVal<Response>;
 };
 
+template <typename Response>
+struct Signature < StatusOrVal<Response>(
+    csa::internal::RawClient::*)()>
+{
+    using ReturnType = StatusOrVal<Response>;
+};
+
 } // namespace internal
 } // namespace csa

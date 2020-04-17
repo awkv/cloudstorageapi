@@ -24,6 +24,7 @@
 #include "cloudstorageapi/client_options.h"
 #include "cloudstorageapi/status.h"
 #include "cloudstorageapi/status_or_val.h"
+#include "cloudstorageapi/storage_quota.h"
 
 namespace csa {
 namespace internal {
@@ -67,6 +68,8 @@ public:
     // TODO: The name is expected to be `CopyFile`. But there is a macro in windows.h with this name.
     virtual StatusOrVal<FileMetadata> CopyFileObject(CopyFileRequest const& request) = 0;
     //@}
+
+    virtual StatusOrVal<StorageQuota> GetQuota() = 0;
 };
 
 }  // namespace internal

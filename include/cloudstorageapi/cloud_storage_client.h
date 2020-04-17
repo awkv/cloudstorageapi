@@ -26,6 +26,7 @@
 #include "cloudstorageapi/internal/raw_client.h"
 #include "cloudstorageapi/list_folder_reader.h"
 #include "cloudstorageapi/status_or_val.h"
+#include "cloudstorageapi/storage_quota.h"
 #include "cloudstorageapi/upload_options.h"
 
 namespace csa {
@@ -71,16 +72,7 @@ public:
      */
     std::string GetProviderName() const { return m_RawClient->GetProviderName(); }
 
-    // TODO: to be implemented
-    ///**
-    // * \brief Get user identifier.
-    // *
-    // * @return user identifier (login in case of login/password,
-    // *         or email in case of OAuth.
-    // */
-    //std::string GetUserId() const;
-
-    // Common operations (folders and files)
+    // TODO: Common operations (folders and files)
     //StatusOrVal<bool> Exists(const std::string& path) const;
 
     /**
@@ -349,6 +341,12 @@ public:
         return m_RawClient->CopyFileObject(request);
     }
 
+    // Quota operations
+    StatusOrVal<StorageQuota> GetQuota()
+    {
+        return m_RawClient->GetQuota();
+    }
+
     // TODO: to be implemented.
     //Status DownloadFileThumbnail(std::string const& id, std::string const& dstFileName, uint16_t size = 256, std::string const& imgFormat = "png") const; // Only for box, dropbox and gdrive
 
@@ -367,11 +365,6 @@ public:
     //Link Get(id, active);
     //Link Update(id, active, expiration, password);
     //void Delete(id);
-
-    // TODO: to be implemented.
-    // Quota operations
-    // @return <total, used>
-    //std::pair<std::size_t, std::size_t> GetQuota();
 
 private:
 

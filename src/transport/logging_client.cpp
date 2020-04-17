@@ -79,6 +79,26 @@ static typename Signature<MemberFunction>::ReturnType MakeCallNoResponseLogging(
     return (client.*function)(request);
 }
 
+template <typename MemberFunction>
+static typename Signature<MemberFunction>::ReturnType MakeCallNoRequest(
+    csa::internal::RawClient& client,
+    MemberFunction function,
+    char const* context)
+{
+    CSA_LOG_INFO("{}()", context);
+
+    auto response = (client.*function)();
+    if (response.Ok())
+    {
+        CSA_LOG_INFO("{}() payload={{{}}}", context, response.Value());
+    }
+    else
+    {
+        CSA_LOG_INFO("{}() status={{{}}}", context, response.GetStatus());
+    }
+    return response;
+}
+
 }  // namespace
 
 LoggingClient::LoggingClient(std::shared_ptr<RawClient> client)
@@ -185,6 +205,11 @@ StatusOrVal<FileMetadata>
 LoggingClient::CopyFileObject(CopyFileRequest const& request)
 {
     return MakeCall(*m_client, &RawClient::CopyFileObject, request, __func__);
+}
+
+StatusOrVal<StorageQuota> LoggingClient::GetQuota()
+{
+    return MakeCallNoRequest(*m_client, &RawClient::GetQuota, __func__);
 }
 
 } // namespace internal

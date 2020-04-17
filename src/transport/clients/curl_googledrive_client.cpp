@@ -32,7 +32,9 @@ namespace {
     constexpr auto FilesUploadEndPoint = "https://www.googleapis.com/upload/drive/v3/files";
     constexpr auto UserInfoEndPoint = "https://www.googleapis.com/oauth2/v1/userinfo";
     constexpr auto OAuthRoot = "https://accounts.google.com/o/oauth2";
+    constexpr auto AboutEndPoint = "https://www.googleapis.com/drive/v3/about";
     constexpr auto ObjectMetadataFields = "kind,id,name,mimeType,parents,capabilities/canDownload,capabilities/canAddChildren,size,modifiedTime";
+    constexpr auto QuotaFields = "storageQuota/limit, storageQuota/usageInDrive";
 
     // Chunks must be multiples of 256 KiB:
     // https://developers.google.com/drive/api/v3/manage-uploads#resumable
@@ -137,6 +139,38 @@ namespace {
         using ParseFolderMetadataFunc = StatusOrVal<FolderMetadata>(*)(std::string const&);
         return CheckAndParse(std::bind(static_cast<ParseFolderMetadataFunc>(&GoogleMetadataParser::ParseFolderMetadata),
             std::placeholders::_1), response);
+    }
+
+    StatusOrVal<StorageQuota> ParseQuota(StatusOrVal<HttpResponse> response)
+    {
+        auto ParseQuotaFunc = [](std::string const& jsonStr) -> StatusOrVal<StorageQuota> {
+            auto json = nl::json::parse(jsonStr, nullptr, false);
+            if (json.is_discarded() || !json.is_object())
+            {
+                return Status(StatusCode::InvalidArgument, "Invalid About drive object. "
+                    "Failed to parse json.");
+            }
+
+            constexpr auto quotaKey = "storageQuota";
+            constexpr auto limitKey = "limit";
+            constexpr auto usageKey = "usageInDrive";
+            if (json.contains(quotaKey))
+            {
+                auto& jsonQuota = json[quotaKey];
+                if (jsonQuota.count(usageKey))
+                {
+                    // `limit` key may be absent. It means user has unlimited storage.
+                    const std::int64_t total = jsonQuota.count(limitKey) ? 
+                        JsonUtils::ParseLong(jsonQuota, limitKey) : (std::numeric_limits<std::int64_t>::max)();
+                    const std::int64_t usage = JsonUtils::ParseLong(jsonQuota, usageKey);
+
+                    return StorageQuota{total, usage};
+                }
+            }
+            return Status(StatusCode::InvalidArgument, "Correct storageQuota not found in About reponse.");
+        };
+
+        return CheckAndParse(std::bind(ParseQuotaFunc, std::placeholders::_1), response);
     }
 
     StatusOrVal<EmptyResponse> ReturnEmptyResponse(StatusOrVal<HttpResponse> response)
@@ -417,6 +451,18 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::CopyFileObject(CopyFileRequest 
     builder.AddHeader("Content-Type: application/json");
     auto response = builder.BuildRequest().MakeRequest(jmeta.Value().dump());
     return ParseFileMetadata(response);
+}
+
+StatusOrVal<StorageQuota> CurlGoogleDriveClient::GetQuota()
+{
+    CurlRequestBuilder builder(AboutEndPoint, m_storageFactory);
+    auto status = SetupBuilderCommon(builder, "GET");
+    if (!status.Ok())
+    {
+        return status;
+    }
+    builder.AddQueryParameter("fields", QuotaFields);
+    return ParseQuota(builder.BuildRequest().MakeRequest(std::string{}));
 }
 
 std::string CurlGoogleDriveClient::PickBoundary(std::string const& textToAvoid)

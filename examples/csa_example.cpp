@@ -510,6 +510,18 @@ void CreateFolder(csa::CloudStorageClient* client, int& argc, char* argv[])
         "full metadata: " << *folderMeta;
 }
 
+void GetQuota(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 1)
+        throw NeedUsage{ "get-quota" };
+
+    auto quota = client->GetQuota();
+    if (!quota)
+        throw std::runtime_error(quota.GetStatus().Message());
+
+    std::cout << "Storage quota (bytes): " << *quota;
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) try 
@@ -537,6 +549,7 @@ int main(int argc, char* argv[]) try
         {"read-file", &ReadFile},
         {"read-file-range", &ReadFileRange},
         {"copy-file", CopyFile},
+        {"get-quota", GetQuota},
     };
     for (auto&& cmd : cmdMap)
     {
