@@ -14,6 +14,7 @@
 
 set(csa_tests
     util/assert_ok.cpp
+    util/scoped_environment.cpp
     util/testing_types.cpp
     assert_ok_test.cpp
     curl_handle_test.cpp
@@ -29,6 +30,7 @@ set(csa_tests
     pagination_range_test.cpp
     random_test.cpp
     rfc3339_time_test.cpp
+    scoped_environment_test.cpp
     status_or_val_test.cpp
 	status_test.cpp
     terminate_handler_test.cpp
