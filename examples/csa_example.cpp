@@ -522,6 +522,18 @@ void GetQuota(csa::CloudStorageClient* client, int& argc, char* argv[])
     std::cout << "Storage quota (bytes): " << *quota;
 }
 
+void GetUserInfo(csa::CloudStorageClient* client, int& argc, char* argv[])
+{
+    if (!client || argc != 1)
+        throw NeedUsage{ "get-user-info" };
+
+    auto info = client->GetUserInfo();
+    if (!info)
+        throw std::runtime_error(info.GetStatus().Message());
+
+    std::cout << "User info: " << *info;
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) try 
@@ -550,6 +562,7 @@ int main(int argc, char* argv[]) try
         {"read-file-range", &ReadFileRange},
         {"copy-file", CopyFile},
         {"get-quota", GetQuota},
+        {"get-user-info", GetUserInfo},
     };
     for (auto&& cmd : cmdMap)
     {

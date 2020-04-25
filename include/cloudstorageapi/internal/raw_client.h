@@ -25,6 +25,7 @@
 #include "cloudstorageapi/status.h"
 #include "cloudstorageapi/status_or_val.h"
 #include "cloudstorageapi/storage_quota.h"
+#include "cloudstorageapi/user_info.h"
 
 namespace csa {
 namespace internal {
@@ -37,6 +38,7 @@ public:
 
     virtual ClientOptions const& GetClientOptions() const = 0;
     virtual std::string GetProviderName() const = 0;
+    virtual StatusOrVal<UserInfo> GetUserInfo() = 0;
     virtual std::size_t GetFileChunkQuantum() const = 0;
 
     //{@

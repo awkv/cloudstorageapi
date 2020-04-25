@@ -116,6 +116,11 @@ std::string LoggingClient::GetProviderName() const
     return m_client->GetProviderName();
 }
 
+StatusOrVal<UserInfo> LoggingClient::GetUserInfo()
+{
+    return MakeCallNoRequest(*m_client, &RawClient::GetUserInfo, __func__);
+}
+
 std::size_t LoggingClient::GetFileChunkQuantum() const
 {
     return m_client->GetFileChunkQuantum();

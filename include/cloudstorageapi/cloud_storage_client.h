@@ -28,6 +28,7 @@
 #include "cloudstorageapi/status_or_val.h"
 #include "cloudstorageapi/storage_quota.h"
 #include "cloudstorageapi/upload_options.h"
+#include "cloudstorageapi/user_info.h"
 
 namespace csa {
 
@@ -71,6 +72,13 @@ public:
      * @return The provider name (ie. "googledrive", "dropbox", ...)
      */
     std::string GetProviderName() const { return m_RawClient->GetProviderName(); }
+
+    /**
+     * @return user info like email address and name if available.
+     * This may not be present in certain contexts 
+     * if the user has not made their email address visible to the requester.
+     */
+    StatusOrVal<UserInfo> GetUserInfo() const { return m_RawClient->GetUserInfo(); }
 
     // TODO: Common operations (folders and files)
     //StatusOrVal<bool> Exists(const std::string& path) const;

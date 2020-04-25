@@ -32,6 +32,7 @@ public:
 
     ClientOptions const& GetClientOptions() const override;
     std::string GetProviderName() const override;
+    StatusOrVal<UserInfo> GetUserInfo() override;
     std::size_t GetFileChunkQuantum() const override;
 
     StatusOrVal<EmptyResponse> Delete(DeleteRequest const& request) override;

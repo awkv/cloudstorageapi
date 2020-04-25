@@ -51,6 +51,8 @@ public:
 
     std::string GetProviderName() const override { return ProviderNames.at(EProvider::GoogleDrive);  }
 
+    StatusOrVal<UserInfo> GetUserInfo() override;
+
     StatusOrVal<ResumableUploadResponse> UploadChunk(UploadChunkRequest const&) override;
     StatusOrVal<ResumableUploadResponse> QueryResumableUpload(QueryResumableUploadRequest const&) override;
     std::size_t GetFileChunkQuantum() const override;

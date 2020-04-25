@@ -35,6 +35,7 @@ namespace {
     constexpr auto AboutEndPoint = "https://www.googleapis.com/drive/v3/about";
     constexpr auto ObjectMetadataFields = "kind,id,name,mimeType,parents,capabilities/canDownload,capabilities/canAddChildren,size,modifiedTime";
     constexpr auto QuotaFields = "storageQuota/limit, storageQuota/usageInDrive";
+    constexpr auto UserFields = "user/displayName, user/emailAddress";
 
     // Chunks must be multiples of 256 KiB:
     // https://developers.google.com/drive/api/v3/manage-uploads#resumable
@@ -173,6 +174,39 @@ namespace {
         return CheckAndParse(std::bind(ParseQuotaFunc, std::placeholders::_1), response);
     }
 
+    StatusOrVal<UserInfo> ParseUser(StatusOrVal<HttpResponse> response)
+    {
+        auto ParseUserFunc = [](std::string const& jsonStr) -> StatusOrVal<UserInfo> {
+            auto json = nl::json::parse(jsonStr, nullptr, false);
+            if (json.is_discarded() || !json.is_object())
+            {
+                return Status(StatusCode::InvalidArgument, "Invalid About drive object. "
+                    "Failed to parse json.");
+            }
+
+            constexpr auto userKey = "user";
+            constexpr auto nameKey = "displayName";
+            constexpr auto emailKey = "emailAddress";
+
+            if (json.contains(userKey))
+            {
+                auto& jsonUser = json[userKey];
+                if (jsonUser.count(nameKey))
+                {
+                    const std::string name = jsonUser[nameKey];
+                    // This may not be present in certain contexts
+                    // if the user has not made their email address visible to the requester.
+                    const std::string email = jsonUser.count(emailKey) ? jsonUser[emailKey] : "";
+
+                    return UserInfo{email, name};
+                }
+            }
+            return Status(StatusCode::InvalidArgument, "Correct User object not found in About response.");
+        };
+
+        return CheckAndParse(std::bind(ParseUserFunc, std::placeholders::_1), response);
+    }
+
     StatusOrVal<EmptyResponse> ReturnEmptyResponse(StatusOrVal<HttpResponse> response)
     {
         auto emptyResponseReturner = [](std::string const&) { return StatusOrVal(EmptyResponse{}); };
@@ -195,6 +229,18 @@ namespace {
 CurlGoogleDriveClient::CurlGoogleDriveClient(ClientOptions options)
     : CurlClientBase(std::move(options))
 {
+}
+
+StatusOrVal<UserInfo> CurlGoogleDriveClient::GetUserInfo()
+{
+    CurlRequestBuilder builder(AboutEndPoint, m_storageFactory);
+    auto status = SetupBuilderCommon(builder, "GET");
+    if (!status.Ok())
+    {
+        return status;
+    }
+    builder.AddQueryParameter("fields", UserFields);
+    return ParseUser(builder.BuildRequest().MakeRequest(std::string{}));
 }
 
 StatusOrVal<ResumableUploadResponse> CurlGoogleDriveClient::UploadChunk(UploadChunkRequest const& request)
