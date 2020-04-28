@@ -23,6 +23,7 @@ set(csa_tests
     curl_wrappers_locking_already_present_test.cpp
     curl_wrappers_locking_disabled_test.cpp
     curl_wrappers_locking_enabled_test.cpp
+    default_credentials_file_test.cpp
     log_test.cpp
     main.cpp
     nljson_use_after_third_party_test.cpp

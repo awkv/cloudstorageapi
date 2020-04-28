@@ -30,7 +30,7 @@ public:
     /**
      * Produces a Credentials type based on the runtime environment.
      *
-     * If the CSA_APPLICATION_CREDENTIALS environment variable is set, the JSON
+     * If the CSA_CREDENTIALS environment variable is set, the JSON
      * file it points to will be loaded and used to create a credential of the
      * specified type.
      *
