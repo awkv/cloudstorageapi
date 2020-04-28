@@ -39,13 +39,6 @@ public:
      * header to be used in HTTP requests.
      */
     virtual StatusOrVal<std::string> AuthorizationHeader() = 0;
-
-    // Return the account's email associated with these credentials, if any.
-    virtual std::string AccountEmail() const { return std::string{}; }
-
-    // TODO: needed ?
-    // Return the account's key_id associated with these credentials, if any.
-    //virtual std::string KeyId() const { return std::string{}; }
 };
 
 }  // namespace auth

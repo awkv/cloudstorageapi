@@ -74,8 +74,6 @@ public:
             [this] { return Refresh(); });
     }
 
-    //std::string AccountEmail() const override;
-    
 private:
     StatusOrVal<RefreshingCredentialsWrapper::TemporaryToken> Refresh()
     {
