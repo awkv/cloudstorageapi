@@ -29,8 +29,8 @@ class DefaultCredentialFileTest : public ::testing::Test
 public:
     DefaultCredentialFileTest()
         : m_homeEnvVar(csa::auth::HomeEnvVar(), {}),
-        m_csaEnvVar(csa::auth::DefaultCredentialsEnvVar(), {}),
-        m_csaTestEnvVar(csa::auth::DefaultTestCredentialsEnvVar(), {})
+          m_csaEnvVar(csa::auth::DefaultCredentialsEnvVar(), {}),
+          m_csaTestEnvVar(csa::auth::DefaultTestCredentialsEnvVar(), {})
     {
     }
 
@@ -56,8 +56,7 @@ TEST_F(DefaultCredentialFileTest, CredentialsEnvVariableNotSet)
 /// @test Verify that the credentials file path can be overridden for testing.
 TEST_F(DefaultCredentialFileTest, CredentialsTestPathOverrideViaEnvVar)
 {
-    ScopedEnvironment gcloud_path_override_env_var(csa::auth::DefaultTestCredentialsEnvVar(),
-        "/foo/bar/baz");
+    ScopedEnvironment gcloud_path_override_env_var(csa::auth::DefaultTestCredentialsEnvVar(), "/foo/bar/baz");
     EXPECT_EQ(csa::auth::DefaultCredentialsFilePathFromWellKnownPathOrEmpty(), "/foo/bar/baz");
 }
 
@@ -80,5 +79,5 @@ TEST_F(DefaultCredentialFileTest, HomeNotSet)
     EXPECT_EQ(csa::auth::DefaultCredentialsFilePathFromWellKnownPathOrEmpty(), "");
 }
 
-} // namespace
-} // namespace csa
+}  // namespace
+}  // namespace csa

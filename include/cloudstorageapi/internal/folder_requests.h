@@ -19,8 +19,8 @@
 #include "cloudstorageapi/internal/generic_object_requests.h"
 #include "cloudstorageapi/internal/http_response.h"
 #include "cloudstorageapi/well_known_parameters.h"
-#include <variant>
 #include <iosfwd>
+#include <variant>
 
 namespace csa {
 namespace internal {
@@ -28,8 +28,7 @@ namespace internal {
 /**
  * Requests the list of folders.
  */
-class ListFolderRequest
-    : public GenericObjectRequest<ListFolderRequest, PageSize>
+class ListFolderRequest : public GenericObjectRequest<ListFolderRequest, PageSize>
 {
 public:
     using GenericObjectRequest::GenericObjectRequest;
@@ -60,8 +59,7 @@ std::ostream& operator<<(std::ostream& os, ListFolderResponse const& r);
 /**
  * Requests the metadata for a bucket.
  */
-class GetFolderMetadataRequest
-    : public GenericObjectRequest<GetFolderMetadataRequest>
+class GetFolderMetadataRequest : public GenericObjectRequest<GetFolderMetadataRequest>
 {
 public:
     using GenericObjectRequest::GenericObjectRequest;
@@ -70,14 +68,15 @@ public:
 std::ostream& operator<<(std::ostream& os, GetFolderMetadataRequest const& r);
 
 /**
- * 
+ *
  */
 class CreateFolderRequest : public GenericObjectRequest<CreateFolderRequest, WithFolderMetadata>
 {
 public:
     CreateFolderRequest(std::string parentId, std::string newName)
         : m_parentId(std::move(parentId)), m_name(std::move(newName))
-    {}
+    {
+    }
 
     std::string GetParent() const { return m_parentId; }
     std::string GetName() const { return m_name; }
@@ -92,17 +91,16 @@ std::ostream& operator<<(std::ostream& os, CreateFolderRequest const& r);
 /**
  * Represents a request to the `Files: update` API.
  */
-class PatchFolderMetadataRequest
-    : public GenericObjectRequest<PatchFolderMetadataRequest>
+class PatchFolderMetadataRequest : public GenericObjectRequest<PatchFolderMetadataRequest>
 {
 public:
     PatchFolderMetadataRequest() = default;
-    explicit PatchFolderMetadataRequest(std::string folderId, FolderMetadata original,
-        FolderMetadata updated)
+    explicit PatchFolderMetadataRequest(std::string folderId, FolderMetadata original, FolderMetadata updated)
         : GenericObjectRequest(std::move(folderId)),
-        m_OriginalMeta(std::move(original)),
-        m_UpdatedMeta(std::move(updated))
-    {}
+          m_OriginalMeta(std::move(original)),
+          m_UpdatedMeta(std::move(updated))
+    {
+    }
 
     FolderMetadata const& GetOriginalMetadata() const { return m_OriginalMeta; }
     FolderMetadata const& GetUpdatedMetadata() const { return m_UpdatedMeta; }

@@ -88,9 +88,10 @@ public:
     CurlMulti CreateMultiHandle() override;
     void CleanupMultiHandle(CurlMulti&&) override;
 
-    std::string LastClientIpAddress() const override {
-    std::lock_guard<std::mutex> lk(m_mutex);
-    return m_lastClientIpAddress;
+    std::string LastClientIpAddress() const override
+    {
+        std::lock_guard<std::mutex> lk(m_mutex);
+        return m_lastClientIpAddress;
     }
 
 private:

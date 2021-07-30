@@ -26,8 +26,7 @@ namespace internal {
 /**
  * Represents a request to the file metadata.
  */
-class GetFileMetadataRequest
-    : public GenericObjectRequest<GetFileMetadataRequest>
+class GetFileMetadataRequest : public GenericObjectRequest<GetFileMetadataRequest>
 {
 public:
     using GenericObjectRequest::GenericObjectRequest;
@@ -38,17 +37,16 @@ std::ostream& operator<<(std::ostream& os, GetFileMetadataRequest const& r);
 /**
  * Represents a request to the `Files: update` API.
  */
-class PatchFileMetadataRequest
-    : public GenericObjectRequest<PatchFileMetadataRequest>
+class PatchFileMetadataRequest : public GenericObjectRequest<PatchFileMetadataRequest>
 {
 public:
     PatchFileMetadataRequest() = default;
-    explicit PatchFileMetadataRequest(std::string fileId, FileMetadata original,
-        FileMetadata updated)
+    explicit PatchFileMetadataRequest(std::string fileId, FileMetadata original, FileMetadata updated)
         : GenericObjectRequest(std::move(fileId)),
-        m_OriginalMeta(std::move(original)),
-        m_UpdatedMeta(std::move(updated))
-    {}
+          m_OriginalMeta(std::move(original)),
+          m_UpdatedMeta(std::move(updated))
+    {
+    }
 
     FileMetadata const& GetOriginalMetadata() const { return m_OriginalMeta; }
     FileMetadata const& GetUpdatedMetadata() const { return m_UpdatedMeta; }
@@ -64,10 +62,9 @@ class InsertFileRequest : public GenericObjectRequest<InsertFileRequest, Content
 {
 public:
     InsertFileRequest(std::string folderId, std::string name, std::string content)
-        : m_folderId(std::move(folderId)),
-        m_name(std::move(name)),
-        m_content(std::move(content))
-    {}
+        : m_folderId(std::move(folderId)), m_name(std::move(name)), m_content(std::move(content))
+    {
+    }
 
     std::string GetFolderId() const { return m_folderId; }
     std::string GetName() const { return m_name; }
@@ -103,18 +100,16 @@ std::ostream& operator<<(std::ostream& os, DeleteRequest const& r);
  * object metadata. The response includes a URL to send requests that upload
  * the media.
  */
-class ResumableUploadRequest
-    : public GenericObjectRequest<ResumableUploadRequest, ContentEncoding,
-    ContentType, UseResumableUploadSession, WithFileMetadata>
+class ResumableUploadRequest : public GenericObjectRequest<ResumableUploadRequest, ContentEncoding, ContentType,
+                                                           UseResumableUploadSession, WithFileMetadata>
 {
 public:
     ResumableUploadRequest() = default;
 
     ResumableUploadRequest(std::string folderId, std::string fileName)
-        : GenericObjectRequest(),
-        m_folderId(std::move(folderId)),
-        m_name(std::move(fileName))
-    {}
+        : GenericObjectRequest(), m_folderId(std::move(folderId)), m_name(std::move(fileName))
+    {
+    }
 
     std::string GetFolderId() const { return m_folderId; }
     std::string GetFileName() const { return m_name; }
@@ -133,25 +128,26 @@ class UploadChunkRequest : public GenericRequest<UploadChunkRequest>
 {
 public:
     UploadChunkRequest() = default;
-    UploadChunkRequest(std::string uploadSessionUrl, std::uint64_t rangeBegin,
-        std::string payload)
+    UploadChunkRequest(std::string uploadSessionUrl, std::uint64_t rangeBegin, std::string payload)
         : GenericRequest(),
-        m_uploadSessionUrl(std::move(uploadSessionUrl)),
-        m_rangeBegin(rangeBegin),
-        m_payload(std::move(payload)),
-        m_sourceSize(0),
-        m_lastChunk(false)
-    {}
+          m_uploadSessionUrl(std::move(uploadSessionUrl)),
+          m_rangeBegin(rangeBegin),
+          m_payload(std::move(payload)),
+          m_sourceSize(0),
+          m_lastChunk(false)
+    {
+    }
 
-    UploadChunkRequest(std::string uploadSessionUrl, std::uint64_t rangeBegin,
-        std::string payload, std::uint64_t sourceSize)
+    UploadChunkRequest(std::string uploadSessionUrl, std::uint64_t rangeBegin, std::string payload,
+                       std::uint64_t sourceSize)
         : GenericRequest(),
-        m_uploadSessionUrl(std::move(uploadSessionUrl)),
-        m_rangeBegin(rangeBegin),
-        m_payload(std::move(payload)),
-        m_sourceSize(sourceSize),
-        m_lastChunk(true)
-    {}
+          m_uploadSessionUrl(std::move(uploadSessionUrl)),
+          m_rangeBegin(rangeBegin),
+          m_payload(std::move(payload)),
+          m_sourceSize(sourceSize),
+          m_lastChunk(true)
+    {
+    }
 
     std::string const& GetUploadSessionUrl() const { return m_uploadSessionUrl; }
     std::uint64_t GetRangeBegin() const { return m_rangeBegin; }
@@ -173,13 +169,14 @@ std::ostream& operator<<(std::ostream& os, UploadChunkRequest const& r);
 /**
  * A request to query the status of a resumable upload.
  */
-class QueryResumableUploadRequest
-    : public GenericRequest<QueryResumableUploadRequest>
+class QueryResumableUploadRequest : public GenericRequest<QueryResumableUploadRequest>
 {
 public:
     QueryResumableUploadRequest() = default;
     explicit QueryResumableUploadRequest(std::string uploadSessionUrl)
-        : GenericRequest(), m_uploadSessionUrl(std::move(uploadSessionUrl)) {}
+        : GenericRequest(), m_uploadSessionUrl(std::move(uploadSessionUrl))
+    {
+    }
 
     std::string const& GetUploadSessionUrl() const { return m_uploadSessionUrl; }
 
@@ -187,16 +184,13 @@ private:
     std::string m_uploadSessionUrl;
 };
 
-std::ostream& operator<<(std::ostream& os,
-    QueryResumableUploadRequest const& r);
+std::ostream& operator<<(std::ostream& os, QueryResumableUploadRequest const& r);
 
 /**
  * Represents a request to the `Objects: get` API with `alt=media`.
  */
 class ReadFileRangeRequest
-    : public GenericObjectRequest<
-    ReadFileRangeRequest,
-    Generation, ReadFromOffset, ReadRange, ReadLast>
+    : public GenericObjectRequest<ReadFileRangeRequest, Generation, ReadFromOffset, ReadRange, ReadLast>
 {
 public:
     using GenericObjectRequest::GenericObjectRequest;
@@ -210,20 +204,16 @@ std::ostream& operator<<(std::ostream& os, ReadFileRangeRequest const& r);
 /**
  * Represents a request to the `Files: copy` API.
  */
-class CopyFileRequest
-    : public GenericObjectRequest<
-    CopyFileRequest,
-    Generation, WithFileMetadata>
+class CopyFileRequest : public GenericObjectRequest<CopyFileRequest, Generation, WithFileMetadata>
 {
 public:
     using GenericObjectRequest::GenericObjectRequest;
-    CopyFileRequest(std::string fileId,
-        std::string newParentId,
-        std::string newFileName)
+    CopyFileRequest(std::string fileId, std::string newParentId, std::string newFileName)
         : GenericObjectRequest(std::move(fileId)),
-        m_newParentId(std::move(newParentId)),
-        m_newFileName(std::move(newFileName))
-    {}
+          m_newParentId(std::move(newParentId)),
+          m_newFileName(std::move(newFileName))
+    {
+    }
 
     std::string const& GetNewParentId() const { return m_newParentId; }
     std::string const& GetNewFileName() const { return m_newFileName; }

@@ -28,30 +28,34 @@ LogRecord ConvertLogMsg(spdlog::details::log_msg const& msg)
     res.m_timestamp = msg.time;
     switch (msg.level)
     {
-    case spdlog::level::level_enum::trace: res.m_logLevel = ELogLevel::Trace; break;
-    case spdlog::level::level_enum::debug: res.m_logLevel = ELogLevel::Debug; break;
-    case spdlog::level::level_enum::info: res.m_logLevel = ELogLevel::Info; break;
-    case spdlog::level::level_enum::warn: res.m_logLevel = ELogLevel::Warning; break;
-    case spdlog::level::level_enum::err: res.m_logLevel = ELogLevel::Error; break;
+    case spdlog::level::level_enum::trace:
+        res.m_logLevel = ELogLevel::Trace;
+        break;
+    case spdlog::level::level_enum::debug:
+        res.m_logLevel = ELogLevel::Debug;
+        break;
+    case spdlog::level::level_enum::info:
+        res.m_logLevel = ELogLevel::Info;
+        break;
+    case spdlog::level::level_enum::warn:
+        res.m_logLevel = ELogLevel::Warning;
+        break;
+    case spdlog::level::level_enum::err:
+        res.m_logLevel = ELogLevel::Error;
+        break;
     default:
         assert(0 && "Unexpected spdlog log level");
         res.m_logLevel = ELogLevel::Error;
     }
     return res;
 }
-} // namespace
+}  // namespace
 
 namespace detail {
 
-void SpdSinkProxy::SetSink(std::weak_ptr<SinkBase> sink)
-{
-    m_Sink = std::move(sink);
-}
+void SpdSinkProxy::SetSink(std::weak_ptr<SinkBase> sink) { m_Sink = std::move(sink); }
 
-bool SpdSinkProxy::IsExpired() const
-{
-    return m_Sink.expired();
-}
+bool SpdSinkProxy::IsExpired() const { return m_Sink.expired(); }
 
 void SpdSinkProxy::sink_it_(const spdlog::details::log_msg& msg)
 {
@@ -67,12 +71,9 @@ void SpdSinkProxy::flush_()
         sinkObj->Flush();
 }
 
-} // namespace detail
+}  // namespace detail
 
-SinkBase::SinkBase()
-    : m_SpdSinkProxy(std::make_shared<detail::SpdSinkProxy>())
-{
-}
+SinkBase::SinkBase() : m_SpdSinkProxy(std::make_shared<detail::SpdSinkProxy>()) {}
 
 long Logger::AddSink(std::shared_ptr<SinkBase> sink)
 {
@@ -107,20 +108,19 @@ std::size_t Logger::GetSinkCount() const
     return m_sinks.size();
 }
 
-void Logger::Flush()
-{
-    m_spdLogger->flush();
-}
+void Logger::Flush() { m_spdLogger->flush(); }
 
 void Logger::ClearSpdlogSinks()
 {
     auto& sinks = m_spdLogger->sinks();
-    sinks.erase(std::remove_if(sinks.begin(), sinks.end(), [](auto const& sink) {
-        // Check if it is SinkBase
-        SinkBase* csaSink = dynamic_cast<SinkBase*>(sink.get());
-        return csaSink && csaSink->m_SpdSinkProxy->IsExpired();
-        }), sinks.end());
+    sinks.erase(std::remove_if(sinks.begin(), sinks.end(),
+                               [](auto const& sink) {
+                                   // Check if it is SinkBase
+                                   SinkBase* csaSink = dynamic_cast<SinkBase*>(sink.get());
+                                   return csaSink && csaSink->m_SpdSinkProxy->IsExpired();
+                               }),
+                sinks.end());
 }
 
-} // namespace internal
-} // namespace csa
+}  // namespace internal
+}  // namespace csa

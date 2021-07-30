@@ -35,8 +35,7 @@ void CustomHandlerOld(const char*) { abort(); }
 TEST(TerminateHandler, UnsetTerminates)
 {
     GetTerminateHandler();
-    EXPECT_DEATH_IF_SUPPORTED(Terminate("Test"),
-        "Aborting: Test");
+    EXPECT_DEATH_IF_SUPPORTED(Terminate("Test"), "Aborting: Test");
 }
 
 TEST(TerminateHandler, SettingGettingWorks)
@@ -71,4 +70,4 @@ TEST(TerminateHandler, NoAbortAborts)
     EXPECT_DEATH_IF_SUPPORTED(Terminate("details"), expected);
 }
 
-} // namespace csa
+}  // namespace csa

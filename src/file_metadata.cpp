@@ -19,21 +19,18 @@ namespace csa {
 
 bool operator==(FileMetadata const& lhs, FileMetadata const& rhs)
 {
-    return static_cast<CommonMetadata const&>(lhs) == rhs &&
-        lhs.m_mimetype == rhs.m_mimetype &&
-        lhs.m_downloadable == rhs.m_downloadable;
+    return static_cast<CommonMetadata const&>(lhs) == rhs && lhs.m_mimetype == rhs.m_mimetype &&
+           lhs.m_downloadable == rhs.m_downloadable;
 }
 
 std::ostream& operator<<(std::ostream& os, FileMetadata const& rhs)
 {
     internal::IosFlagsSaver save_format(os);
-    os << std::boolalpha << "FileMetadata={"
-       << static_cast<CommonMetadata const&>(rhs)
+    os << std::boolalpha << "FileMetadata={" << static_cast<CommonMetadata const&>(rhs)
        << ", mimeType=" << (rhs.GetMimeTypeOpt().has_value() ? rhs.GetMimeTypeOpt().value() : "N/A")
-       << ", isDownloadable=" << rhs.IsDownloadable()
-       << " }";
+       << ", isDownloadable=" << rhs.IsDownloadable() << " }";
 
     return os;
 }
 
-} // namespace csa
+}  // namespace csa

@@ -46,20 +46,17 @@ public:
     std::string Str() const { return m_str; }
 
 private:
-    friend bool operator==(NoDefaultConstructor const& lhs,
-        NoDefaultConstructor const& rhs);
+    friend bool operator==(NoDefaultConstructor const& lhs, NoDefaultConstructor const& rhs);
 
     std::string m_str;
 };
 
-inline bool operator==(NoDefaultConstructor const& lhs,
-                       NoDefaultConstructor const& rhs)
+inline bool operator==(NoDefaultConstructor const& lhs, NoDefaultConstructor const& rhs)
 {
     return lhs.m_str == rhs.m_str;
 }
 
-inline bool operator!=(NoDefaultConstructor const& lhs,
-                       NoDefaultConstructor const& rhs)
+inline bool operator!=(NoDefaultConstructor const& lhs, NoDefaultConstructor const& rhs)
 {
     return std::rel_ops::operator!=(lhs, rhs);
 }
@@ -78,7 +75,8 @@ public:
     static int move_assignment;
     static int destructor;
 
-    static void reset_counters() {
+    static void reset_counters()
+    {
         default_constructor = 0;
         value_constructor = 0;
         copy_constructor = 0;
@@ -89,21 +87,22 @@ public:
     }
 
     Observable() { ++default_constructor; }
-    explicit Observable(std::string s) : m_str(std::move(s)) {
-        ++value_constructor;
-    }
+    explicit Observable(std::string s) : m_str(std::move(s)) { ++value_constructor; }
     Observable(Observable const& rhs) : m_str(rhs.m_str) { ++copy_constructor; }
-    Observable(Observable&& rhs) noexcept : m_str(std::move(rhs.m_str)) {
+    Observable(Observable&& rhs) noexcept : m_str(std::move(rhs.m_str))
+    {
         rhs.m_str = "moved-out";
         ++move_constructor;
     }
 
-    Observable& operator=(Observable const& rhs) {
+    Observable& operator=(Observable const& rhs)
+    {
         m_str = rhs.m_str;
         ++copy_assignment;
         return *this;
     }
-    Observable& operator=(Observable&& rhs) noexcept {
+    Observable& operator=(Observable&& rhs) noexcept
+    {
         m_str = std::move(rhs.m_str);
         rhs.m_str = "moved-out";
         ++move_assignment;
@@ -117,6 +116,6 @@ private:
     std::string m_str;
 };
 
-}  // namespace testing
 }  // namespace util
+}  // namespace testing
 }  // namespace csa

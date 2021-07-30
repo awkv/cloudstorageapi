@@ -19,21 +19,16 @@
 // nlohmann::json first (which is what this test file checks), and users that
 // include our headers first (which nljson_use_third_party_test.cc checks).
 // We simulate the nlohmann::json include by including nlohmann_json.hpp
-#include "cloudstorageapi/internal/nlohmann_json.hpp"
-
 #include "cloudstorageapi/internal/nljson.h"
+#include "cloudstorageapi/internal/nlohmann_json.hpp"
 #include <gtest/gtest.h>
 
 /// @test Verify that we can compile against the nlohmann::json library.
 TEST(NlJsonTest, Simple)
 {
-    csa::internal::nl::json json = {
-        {"pi", 3.141},
-        {"happy", true},
-        {"nothing", nullptr},
-        {"answer", {{"everything", 42}}},
-        {"list", {1, 0, 2}},
-        {"object", {{"currency", "USD"}, {"value", 42.99}}} };
+    csa::internal::nl::json json = {{"pi", 3.141},        {"happy", true},
+                                    {"nothing", nullptr}, {"answer", {{"everything", 42}}},
+                                    {"list", {1, 0, 2}},  {"object", {{"currency", "USD"}, {"value", 42.99}}}};
     EXPECT_NEAR(3.141, json["pi"], 0.001);
     EXPECT_EQ("USD", json["object"]["currency"]);
     EXPECT_EQ(1, json["list"][0]);

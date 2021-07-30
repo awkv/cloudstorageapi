@@ -21,17 +21,15 @@ namespace testing {
 namespace internal {
 
 // A unary predicate-formatter for csa::Status.
-::testing::AssertionResult IsOkPredFormat(char const* expr,
-                                        ::csa::Status const& status)
+::testing::AssertionResult IsOkPredFormat(char const* expr, ::csa::Status const& status)
 {
     if (status.Ok())
     {
         return ::testing::AssertionSuccess();
     }
-    return ::testing::AssertionFailure()
-        << "Value of: " << expr << "\nExpected: is OK\nActual: " << status;
+    return ::testing::AssertionFailure() << "Value of: " << expr << "\nExpected: is OK\nActual: " << status;
 }
 
 }  // namespace internal
-}  // namespace internal
+}  // namespace testing
 }  // namespace csa

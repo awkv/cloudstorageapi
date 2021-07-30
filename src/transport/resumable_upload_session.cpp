@@ -30,33 +30,29 @@ std::string ToStr(ResumableUploadResponse::UploadState const& uploadState)
 {
     switch (uploadState)
     {
-    case ResumableUploadResponse::UploadState::InProgress: return "InProgress";
-    case ResumableUploadResponse::UploadState::Done: return "Done";
+    case ResumableUploadResponse::UploadState::InProgress:
+        return "InProgress";
+    case ResumableUploadResponse::UploadState::Done:
+        return "Done";
     }
 
     assert(false);
     return "unknown";
 }
-} // namespace
+}  // namespace
 
-bool operator==(ResumableUploadResponse const& lhs,
-                ResumableUploadResponse const& rhs)
+bool operator==(ResumableUploadResponse const& lhs, ResumableUploadResponse const& rhs)
 {
-    return lhs.m_uploadSessionUrl == rhs.m_uploadSessionUrl &&
-        lhs.m_lastCommittedByte == rhs.m_lastCommittedByte &&
-        lhs.m_payload == rhs.m_payload && lhs.m_uploadState == rhs.m_uploadState;
+    return lhs.m_uploadSessionUrl == rhs.m_uploadSessionUrl && lhs.m_lastCommittedByte == rhs.m_lastCommittedByte &&
+           lhs.m_payload == rhs.m_payload && lhs.m_uploadState == rhs.m_uploadState;
 }
 
-bool operator!=(ResumableUploadResponse const& lhs,
-                ResumableUploadResponse const& rhs)
-{
-    return !(lhs == rhs);
-}
+bool operator!=(ResumableUploadResponse const& lhs, ResumableUploadResponse const& rhs) { return !(lhs == rhs); }
 
 std::ostream& operator<<(std::ostream& os, ResumableUploadResponse const& r)
 {
     os << "ResumableUploadResponse={upload_session_url=" << r.m_uploadSessionUrl
-        << ", last_committed_byte=" << r.m_lastCommittedByte << ", payload=";
+       << ", last_committed_byte=" << r.m_lastCommittedByte << ", payload=";
     if (r.m_payload.has_value())
     {
         os << *r.m_payload;
@@ -65,8 +61,7 @@ std::ostream& operator<<(std::ostream& os, ResumableUploadResponse const& r)
     {
         os << "{}";
     }
-    return os << ", upload_state=" << ToStr(r.m_uploadState)
-        << ", annotations=" << r.m_annotations << "}";
+    return os << ", upload_state=" << ToStr(r.m_uploadState) << ", annotations=" << r.m_annotations << "}";
 }
 }  // namespace internal
 }  // namespace csa

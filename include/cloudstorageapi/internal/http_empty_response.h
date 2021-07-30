@@ -19,7 +19,9 @@
 namespace csa {
 namespace internal {
 /// A empty struct to represent empty responses.
-struct HttpEmptyResponse {};
+struct HttpEmptyResponse
+{
+};
 
 std::ostream& operator<<(std::ostream& os, HttpEmptyResponse const& r);
 }  // namespace internal

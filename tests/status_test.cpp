@@ -21,32 +21,26 @@ namespace csa {
 namespace {
 using ::testing::HasSubstr;
 
-TEST(Status, StatusCodeToString) {
-  EXPECT_EQ("OK", StatusCodeToString(StatusCode::Ok));
-  EXPECT_EQ("CANCELLED", StatusCodeToString(StatusCode::Cancelled));
-  EXPECT_EQ("UNKNOWN", StatusCodeToString(StatusCode::Unknown));
-  EXPECT_EQ("INVALID_ARGUMENT",
-            StatusCodeToString(StatusCode::InvalidArgument));
-  EXPECT_EQ("DEADLINE_EXCEEDED",
-            StatusCodeToString(StatusCode::DeadlineExceeded));
-  EXPECT_EQ("NOT_FOUND", StatusCodeToString(StatusCode::NotFound));
-  EXPECT_EQ("ALREADY_EXISTS", StatusCodeToString(StatusCode::AlreadyExists));
-  EXPECT_EQ("PERMISSION_DENIED",
-            StatusCodeToString(StatusCode::PermissionDenied));
-  EXPECT_EQ("UNAUTHENTICATED",
-            StatusCodeToString(StatusCode::Unauthenticated));
-  EXPECT_EQ("RESOURCE_EXHAUSTED",
-            StatusCodeToString(StatusCode::ResourceExhausted));
-  EXPECT_EQ("FAILED_PRECONDITION",
-            StatusCodeToString(StatusCode::FailedPrecondition));
-  EXPECT_EQ("ABORTED", StatusCodeToString(StatusCode::Aborted));
-  EXPECT_EQ("OUT_OF_RANGE", StatusCodeToString(StatusCode::OutOfRange));
-  EXPECT_EQ("UNIMPLEMENTED", StatusCodeToString(StatusCode::Unimplemented));
-  EXPECT_EQ("INTERNAL", StatusCodeToString(StatusCode::Internal));
-  EXPECT_EQ("UNAVAILABLE", StatusCodeToString(StatusCode::Unavailable));
-  EXPECT_EQ("DATA_LOSS", StatusCodeToString(StatusCode::DataLoss));
-  EXPECT_EQ("UNEXPECTED_STATUS_CODE=42",
-            StatusCodeToString(static_cast<StatusCode>(42)));
+TEST(Status, StatusCodeToString)
+{
+    EXPECT_EQ("OK", StatusCodeToString(StatusCode::Ok));
+    EXPECT_EQ("CANCELLED", StatusCodeToString(StatusCode::Cancelled));
+    EXPECT_EQ("UNKNOWN", StatusCodeToString(StatusCode::Unknown));
+    EXPECT_EQ("INVALID_ARGUMENT", StatusCodeToString(StatusCode::InvalidArgument));
+    EXPECT_EQ("DEADLINE_EXCEEDED", StatusCodeToString(StatusCode::DeadlineExceeded));
+    EXPECT_EQ("NOT_FOUND", StatusCodeToString(StatusCode::NotFound));
+    EXPECT_EQ("ALREADY_EXISTS", StatusCodeToString(StatusCode::AlreadyExists));
+    EXPECT_EQ("PERMISSION_DENIED", StatusCodeToString(StatusCode::PermissionDenied));
+    EXPECT_EQ("UNAUTHENTICATED", StatusCodeToString(StatusCode::Unauthenticated));
+    EXPECT_EQ("RESOURCE_EXHAUSTED", StatusCodeToString(StatusCode::ResourceExhausted));
+    EXPECT_EQ("FAILED_PRECONDITION", StatusCodeToString(StatusCode::FailedPrecondition));
+    EXPECT_EQ("ABORTED", StatusCodeToString(StatusCode::Aborted));
+    EXPECT_EQ("OUT_OF_RANGE", StatusCodeToString(StatusCode::OutOfRange));
+    EXPECT_EQ("UNIMPLEMENTED", StatusCodeToString(StatusCode::Unimplemented));
+    EXPECT_EQ("INTERNAL", StatusCodeToString(StatusCode::Internal));
+    EXPECT_EQ("UNAVAILABLE", StatusCodeToString(StatusCode::Unavailable));
+    EXPECT_EQ("DATA_LOSS", StatusCodeToString(StatusCode::DataLoss));
+    EXPECT_EQ("UNEXPECTED_STATUS_CODE=42", StatusCodeToString(static_cast<StatusCode>(42)));
 }
 
 }  // namespace

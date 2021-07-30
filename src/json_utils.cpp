@@ -14,8 +14,8 @@
 
 #include "cloudstorageapi/internal/json_utils.h"
 #include "cloudstorageapi/internal/rfc3339_time.h"
-#include <stdexcept>
 #include <sstream>
+#include <stdexcept>
 
 namespace csa {
 namespace internal {
@@ -44,8 +44,7 @@ bool JsonUtils::ParseBool(nl::json const& json, char const* fieldName)
         }
     }
     std::ostringstream os;
-    os << "Error parsing field <" << fieldName
-    << "> as a boolean, json=" << json;
+    os << "Error parsing field <" << fieldName << "> as a boolean, json=" << json;
     throw std::invalid_argument(os.str());
 }
 
@@ -65,13 +64,11 @@ std::int32_t JsonUtils::ParseInt(nl::json const& json, char const* fieldName)
         return std::stol(f.get_ref<std::string const&>());
     }
     std::ostringstream os;
-    os << "Error parsing field <" << fieldName
-        << "> as an std::int32_t, json=" << json;
+    os << "Error parsing field <" << fieldName << "> as an std::int32_t, json=" << json;
     throw std::invalid_argument(os.str());
 }
 
-std::uint32_t JsonUtils::ParseUnsignedInt(nl::json const& json,
-    char const* fieldName)
+std::uint32_t JsonUtils::ParseUnsignedInt(nl::json const& json, char const* fieldName)
 {
     if (json.count(fieldName) == 0)
     {
@@ -87,8 +84,7 @@ std::uint32_t JsonUtils::ParseUnsignedInt(nl::json const& json,
         return std::stoul(f.get_ref<std::string const&>());
     }
     std::ostringstream os;
-    os << "Error parsing field <" << fieldName
-        << "> as an std::uint32_t, json=" << json;
+    os << "Error parsing field <" << fieldName << "> as an std::uint32_t, json=" << json;
     throw std::invalid_argument(os.str());
 }
 
@@ -108,13 +104,11 @@ std::int64_t JsonUtils::ParseLong(nl::json const& json, char const* fieldName)
         return std::stoll(f.get_ref<std::string const&>());
     }
     std::ostringstream os;
-    os << "Error parsing field <" << fieldName
-        << "> as an std::int64_t, json=" << json;
+    os << "Error parsing field <" << fieldName << "> as an std::int64_t, json=" << json;
     throw std::invalid_argument(os.str());
 }
 
-std::uint64_t JsonUtils::ParseUnsignedLong(nl::json const& json,
-    char const* fieldName)
+std::uint64_t JsonUtils::ParseUnsignedLong(nl::json const& json, char const* fieldName)
 {
     if (json.count(fieldName) == 0)
     {
@@ -130,13 +124,11 @@ std::uint64_t JsonUtils::ParseUnsignedLong(nl::json const& json,
         return std::stoull(f.get_ref<std::string const&>());
     }
     std::ostringstream os;
-    os << "Error parsing field <" << fieldName
-        << "> as an std::uint64_t, json=" << json;
+    os << "Error parsing field <" << fieldName << "> as an std::uint64_t, json=" << json;
     throw std::invalid_argument(os.str());
 }
 
-std::chrono::system_clock::time_point JsonUtils::ParseRFC3339Timestamp(
-    nl::json const& json, char const* fieldName)
+std::chrono::system_clock::time_point JsonUtils::ParseRFC3339Timestamp(nl::json const& json, char const* fieldName)
 {
     if (json.count(fieldName) == 0)
     {

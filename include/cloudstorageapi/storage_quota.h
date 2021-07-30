@@ -33,9 +33,8 @@ struct StorageQuota
 inline std::ostream& operator<<(std::ostream& os, StorageQuota const& q)
 {
     os << "storage_quota={"
-       << "total=" << q.m_total
-       << ", usage=" << q.m_usage;
+       << "total=" << q.m_total << ", usage=" << q.m_usage;
     return os << "}";
 }
 
-} // namespace csa
+}  // namespace csa

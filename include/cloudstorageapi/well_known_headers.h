@@ -81,7 +81,9 @@ class CustomHeader : public internal::WellKnownHeader<CustomHeader, std::string>
 public:
     CustomHeader() = default;
     explicit CustomHeader(std::string name, std::string value)
-        : WellKnownHeader(std::move(value)), m_name(std::move(name)) {}
+        : WellKnownHeader(std::move(value)), m_name(std::move(name))
+    {
+    }
 
     std::string const& CustomHeaderName() const { return m_name; }
 

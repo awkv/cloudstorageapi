@@ -21,7 +21,9 @@
 namespace csa {
 namespace internal {
 /// A empty struct to represent empty responses.
-struct EmptyResponse {};
+struct EmptyResponse
+{
+};
 
 std::ostream& operator<<(std::ostream& os, EmptyResponse const& r);
 }  // namespace internal

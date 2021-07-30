@@ -49,23 +49,23 @@ public:
 
     CurlDownloadRequest(CurlDownloadRequest&& rhs) noexcept(false)
         : m_url(std::move(rhs.m_url)),
-        m_headers(std::move(rhs.m_headers)),
-        m_payload(std::move(rhs.m_payload)),
-        m_userAgent(std::move(rhs.m_userAgent)),
-        m_socketOptions(rhs.m_socketOptions),
-        m_downloadStallTimeout(rhs.m_downloadStallTimeout),
-        m_handle(std::move(rhs.m_handle)),
-        m_multi(std::move(rhs.m_multi)),
-        m_factory(std::move(rhs.m_factory)),
-        m_closing(rhs.m_closing),
-        m_curlClosed(rhs.m_curlClosed),
-        m_inMulti(rhs.m_inMulti),
-        m_paused(rhs.m_paused),
-        m_buffer(rhs.m_buffer),
-        m_bufferSize(rhs.m_bufferSize),
-        m_bufferOffset(rhs.m_bufferOffset),
-        m_spill(std::move(rhs.m_spill)),
-        m_spillOffset(rhs.m_spillOffset)
+          m_headers(std::move(rhs.m_headers)),
+          m_payload(std::move(rhs.m_payload)),
+          m_userAgent(std::move(rhs.m_userAgent)),
+          m_socketOptions(rhs.m_socketOptions),
+          m_downloadStallTimeout(rhs.m_downloadStallTimeout),
+          m_handle(std::move(rhs.m_handle)),
+          m_multi(std::move(rhs.m_multi)),
+          m_factory(std::move(rhs.m_factory)),
+          m_closing(rhs.m_closing),
+          m_curlClosed(rhs.m_curlClosed),
+          m_inMulti(rhs.m_inMulti),
+          m_paused(rhs.m_paused),
+          m_buffer(rhs.m_buffer),
+          m_bufferSize(rhs.m_bufferSize),
+          m_bufferOffset(rhs.m_bufferOffset),
+          m_spill(std::move(rhs.m_spill)),
+          m_spillOffset(rhs.m_spillOffset)
     {
         ResetOptions();
     }

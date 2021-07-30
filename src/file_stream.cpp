@@ -15,15 +15,13 @@
 // limitations under the License.
 
 #include "cloudstorageapi/file_stream.h"
-#include "cloudstorageapi/internal/log.h"
 #include "cloudstorageapi/internal/file_requests.h"
+#include "cloudstorageapi/internal/log.h"
 
 namespace csa {
 
-static_assert(std::is_move_assignable<FileReadStream>::value,
-    "FileReadStream must be move assignable.");
-static_assert(std::is_move_constructible<FileReadStream>::value,
-    "FileReadStream must be move constructible.");
+static_assert(std::is_move_assignable<FileReadStream>::value, "FileReadStream must be move assignable.");
+static_assert(std::is_move_constructible<FileReadStream>::value, "FileReadStream must be move constructible.");
 
 FileReadStream::~FileReadStream()
 {
@@ -31,14 +29,16 @@ FileReadStream::~FileReadStream()
     {
         return;
     }
-    try {
+    try
+    {
         Close();
     }
-    catch (std::exception const& ex) {
-        CSA_LOG_INFO("Ignored exception while trying to close stream: {}",
-            ex.what());
+    catch (std::exception const& ex)
+    {
+        CSA_LOG_INFO("Ignored exception while trying to close stream: {}", ex.what());
     }
-    catch (...) {
+    catch (...)
+    {
         CSA_LOG_INFO("Ignored unknown exception while trying to close stream");
     }
 }
@@ -58,8 +58,7 @@ void FileReadStream::Close()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-FileWriteStream::FileWriteStream(
-    std::unique_ptr<internal::FileWriteStreambuf> buf)
+FileWriteStream::FileWriteStream(std::unique_ptr<internal::FileWriteStreambuf> buf)
     : std::basic_ostream<char>(nullptr), m_buf(std::move(buf))
 {
     init(m_buf.get());
@@ -105,9 +104,6 @@ void FileWriteStream::CloseBuf()
     m_metadata = *std::move(response->m_payload);
 }
 
-void FileWriteStream::Suspend()&&
-{
-    m_buf.reset();
-}
+void FileWriteStream::Suspend() && { m_buf.reset(); }
 
 }  // namespace csa

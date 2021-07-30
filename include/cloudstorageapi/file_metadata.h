@@ -14,12 +14,11 @@
 
 #pragma once
 
+#include "common_metadata.h"
+#include "internal/complex_option.h"
 #include <chrono>
 #include <optional>
 #include <string>
-
-#include "internal/complex_option.h"
-#include "common_metadata.h"
 
 namespace csa {
 
@@ -32,13 +31,9 @@ public:
     void SetDownloadable(bool downloadable) { m_downloadable = downloadable; }
 
     friend bool operator==(FileMetadata const& lhs, FileMetadata const& rhs);
-    friend bool operator!=(FileMetadata const& lhs, FileMetadata const& rhs)
-    {
-        return !(lhs == rhs);
-    }
+    friend bool operator!=(FileMetadata const& lhs, FileMetadata const& rhs) { return !(lhs == rhs); }
 
 private:
-
     friend std::ostream& operator<<(std::ostream& os, FileMetadata const& rhs);
 
     std::optional<std::string> m_mimetype;
@@ -47,11 +42,11 @@ private:
 
 std::ostream& operator<<(std::ostream& os, FileMetadata const& rhs);
 
-struct WithFileMetadata
-    : public internal::ComplexOption<WithFileMetadata, FileMetadata> {
+struct WithFileMetadata : public internal::ComplexOption<WithFileMetadata, FileMetadata>
+{
     using ComplexOption<WithFileMetadata, FileMetadata>::ComplexOption;
     static char const* name() { return "object-metadata"; }
 };
 
 using FileMetadataSharedPtr = std::shared_ptr<FileMetadata>;
-} // namespace csa
+}  // namespace csa

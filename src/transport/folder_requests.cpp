@@ -13,8 +13,8 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/folder_requests.h"
-#include <sstream>
 #include <iterator>
+#include <sstream>
 
 namespace csa {
 namespace internal {
@@ -28,8 +28,7 @@ std::ostream& operator<<(std::ostream& os, ListFolderRequest const& r)
 
 std::ostream& operator<<(std::ostream& os, ListFolderResponse const& r)
 {
-    os << "ListFolderResponse={next_page_token=" << r.m_nextPageToken
-        << ", items={";
+    os << "ListFolderResponse={next_page_token=" << r.m_nextPageToken << ", items={";
     for (auto& item : r.m_items)
     {
         std::visit([&os](auto&& metaItem) { os << metaItem; }, item);
@@ -46,20 +45,18 @@ std::ostream& operator<<(std::ostream& os, GetFolderMetadataRequest const& r)
 
 std::ostream& operator<<(std::ostream& os, CreateFolderRequest const& r)
 {
-    os << "CreateFolderRequest={parent_id=" << r.GetParent()
-        << ", folder_name=" << r.GetName();
+    os << "CreateFolderRequest={parent_id=" << r.GetParent() << ", folder_name=" << r.GetName();
     r.DumpOptions(os, ", ");
     return os << "}";
 }
 
 std::ostream& operator<<(std::ostream& os, PatchFolderMetadataRequest const& r)
 {
-    os << "PatchFolderMetadataRequest={file_id=" << r.GetObjectId()
-        << ", original_metadata=" << r.GetOriginalMetadata()
-        << ", updated_metadata=" << r.GetUpdatedMetadata();
+    os << "PatchFolderMetadataRequest={file_id=" << r.GetObjectId() << ", original_metadata=" << r.GetOriginalMetadata()
+       << ", updated_metadata=" << r.GetUpdatedMetadata();
     r.DumpOptions(os, ", ");
     return os << "}";
 }
 
-} // namespace internal
-} // namespace csa
+}  // namespace internal
+}  // namespace csa

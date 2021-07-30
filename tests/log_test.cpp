@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/log.h"
-#include "spdlog/fmt/ostr.h" // must be included to enable operator<< for user defined types to work for logging.
+#include "spdlog/fmt/ostr.h"  // must be included to enable operator<< for user defined types to work for logging.
 #include <gmock/gmock.h>
 
 namespace csa {
@@ -68,14 +68,14 @@ TEST(LoggerSinkTest, MultiSinkMessage)
     auto mockSink2 = std::make_shared<MockLogSink>();
     EXPECT_CALL(*mockSink1, SinkRecord(_)).WillOnce(Invoke([](LogRecord const& lr) {
         EXPECT_EQ(true, std::string::npos != lr.m_message.find("test message"));
-        }));
+    }));
     GetLogger()->AddSink(mockSink1);
 
     EXPECT_CALL(*mockSink2, SinkRecord(_)).WillOnce(Invoke([](LogRecord const& lr) {
         EXPECT_EQ(true, std::string::npos != lr.m_message.find("test message"));
-        }));
+    }));
     GetLogger()->AddSink(mockSink2);
-    
+
     CSA_LOG_ERROR("test message");
 
     GetLogger()->ClearSinks();
@@ -93,7 +93,7 @@ std::ostream& operator<<(std::ostream& os, IOStreamCounter const& rhs)
     ++rhs.m_count;
     return os;
 }
-} // namespace
+}  // namespace
 
 TEST(LoggerSinkTest, LogCheckCounter)
 {
@@ -112,6 +112,6 @@ TEST(LoggerSinkTest, LogCheckCounter)
 //   test log level in runtime,
 //   test disabled log levels.
 
-} // namespace
-} // namespace internal
-} // namespace csa
+}  // namespace
+}  // namespace internal
+}  // namespace csa

@@ -18,7 +18,7 @@
  * This interface abstract out any underlaying log implementation.
  * Currently stdlog is used https://github.com/gabime/spdlog.
  * But could be replaced later at any time.
- * 
+ *
  * Note: spdlog doesn't support operator<<() to chain output like
  * LOG() << a << b << c;
  * There is a good reason for this https://github.com/gabime/spdlog/pull/236
@@ -39,23 +39,22 @@
 /**
  * Make it possible to define compile time logging level like
  * -DCSA_LOG_ACTIVE_LEVEL=CSA_LOG_LEVEL_TRACE
- */ 
+ */
 #ifndef CSA_LOG_ACTIVE_LOG_LEVEL
-    #ifndef _NDEBUG
-        #define CSA_LOG_ACTIVE_LOG_LEVEL CSA_LOG_LEVEL_TRACE // in debug switch on full logging
-    #else
-        #define CSA_LOG_ACTIVE_LOG_LEVEL CSA_LOG_LEVEL_INFO // in release keep INFO logging level
-    #endif // ##ifndef _NDEBUG
-#endif // #ifndef CSA_LOG_ACTIVE_LOG_LEVEL
+#ifndef _NDEBUG
+#define CSA_LOG_ACTIVE_LOG_LEVEL CSA_LOG_LEVEL_TRACE  // in debug switch on full logging
+#else
+#define CSA_LOG_ACTIVE_LOG_LEVEL CSA_LOG_LEVEL_INFO  // in release keep INFO logging level
+#endif                                               // ##ifndef _NDEBUG
+#endif                                               // #ifndef CSA_LOG_ACTIVE_LOG_LEVEL
 
 // Need to define this to enable corresponding logging level
 #define SPDLOG_ACTIVE_LEVEL CSA_LOG_ACTIVE_LOG_LEVEL
 
-#include "spdlog/spdlog.h"
-#include "spdlog/fmt/ostr.h" // must be included to enable operator<< for user defined types to work for logging.
+#include "spdlog/fmt/ostr.h"  // must be included to enable operator<< for user defined types to work for logging.
 #include "spdlog/sinks/base_sink.h"
 #include "spdlog/sinks/rotating_file_sink.h"
-
+#include "spdlog/spdlog.h"
 #include <map>
 
 namespace csa {
@@ -64,22 +63,22 @@ namespace internal {
 class SinkBase;
 struct LogRecord;
 
-namespace detail{
-    class SpdSinkProxy : public spdlog::sinks::base_sink <std::mutex>
-    {
-    public:
-        void SetSink(std::weak_ptr<SinkBase> sink);
-        bool IsExpired() const;
+namespace detail {
+class SpdSinkProxy : public spdlog::sinks::base_sink<std::mutex>
+{
+public:
+    void SetSink(std::weak_ptr<SinkBase> sink);
+    bool IsExpired() const;
 
-    protected:
-        void sink_it_(const spdlog::details::log_msg& msg) override;
+protected:
+    void sink_it_(const spdlog::details::log_msg& msg) override;
 
-        void flush_();
+    void flush_();
 
-    private:
-        std::weak_ptr<SinkBase> m_Sink;
-    };
-} // namespace detail
+private:
+    std::weak_ptr<SinkBase> m_Sink;
+};
+}  // namespace detail
 
 enum class ELogLevel : int
 {
@@ -135,8 +134,9 @@ public:
     std::size_t GetSinkCount() const;
     void Flush();
 
-    template<typename... Args>
-    void Log(std::string file, std::string function, int lineNo, ELogLevel logLevel, std::string fmt, const Args&... args)
+    template <typename... Args>
+    void Log(std::string file, std::string function, int lineNo, ELogLevel logLevel, std::string fmt,
+             const Args&... args)
     {
         if (ELogLevel::Off == logLevel)
             return;
@@ -144,21 +144,30 @@ public:
         spdlog::level::level_enum level{spdlog::level::level_enum::err};
         switch (logLevel)
         {
-        case ELogLevel::Trace: level = spdlog::level::level_enum::trace; break;
-        case ELogLevel::Debug: level = spdlog::level::level_enum::debug; break;
-        case ELogLevel::Info: level = spdlog::level::level_enum::info; break;
-        case ELogLevel::Warning: level = spdlog::level::level_enum::warn; break;
-        case ELogLevel::Error: level = spdlog::level::level_enum::err; break;
+        case ELogLevel::Trace:
+            level = spdlog::level::level_enum::trace;
+            break;
+        case ELogLevel::Debug:
+            level = spdlog::level::level_enum::debug;
+            break;
+        case ELogLevel::Info:
+            level = spdlog::level::level_enum::info;
+            break;
+        case ELogLevel::Warning:
+            level = spdlog::level::level_enum::warn;
+            break;
+        case ELogLevel::Error:
+            level = spdlog::level::level_enum::err;
+            break;
 
         default:
             assert(0 && "Unexpected log level.");
         }
 
-        m_spdLogger->log(spdlog::source_loc{ file.c_str(), lineNo, function.c_str() }, level, fmt, args...);
+        m_spdLogger->log(spdlog::source_loc{file.c_str(), lineNo, function.c_str()}, level, fmt, args...);
     }
 
 private:
-
     mutable std::mutex m_mu;
     long m_nextId = 0;
     std::map<long, std::shared_ptr<SinkBase>> m_sinks;
@@ -172,18 +181,19 @@ private:
     void ClearSpdlogSinks();
 };
 
-
 // Get logger
-inline std::shared_ptr<Logger> GetLogger()
-{
-    return Logger::Instance();
-}
+inline std::shared_ptr<Logger> GetLogger() { return Logger::Instance(); }
 
-#define CSA_LOG_TRACE(...)   csa::internal::GetLogger()->Log(__FILE__, __func__, __LINE__, csa::internal::ELogLevel::Trace, __VA_ARGS__)
-#define CSA_LOG_DEBUG(...)   csa::internal::GetLogger()->Log(__FILE__, __func__, __LINE__, csa::internal::ELogLevel::Debug, __VA_ARGS__)
-#define CSA_LOG_INFO(...)    csa::internal::GetLogger()->Log(__FILE__, __func__, __LINE__, csa::internal::ELogLevel::Info, __VA_ARGS__)
-#define CSA_LOG_WARNING(...) csa::internal::GetLogger()->Log(__FILE__, __func__, __LINE__, csa::internal::ELogLevel::Warning, __VA_ARGS__)
-#define CSA_LOG_ERROR(...)   csa::internal::GetLogger()->Log(__FILE__, __func__, __LINE__, csa::internal::ELogLevel::Error, __VA_ARGS__)
+#define CSA_LOG_TRACE(...) \
+    csa::internal::GetLogger()->Log(__FILE__, __func__, __LINE__, csa::internal::ELogLevel::Trace, __VA_ARGS__)
+#define CSA_LOG_DEBUG(...) \
+    csa::internal::GetLogger()->Log(__FILE__, __func__, __LINE__, csa::internal::ELogLevel::Debug, __VA_ARGS__)
+#define CSA_LOG_INFO(...) \
+    csa::internal::GetLogger()->Log(__FILE__, __func__, __LINE__, csa::internal::ELogLevel::Info, __VA_ARGS__)
+#define CSA_LOG_WARNING(...) \
+    csa::internal::GetLogger()->Log(__FILE__, __func__, __LINE__, csa::internal::ELogLevel::Warning, __VA_ARGS__)
+#define CSA_LOG_ERROR(...) \
+    csa::internal::GetLogger()->Log(__FILE__, __func__, __LINE__, csa::internal::ELogLevel::Error, __VA_ARGS__)
 
-} // namespace internal
-} // namespace csa
+}  // namespace internal
+}  // namespace csa

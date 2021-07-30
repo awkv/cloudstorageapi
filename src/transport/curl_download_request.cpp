@@ -15,8 +15,8 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/curl_download_request.h"
-#include "cloudstorageapi/internal/log.h"
 #include "cloudstorageapi/internal/curl_wrappers.h"
+#include "cloudstorageapi/internal/log.h"
 #include <curl/multi.h>
 #include <algorithm>
 #include <cstring>
@@ -30,20 +30,15 @@ namespace internal {
 // CMAKE_BUILD_TYPE=Debug builds. The level of detail created by the
 // TRACE_STATE() macro is only needed by the library developers when
 // troubleshooting this class.
-#define TRACE_STATE()                                                       \
-  CSA_LOG_TRACE(  "{}(), m_bufferSize={}, m_bufferOffset={}, m_spill.size()={}, m_spillOffset={}, closing={}, closed={}, paused={}, in_multi={}",\
-                 __func__,                \
-                 m_bufferSize,            \
-                 m_bufferOffset,          \
-                 m_spill.size(),          \
-                 m_spillOffset,           \
-                 m_closing, m_curlClosed, \
-                 m_paused, m_inMulti )
+#define TRACE_STATE()                                                                                             \
+    CSA_LOG_TRACE(                                                                                                \
+        "{}(), m_bufferSize={}, m_bufferOffset={}, m_spill.size()={}, m_spillOffset={}, closing={}, closed={}, "  \
+        "paused={}, in_multi={}",                                                                                 \
+        __func__, m_bufferSize, m_bufferOffset, m_spill.size(), m_spillOffset, m_closing, m_curlClosed, m_paused, \
+        m_inMulti)
 
 CurlDownloadRequest::CurlDownloadRequest()
-    : m_headers(nullptr, &curl_slist_free_all),
-    m_multi(nullptr, &curl_multi_cleanup),
-    m_spill(CURL_MAX_WRITE_SIZE)
+    : m_headers(nullptr, &curl_slist_free_all), m_multi(nullptr, &curl_multi_cleanup), m_spill(CURL_MAX_WRITE_SIZE)
 {
 }
 
@@ -126,8 +121,7 @@ StatusOrVal<HttpResponse> CurlDownloadRequest::Close()
 
     TRACE_STATE();
     CSA_LOG_TRACE(", http_code.status={}, http_code={}", http_code.GetStatus(), *http_code);
-    return HttpResponse{ http_code.Value(), std::string{},
-                        std::move(m_receivedHeaders) };
+    return HttpResponse{http_code.Value(), std::string{}, std::move(m_receivedHeaders)};
 }
 
 StatusOrVal<ReadSourceResult> CurlDownloadRequest::Read(char* buf, std::size_t n)
@@ -163,9 +157,7 @@ StatusOrVal<ReadSourceResult> CurlDownloadRequest::Read(char* buf, std::size_t n
         TRACE_STATE();
     }
 
-    auto status = Wait([this] {
-        return m_curlClosed || m_paused || m_bufferOffset >= m_bufferSize;
-        });
+    auto status = Wait([this] { return m_curlClosed || m_paused || m_bufferOffset >= m_bufferSize; });
     if (!status.Ok())
     {
         return status;
@@ -187,8 +179,7 @@ StatusOrVal<ReadSourceResult> CurlDownloadRequest::Read(char* buf, std::size_t n
         //   if not.
         // if the option is not supported then we cannot use HTTP at all in libcurl
         // and the whole class would fail.
-        HttpResponse response{ m_handle.GetResponseCode().Value(), std::string{},
-                              std::move(m_receivedHeaders) };
+        HttpResponse response{m_handle.GetResponseCode().Value(), std::string{}, std::move(m_receivedHeaders)};
         TRACE_STATE();
         CSA_LOG_TRACE(", code={}", response.m_statusCode);
         status = csa::internal::AsStatus(response);
@@ -198,12 +189,11 @@ StatusOrVal<ReadSourceResult> CurlDownloadRequest::Read(char* buf, std::size_t n
             CSA_LOG_TRACE(", status={}", response.m_statusCode);
             return status;
         }
-        return ReadSourceResult{ bytes_read, std::move(response) };
+        return ReadSourceResult{bytes_read, std::move(response)};
     }
     TRACE_STATE();
     CSA_LOG_TRACE(", code=100");
-    return ReadSourceResult{ bytes_read,
-                            HttpResponse{100, {}, std::move(m_receivedHeaders)} };
+    return ReadSourceResult{bytes_read, HttpResponse{100, {}, std::move(m_receivedHeaders)}};
 }
 
 void CurlDownloadRequest::SetOptions()
@@ -235,19 +225,16 @@ void CurlDownloadRequest::ResetOptions()
     m_handle.SetOption(CURLOPT_HTTPHEADER, m_headers.get());
     m_handle.SetOption(CURLOPT_USERAGENT, m_userAgent.c_str());
     m_handle.SetOption(CURLOPT_NOSIGNAL, 1);
-    if (!m_payload.empty()) {
+    if (!m_payload.empty())
+    {
         m_handle.SetOption(CURLOPT_POSTFIELDSIZE, m_payload.length());
         m_handle.SetOption(CURLOPT_POSTFIELDS, m_payload.c_str());
     }
     m_handle.SetWriterCallback(
-        [this](void* ptr, std::size_t size, std::size_t nmemb) {
-            return this->WriteCallback(ptr, size, nmemb);
-        });
-    m_handle.SetHeaderCallback([this](char* contents, std::size_t size,
-        std::size_t nitems) {
-            return CurlAppendHeaderData(
-                m_receivedHeaders, static_cast<char const*>(contents), size* nitems);
-        });
+        [this](void* ptr, std::size_t size, std::size_t nmemb) { return this->WriteCallback(ptr, size, nmemb); });
+    m_handle.SetHeaderCallback([this](char* contents, std::size_t size, std::size_t nitems) {
+        return CurlAppendHeaderData(m_receivedHeaders, static_cast<char const*>(contents), size * nitems);
+    });
     m_handle.EnableLogging(true);
     m_handle.SetSocketCallback(m_socketOptions);
     if (m_downloadStallTimeout.count() != 0)
@@ -255,8 +242,7 @@ void CurlDownloadRequest::ResetOptions()
         // Timeout if the download receives less than 1 byte/second (i.e.
         // effectively no bytes) for `m_downloadStallTimeout` seconds.
         m_handle.SetOption(CURLOPT_LOW_SPEED_LIMIT, 1L);
-        m_handle.SetOption(CURLOPT_LOW_SPEED_TIME,
-            static_cast<long>(m_downloadStallTimeout.count()));
+        m_handle.SetOption(CURLOPT_LOW_SPEED_TIME, static_cast<long>(m_downloadStallTimeout.count()));
     }
 }
 
@@ -266,13 +252,11 @@ void CurlDownloadRequest::DrainSpillBuffer()
     auto copy_count = (std::min)(free, m_spillOffset);
     std::memcpy(m_buffer + m_bufferOffset, m_spill.data(), copy_count);
     m_bufferOffset += copy_count;
-    std::memmove(m_spill.data(), m_spill.data() + copy_count,
-        m_spill.size() - copy_count);
+    std::memmove(m_spill.data(), m_spill.data() + copy_count, m_spill.size() - copy_count);
     m_spillOffset -= copy_count;
 }
 
-std::size_t CurlDownloadRequest::WriteCallback(void* ptr, std::size_t size,
-    std::size_t nmemb)
+std::size_t CurlDownloadRequest::WriteCallback(void* ptr, std::size_t size, std::size_t nmemb)
 {
     m_handle.FlushDebug(__func__);
     TRACE_STATE();
@@ -370,9 +354,8 @@ StatusOrVal<int> CurlDownloadRequest::PerformWork()
                 // is better to give a meaningful error message in this case.
                 std::ostringstream os;
                 os << __func__ << " unknown handle returned by curl_multi_info_read()"
-                    << ", msg.msg=[" << msg->msg << "]"
-                    << ", result=[" << msg->data.result
-                    << "]=" << curl_easy_strerror(msg->data.result);
+                   << ", msg.msg=[" << msg->msg << "]"
+                   << ", result=[" << msg->data.result << "]=" << curl_easy_strerror(msg->data.result);
                 return Status(StatusCode::Unknown, std::move(os).str());
             }
             status = CurlHandle::AsStatus(msg->data.result, __func__);
@@ -386,15 +369,14 @@ StatusOrVal<int> CurlDownloadRequest::PerformWork()
             {
                 // In the extremely unlikely case that removing the handle from CURLM*
                 // was an error, return that as a status.
-                multi_remove_status = AsStatus(
-                    curl_multi_remove_handle(m_multi.get(), m_handle.m_handle.get()),
-                    __func__);
+                multi_remove_status =
+                    AsStatus(curl_multi_remove_handle(m_multi.get(), m_handle.m_handle.get()), __func__);
                 m_inMulti = false;
             }
 
             TRACE_STATE();
-            CSA_LOG_TRACE(", status={}, remaining={}, running_handles={}, multi_remove_status={}",
-                status, remaining, running_handles, multi_remove_status);
+            CSA_LOG_TRACE(", status={}, remaining={}, running_handles={}, multi_remove_status={}", status, remaining,
+                          running_handles, multi_remove_status);
 
             // Ignore errors when closing the handle. They are expected because
             // libcurl may have received a block of data, but the WriteCallback()
@@ -407,7 +389,8 @@ StatusOrVal<int> CurlDownloadRequest::PerformWork()
             {
                 return status;
             }
-            if (!multi_remove_status.Ok()) {
+            if (!multi_remove_status.Ok())
+            {
                 return multi_remove_status;
             }
         }
@@ -422,8 +405,7 @@ Status CurlDownloadRequest::WaitForHandles(int& repeats)
     int const timeout_ms = 1;
     std::chrono::milliseconds const timeout(timeout_ms);
     int numfds = 0;
-    CURLMcode result =
-        curl_multi_wait(m_multi.get(), nullptr, 0, timeout_ms, &numfds);
+    CURLMcode result = curl_multi_wait(m_multi.get(), nullptr, 0, timeout_ms, &numfds);
     TRACE_STATE();
     CSA_LOG_TRACE(", numfds={}, result={}, repeats={}", numfds, result, repeats);
     Status status = AsStatus(result, __func__);
@@ -455,8 +437,7 @@ Status CurlDownloadRequest::AsStatus(CURLMcode result, char const* where)
         return Status();
     }
     std::ostringstream os;
-    os << where << "(): unexpected error code in curl_multi_*, [" << result
-        << "]=" << curl_multi_strerror(result);
+    os << where << "(): unexpected error code in curl_multi_*, [" << result << "]=" << curl_multi_strerror(result);
     return Status(StatusCode::Unknown, std::move(os).str());
 }
 

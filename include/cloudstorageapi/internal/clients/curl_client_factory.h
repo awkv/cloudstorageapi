@@ -34,9 +34,9 @@ public:
             return CurlGoogleDriveClient::Create(std::move(options));
         }
 
-        assert(0&&"Unexpected provider.");
+        assert(0 && "Unexpected provider.");
         return nullptr;
     }
 };
-} // namespace internal
-} // namespace csa
+}  // namespace internal
+}  // namespace csa

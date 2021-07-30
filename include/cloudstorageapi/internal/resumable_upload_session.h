@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include "cloudstorageapi/status_or_val.h"
-#include "cloudstorageapi/internal/http_response.h"
 #include "cloudstorageapi/file_metadata.h"
+#include "cloudstorageapi/internal/http_response.h"
+#include "cloudstorageapi/status_or_val.h"
 #include <cstdint>
 #include <iosfwd>
 #include <optional>
@@ -43,8 +43,7 @@ public:
      * @param buffer the chunk to upload.
      * @return The result of uploading the chunk.
      */
-    virtual StatusOrVal<ResumableUploadResponse> UploadChunk(
-        std::string const& buffer) = 0;
+    virtual StatusOrVal<ResumableUploadResponse> UploadChunk(std::string const& buffer) = 0;
 
     /**
      * Uploads the final chunk in a stream, committing all previous data.
@@ -54,8 +53,8 @@ public:
      *   known.
      * @return The final result of the upload, including the object metadata.
      */
-    virtual StatusOrVal<ResumableUploadResponse> UploadFinalChunk(
-        std::string const& buffer, std::uint64_t uploadSize) = 0;
+    virtual StatusOrVal<ResumableUploadResponse> UploadFinalChunk(std::string const& buffer,
+                                                                  std::uint64_t uploadSize) = 0;
 
     /// Resets the session by querying its current state.
     virtual StatusOrVal<ResumableUploadResponse> ResetSession() = 0;
@@ -90,7 +89,11 @@ public:
 
 struct ResumableUploadResponse
 {
-    enum class UploadState { InProgress, Done };
+    enum class UploadState
+    {
+        InProgress,
+        Done
+    };
 
     std::string m_uploadSessionUrl;
     std::uint64_t m_lastCommittedByte;
@@ -99,10 +102,8 @@ struct ResumableUploadResponse
     std::string m_annotations;
 };
 
-bool operator==(ResumableUploadResponse const& lhs,
-    ResumableUploadResponse const& rhs);
-bool operator!=(ResumableUploadResponse const& lhs,
-    ResumableUploadResponse const& rhs);
+bool operator==(ResumableUploadResponse const& lhs, ResumableUploadResponse const& rhs);
+bool operator!=(ResumableUploadResponse const& lhs, ResumableUploadResponse const& rhs);
 
 std::ostream& operator<<(std::ostream& os, ResumableUploadResponse const& r);
 
@@ -117,51 +118,33 @@ std::ostream& operator<<(std::ostream& os, ResumableUploadResponse const& r);
 class ResumableUploadSessionError : public ResumableUploadSession
 {
 public:
-    explicit ResumableUploadSessionError(Status status)
-        : m_lastResponse(std::move(status)) {}
+    explicit ResumableUploadSessionError(Status status) : m_lastResponse(std::move(status)) {}
 
-    ResumableUploadSessionError(Status status, std::uint64_t nextExpectedByte,
-        std::string id)
-        : m_lastResponse(std::move(status)),
-        m_nextExpectedByte(nextExpectedByte),
-        m_id(id) {}
+    ResumableUploadSessionError(Status status, std::uint64_t nextExpectedByte, std::string id)
+        : m_lastResponse(std::move(status)), m_nextExpectedByte(nextExpectedByte), m_id(id)
+    {
+    }
 
     ~ResumableUploadSessionError() override = default;
 
-    StatusOrVal<ResumableUploadResponse> UploadChunk(std::string const&) override
+    StatusOrVal<ResumableUploadResponse> UploadChunk(std::string const&) override { return m_lastResponse; }
+
+    StatusOrVal<ResumableUploadResponse> UploadFinalChunk(std::string const&, std::uint64_t) override
     {
         return m_lastResponse;
     }
 
-    StatusOrVal<ResumableUploadResponse> UploadFinalChunk(std::string const&,
-        std::uint64_t) override
-    {
-        return m_lastResponse;
-    }
+    StatusOrVal<ResumableUploadResponse> ResetSession() override { return m_lastResponse; }
 
-    StatusOrVal<ResumableUploadResponse> ResetSession() override
-    {
-        return m_lastResponse;
-    }
-
-    std::uint64_t GetNextExpectedByte() const override
-    {
-        return m_nextExpectedByte;
-    }
+    std::uint64_t GetNextExpectedByte() const override { return m_nextExpectedByte; }
 
     std::string const& GetSessionId() const override { return m_id; }
 
-    std::size_t GetFileChunkSizeQuantum() const override
-    {
-        return 0;
-    }
+    std::size_t GetFileChunkSizeQuantum() const override { return 0; }
 
     bool Done() const override { return true; }
 
-    StatusOrVal<ResumableUploadResponse> const& GetLastResponse() const override
-    {
-        return m_lastResponse;
-    }
+    StatusOrVal<ResumableUploadResponse> const& GetLastResponse() const override { return m_lastResponse; }
 
 private:
     StatusOrVal<ResumableUploadResponse> m_lastResponse;

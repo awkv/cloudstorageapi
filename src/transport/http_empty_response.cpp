@@ -17,9 +17,7 @@
 
 namespace csa {
 namespace internal {
-std::ostream& operator<<(std::ostream& os, HttpEmptyResponse const&) {
-  return os << "EmptyResponse={}";
-}
+std::ostream& operator<<(std::ostream& os, HttpEmptyResponse const&) { return os << "EmptyResponse={}"; }
 
 }  // namespace internal
 }  // namespace csa

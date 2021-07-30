@@ -20,15 +20,12 @@
 namespace csa {
 namespace auth {
 
-bool RefreshingCredentialsWrapper::IsExpired(
-    std::chrono::system_clock::time_point now) const
+bool RefreshingCredentialsWrapper::IsExpired(std::chrono::system_clock::time_point now) const
 {
-    return now > (m_temporaryToken.m_expirationTime -
-        OAuthAccessTokenExpirationSlack());
+    return now > (m_temporaryToken.m_expirationTime - OAuthAccessTokenExpirationSlack());
 }
 
-bool RefreshingCredentialsWrapper::IsValid(
-    std::chrono::system_clock::time_point now) const
+bool RefreshingCredentialsWrapper::IsValid(std::chrono::system_clock::time_point now) const
 {
     return !m_temporaryToken.m_token.empty() && !IsExpired(now);
 }

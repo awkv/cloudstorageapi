@@ -38,9 +38,8 @@ public:
     };
 
     template <typename RefreshFunctor>
-    StatusOrVal<std::string> AuthorizationHeader(
-        std::chrono::system_clock::time_point now,
-        RefreshFunctor refreshFn) const
+    StatusOrVal<std::string> AuthorizationHeader(std::chrono::system_clock::time_point now,
+                                                 RefreshFunctor refreshFn) const
     {
         if (IsValid(now))
         {

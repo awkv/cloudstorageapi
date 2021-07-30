@@ -38,7 +38,8 @@ namespace internal {
  * }
  * @endcode
  */
-class IosFlagsSaver final {
+class IosFlagsSaver final
+{
 public:
     IosFlagsSaver(std::ios_base& ios) : m_ios(ios), m_flags(m_ios.flags()) {}
     ~IosFlagsSaver() { m_ios.setf(m_flags); }

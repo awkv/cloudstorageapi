@@ -27,8 +27,7 @@ class GenericObjectRequest : public GenericRequest<Derived, Parameters...>
 public:
     GenericObjectRequest() = default;
 
-    explicit GenericObjectRequest(std::string objectId)
-        : m_objectId(std::move(objectId)) {}
+    explicit GenericObjectRequest(std::string objectId) : m_objectId(std::move(objectId)) {}
 
     std::string const& GetObjectId() const { return m_objectId; }
     Derived& SetObjectId(std::string objectId)
@@ -44,16 +43,16 @@ private:
 /**
  * Represents a request to rename/move object.
  */
-class RenameRequest
-    : public GenericObjectRequest<RenameRequest>
+class RenameRequest : public GenericObjectRequest<RenameRequest>
 {
 public:
     RenameRequest(std::string id, std::string newName, std::string parentId, std::string newParentId)
         : GenericObjectRequest<RenameRequest>(id),
-        m_newName(std::move(newName)),
-        m_parentId(std::move(parentId)),
-        m_newParentId(std::move(newParentId))
-    {}
+          m_newName(std::move(newName)),
+          m_parentId(std::move(parentId)),
+          m_newParentId(std::move(newParentId))
+    {
+    }
 
     std::string GetParentId() const { return m_parentId; }
     std::string GetNewParentId() const { return m_newParentId; }

@@ -67,16 +67,16 @@ namespace util {
  * @tparam ExpectedException the type of exception.
  */
 template <typename ExpectedException>
-void ExpectException(
-    std::function<void()> const& expression,
-    std::function<void(ExpectedException const& ex)> const& validator,
-    char const* expected_message) {
-  EXPECT_THROW(try { expression(); } catch (ExpectedException const& ex) {
-    validator(ex);
-    throw;
-  },
-               ExpectedException);
-  (void)expected_message;  // suppress compiler warning.
+void ExpectException(std::function<void()> const& expression,
+                     std::function<void(ExpectedException const& ex)> const& validator, char const* expected_message)
+{
+    EXPECT_THROW(
+        try { expression(); } catch (ExpectedException const& ex) {
+            validator(ex);
+            throw;
+        },
+        ExpectedException);
+    (void)expected_message;  // suppress compiler warning.
 }
 
 /**
@@ -89,9 +89,7 @@ void ExpectException(
  * @param expression the expression (typically a lambda) that we want to verify
  *     does not throw.
  */
-inline void ExpectNoException(std::function<void()> const& expression) {
-  EXPECT_NO_THROW(expression());
-}
+inline void ExpectNoException(std::function<void()> const& expression) { EXPECT_NO_THROW(expression()); }
 
 }  // namespace util
 }  // namespace testing

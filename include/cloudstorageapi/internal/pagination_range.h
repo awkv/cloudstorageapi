@@ -26,7 +26,7 @@
 namespace csa {
 namespace internal {
 
-/** 
+/**
  *  Single pass input iterator over given items from owner.
  *  It asks owner for next item and if next item is on
  *  the next page owner is responsible to load it first.
@@ -63,15 +63,14 @@ public:
     value_type* operator->() { return &m_value; }
 
     value_type const& operator*() const& { return m_value; }
-    value_type& operator*()& { return m_value; }
+    value_type& operator*() & { return m_value; }
     value_type const&& operator*() const&& { return std::move(m_value); }
-    value_type&& operator*()&& { return std::move(m_value); }
+    value_type&& operator*() && { return std::move(m_value); }
 
 private:
     friend Range;
 
-    friend bool operator==(PaginationIterator const& lhs,
-        PaginationIterator const& rhs)
+    friend bool operator==(PaginationIterator const& lhs, PaginationIterator const& rhs)
     {
         // Iterators on different streams are always different.
         if (lhs.m_owner != rhs.m_owner)
@@ -84,7 +83,8 @@ private:
             return true;
         }
         // Iterators on the same stream are equal if they point to the same object.
-        if (lhs.m_value.Ok() && rhs.m_value.Ok()) {
+        if (lhs.m_value.Ok() && rhs.m_value.Ok())
+        {
             return *lhs.m_value == *rhs.m_value;
         }
         // If one is an error and the other is not then they must be different,
@@ -94,14 +94,9 @@ private:
         return lhs.m_value.Ok() == rhs.m_value.Ok();
     }
 
-    friend bool operator!=(PaginationIterator const& lhs,
-        PaginationIterator const& rhs)
-    {
-        return !(lhs == rhs);
-    }
+    friend bool operator!=(PaginationIterator const& lhs, PaginationIterator const& rhs) { return !(lhs == rhs); }
 
-    explicit PaginationIterator(Range* owner, value_type value)
-        : m_owner(owner), m_value(std::move(value)) {}
+    explicit PaginationIterator(Range* owner, value_type value) : m_owner(owner), m_value(std::move(value)) {}
 
     Range* m_owner;
     value_type m_value;
@@ -121,7 +116,8 @@ private:
  * @tparam Response the type of the response object for the `List` RPC.
  */
 template <typename T, typename Request, typename Response>
-class PaginationRange {
+class PaginationRange
+{
 public:
     /**
      * Create a new range to paginate over some elements.
@@ -130,13 +126,8 @@ public:
      *    initialize this request with any filtering constraints.
      * @param loader makes the RPC request to fetch a new page of items.
      */
-    explicit PaginationRange(
-        Request request,
-        std::function<StatusOrVal<Response>(Request const& r)> loader)
-        : m_request(std::move(request)),
-        m_nextPageLoader(std::move(loader)),
-        m_nextPageToken(),
-        m_onLastPage(false)
+    explicit PaginationRange(Request request, std::function<StatusOrVal<Response>(Request const& r)> loader)
+        : m_request(std::move(request)), m_nextPageLoader(std::move(loader)), m_nextPageToken(), m_onLastPage(false)
     {
         m_current = m_currentPage.begin();
     }
@@ -170,8 +161,8 @@ protected:
     iterator GetNext()
     {
         static Status const pastTheEndError(StatusCode::FailedPrecondition,
-            "Cannot iterating past the end of pagination range.");
-        
+                                            "Cannot iterating past the end of pagination range.");
+
         if (m_currentPage.end() == m_current)
         {
             if (m_onLastPage)

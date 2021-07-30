@@ -20,10 +20,7 @@
 namespace csa {
 namespace internal {
 
-CurlRequest::CurlRequest()
-    : m_headers(nullptr, &curl_slist_free_all)
-{
-}
+CurlRequest::CurlRequest() : m_headers(nullptr, &curl_slist_free_all) {}
 
 StatusOrVal<HttpResponse> CurlRequest::MakeRequest(std::string const& payload)
 {
@@ -43,8 +40,7 @@ StatusOrVal<HttpResponse> CurlRequest::MakeRequest(std::string const& payload)
     {
         return std::move(code).GetStatus();
     }
-    return HttpResponse{ code.Value(), std::move(m_responsePayload),
-                        std::move(m_receivedHeaders) };
+    return HttpResponse{code.Value(), std::move(m_responsePayload), std::move(m_receivedHeaders)};
 }
 
 void CurlRequest::ResetOptions()
@@ -53,16 +49,13 @@ void CurlRequest::ResetOptions()
     m_handle.SetOption(CURLOPT_HTTPHEADER, m_headers.get());
     m_handle.SetOption(CURLOPT_USERAGENT, m_userAgent.c_str());
     m_handle.SetOption(CURLOPT_NOSIGNAL, 1);
-    m_handle.SetWriterCallback(
-        [this](void* ptr, std::size_t size, std::size_t nmemb) {
-            m_responsePayload.append(static_cast<char*>(ptr), size * nmemb);
-            return size * nmemb;
-        });
-    m_handle.SetHeaderCallback([this](char* contents, std::size_t size,
-        std::size_t nitems) {
-            return CurlAppendHeaderData(
-                m_receivedHeaders, static_cast<char const*>(contents), size * nitems);
-        });
+    m_handle.SetWriterCallback([this](void* ptr, std::size_t size, std::size_t nmemb) {
+        m_responsePayload.append(static_cast<char*>(ptr), size * nmemb);
+        return size * nmemb;
+    });
+    m_handle.SetHeaderCallback([this](char* contents, std::size_t size, std::size_t nitems) {
+        return CurlAppendHeaderData(m_receivedHeaders, static_cast<char const*>(contents), size * nitems);
+    });
     m_handle.SetSocketCallback(m_socketOptions);
 }
 

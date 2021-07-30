@@ -37,8 +37,8 @@ void PrintUsage(int argc, char* argv[], std::string const& msg)
         lastSlash = cmd.find_last_of('\\');
     auto program = cmd.substr(lastSlash + 1);
     std::cerr << msg << "\nUsage: " << program << " <provider> <command> [arguments]\n\n"
-        << "Commands:\n"
-        << commandUsage << "\n";
+              << "Commands:\n"
+              << commandUsage << "\n";
 }
 
 char const* ConsumeArg(int& argc, char* argv[])
@@ -78,9 +78,11 @@ void ListFolder(csa::CloudStorageClient* client, int& argc, char* argv[])
         if (!metadata)
             throw std::runtime_error(metadata.GetStatus().Message());
 
-        std::visit([](auto&& item) {
-            std::cout << item.GetName() << std::endl <<
-            "\t" << item << std::endl << std::endl; }, *metadata);
+        std::visit(
+            [](auto&& item) { std::cout << item.GetName() << std::endl
+                                        << "\t" << item << std::endl
+                                        << std::endl; },
+            *metadata);
     }
 }
 
@@ -96,18 +98,19 @@ void ListFolderWithPageSize(csa::CloudStorageClient* client, int& argc, char* ar
         if (!metadata)
             throw std::runtime_error(metadata.GetStatus().Message());
 
-        std::visit([](auto&& item) {
-            std::cout << item.GetName() << std::endl <<
-                "\t" << item << std::endl << std::endl; }, *metadata);
+        std::visit(
+            [](auto&& item) { std::cout << item.GetName() << std::endl
+                                        << "\t" << item << std::endl
+                                        << std::endl; },
+            *metadata);
     }
-
 }
 
 void GetFolderMetadata(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
     if (!client || argc != 2)
         throw NeedUsage("get-folder-metadata <folder-path>");
-    
+
     auto folderName = ConsumeArg(argc, argv);
     csa::StatusOrVal<csa::FolderMetadata> folderMetadata = client->GetFolderMetadata(folderName);
     if (!folderMetadata)
@@ -115,8 +118,7 @@ void GetFolderMetadata(csa::CloudStorageClient* client, int& argc, char* argv[])
         throw std::runtime_error(folderMetadata.GetStatus().Message());
     }
 
-    std::cout << "\'" << folderMetadata->GetName() << "\' " <<
-        *folderMetadata << "\n";
+    std::cout << "\'" << folderMetadata->GetName() << "\' " << *folderMetadata << "\n";
 }
 
 void RenameFolder(csa::CloudStorageClient* client, int& argc, char* argv[])
@@ -128,19 +130,19 @@ void RenameFolder(csa::CloudStorageClient* client, int& argc, char* argv[])
     auto newName = ConsumeArg(argc, argv);
     std::string parentId;
     std::string newParentid;
-    if (argc == 3)// total 5, 2 are consumed above.
+    if (argc == 3)  // total 5, 2 are consumed above.
     {
         parentId = ConsumeArg(argc, argv);
         newParentid = ConsumeArg(argc, argv);
     }
-    csa::StatusOrVal<csa::FolderMetadata> folderMetadata = client->RenameFolder(folderId, newName, parentId, newParentid);
+    csa::StatusOrVal<csa::FolderMetadata> folderMetadata =
+        client->RenameFolder(folderId, newName, parentId, newParentid);
     if (!folderMetadata)
     {
         throw std::runtime_error(folderMetadata.GetStatus().Message());
     }
 
-    std::cout << "Rename folder succeeded: id=\'" << folderId << "\' "
-        << *folderMetadata << std::endl;
+    std::cout << "Rename folder succeeded: id=\'" << folderId << "\' " << *folderMetadata << std::endl;
 }
 
 void PatchDeleteFolderMetadata(csa::CloudStorageClient* client, int& argc, char* argv[])
@@ -172,8 +174,8 @@ void PatchDeleteFolderMetadata(csa::CloudStorageClient* client, int& argc, char*
         throw std::runtime_error(newUpdateFolderMeta.GetStatus().Message());
     }
 
-    std::cout << "The folder \"" << folderMeta->GetName() << "\" updated. Updated metadata: "
-        << *newUpdateFolderMeta << std::endl;
+    std::cout << "The folder \"" << folderMeta->GetName() << "\" updated. Updated metadata: " << *newUpdateFolderMeta
+              << std::endl;
 }
 
 void GetFileMetadata(csa::CloudStorageClient* client, int& argc, char* argv[])
@@ -188,8 +190,7 @@ void GetFileMetadata(csa::CloudStorageClient* client, int& argc, char* argv[])
         throw std::runtime_error(fileMetadata.GetStatus().Message());
     }
 
-    std::cout << "\'" << fileMetadata->GetName() << "\' " <<
-        *fileMetadata << "\n";
+    std::cout << "\'" << fileMetadata->GetName() << "\' " << *fileMetadata << "\n";
 }
 
 void PatchDeleteFileMetadata(csa::CloudStorageClient* client, int& argc, char* argv[])
@@ -223,8 +224,8 @@ void PatchDeleteFileMetadata(csa::CloudStorageClient* client, int& argc, char* a
         throw std::runtime_error(newUpdateFileMeta.GetStatus().Message());
     }
 
-    std::cout << "The file \"" << fileMeta->GetName() << "\" updated. Updated metadata: "
-        << *newUpdateFileMeta << std::endl;
+    std::cout << "The file \"" << fileMeta->GetName() << "\" updated. Updated metadata: " << *newUpdateFileMeta
+              << std::endl;
 }
 
 void RenameFile(csa::CloudStorageClient* client, int& argc, char* argv[])
@@ -236,7 +237,7 @@ void RenameFile(csa::CloudStorageClient* client, int& argc, char* argv[])
     auto newName = ConsumeArg(argc, argv);
     std::string parentId;
     std::string newParentid;
-    if (argc == 3)// total 5, 2 are consumed above.
+    if (argc == 3)  // total 5, 2 are consumed above.
     {
         parentId = ConsumeArg(argc, argv);
         newParentid = ConsumeArg(argc, argv);
@@ -247,8 +248,7 @@ void RenameFile(csa::CloudStorageClient* client, int& argc, char* argv[])
         throw std::runtime_error(fileMetadata.GetStatus().Message());
     }
 
-    std::cout << "Rename file succeeded: id=\'" << fileId << "\' "
-        << *fileMetadata << std::endl;
+    std::cout << "Rename file succeeded: id=\'" << fileId << "\' " << *fileMetadata << std::endl;
 }
 
 void InsertFile(csa::CloudStorageClient* client, int& argc, char* argv[])
@@ -265,8 +265,7 @@ void InsertFile(csa::CloudStorageClient* client, int& argc, char* argv[])
     if (!fileMetadata)
         throw std::runtime_error(fileMetadata.GetStatus().Message());
 
-    std::cout << "Insert file succeded: id=\'" << fileMetadata->GetCloudId() << "\' "
-        << *fileMetadata << std::endl;
+    std::cout << "Insert file succeded: id=\'" << fileMetadata->GetCloudId() << "\' " << *fileMetadata << std::endl;
 }
 
 void UploadFile(csa::CloudStorageClient* client, int& argc, char* argv[])
@@ -282,8 +281,8 @@ void UploadFile(csa::CloudStorageClient* client, int& argc, char* argv[])
     if (!fileMetadata)
         throw std::runtime_error(fileMetadata.GetStatus().Message());
 
-    std::cout << "Uploaded file " << srcFileName << " succeded to cloud file: id=\'" << fileMetadata->GetCloudId() << "\' "
-        << *fileMetadata << std::endl;
+    std::cout << "Uploaded file " << srcFileName << " succeded to cloud file: id=\'" << fileMetadata->GetCloudId()
+              << "\' " << *fileMetadata << std::endl;
 }
 
 void UploadFileResumable(csa::CloudStorageClient* client, int& argc, char* argv[])
@@ -299,8 +298,8 @@ void UploadFileResumable(csa::CloudStorageClient* client, int& argc, char* argv[
     if (!fileMetadata)
         throw std::runtime_error(fileMetadata.GetStatus().Message());
 
-    std::cout << "Uploaded file " << srcFileName << " succeded to cloud file: id=\'" << fileMetadata->GetCloudId() << "\' "
-        << *fileMetadata << std::endl;
+    std::cout << "Uploaded file " << srcFileName << " succeded to cloud file: id=\'" << fileMetadata->GetCloudId()
+              << "\' " << *fileMetadata << std::endl;
 }
 
 void WriteFile(csa::CloudStorageClient* client, int& argc, char* argv[])
@@ -315,17 +314,15 @@ void WriteFile(csa::CloudStorageClient* client, int& argc, char* argv[])
     std::string const text = "Lorem ipsum dolor sit amet";
     auto stream = client->WriteFile(folderId, fileName);
 
-    for (int line = 0; line < lineCount; ++line)
-        stream << (line + 1) << ": " << text << std::endl;
+    for (int line = 0; line < lineCount; ++line) stream << (line + 1) << ": " << text << std::endl;
 
     stream.Close();
     auto meta = std::move(stream).GetMetadata();
     if (!meta)
         throw std::runtime_error(meta.GetStatus().Message());
 
-    std::cout << "Successfully wrote to file " << meta->GetName()
-        << " size is: " << meta->GetSize() <<
-        " Metadata: " << *meta << std::endl;
+    std::cout << "Successfully wrote to file " << meta->GetName() << " size is: " << meta->GetSize()
+              << " Metadata: " << *meta << std::endl;
 }
 
 void WriteLargeFile(csa::CloudStorageClient* client, int& argc, char* argv[])
@@ -340,10 +337,8 @@ void WriteLargeFile(csa::CloudStorageClient* client, int& argc, char* argv[])
     // We want random-looking data, but we do not care if the data has a lot of
     // entropy, so do not bother with a complex initialization of the PRNG seed.
     std::mt19937_64 gen;
-    auto generateLine = [&gen]() -> std::string
-    {
-        std::string const chars =
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345789";
+    auto generateLine = [&gen]() -> std::string {
+        std::string const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345789";
         std::string line(128, '\n');
         std::uniform_int_distribution<std::size_t> uni(0, chars.size() - 1);
         std::generate_n(line.begin(), 127, [&] { return chars.at(uni(gen)); });
@@ -355,10 +350,9 @@ void WriteLargeFile(csa::CloudStorageClient* client, int& argc, char* argv[])
     long const lineCount = sizeMiB * MiB / 128;
 
     auto stream = client->WriteFile(folderId, fileName);
-    std::generate_n(std::ostream_iterator<std::string>(stream), lineCount,
-        generateLine);
+    std::generate_n(std::ostream_iterator<std::string>(stream), lineCount, generateLine);
 
-    //stream.Close();
+    // stream.Close();
     // TODO: print success/fail msg
 }
 
@@ -372,8 +366,7 @@ void StartResumableUpload(csa::CloudStorageClient* client, int& argc, char* argv
 
     auto stream = client->WriteFile(folderId, fileName);
 
-    std::cout << "Created resumable upload: " << stream.GetResumableSessionId()
-        << "\n";
+    std::cout << "Created resumable upload: " << stream.GetResumableSessionId() << "\n";
     // As it is customary in C++, the destructor automatically closes the
     // stream, that would finish the upload and create the object. For this
     // example we want to restore the session as-if the application had crashed,
@@ -395,7 +388,7 @@ void ResumeResumableUpload(csa::CloudStorageClient* client, int& argc, char* arg
     if (!stream.IsOpen() && stream.GetMetadata().Ok())
     {
         std::cout << "The upload has already been finalized. The object "
-            << "metadata is: " << *stream.GetMetadata() << "\n";
+                  << "metadata is: " << *stream.GetMetadata() << "\n";
     }
     if (stream.GetNextExpectedByte() == 0)
     {
@@ -421,14 +414,13 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
         throw std::runtime_error(meta.GetStatus().Message());
     }
 
-    std::cout << "Upload completed, the new object metadata is: " << *meta
-        << "\n";
+    std::cout << "Upload completed, the new object metadata is: " << *meta << "\n";
 }
 
 void DownloadFile(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
     if (!client || argc != 3)
-        throw NeedUsage{ "download-file <file-id> <destination-file-name>" };
+        throw NeedUsage{"download-file <file-id> <destination-file-name>"};
 
     auto fileId = ConsumeArg(argc, argv);
     auto dstFileName = ConsumeArg(argc, argv);
@@ -446,15 +438,14 @@ void DownloadFile(csa::CloudStorageClient* client, int& argc, char* argv[])
 void ReadFile(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
     if (!client || argc != 2)
-        throw NeedUsage{ "read-file <file-id>" };
+        throw NeedUsage{"read-file <file-id>"};
 
     auto fileId = ConsumeArg(argc, argv);
 
     auto stream = client->ReadFile(fileId);
     int lineCount = 0;
     std::string line;
-    while (std::getline(stream, line, '\n'))
-        ++lineCount;
+    while (std::getline(stream, line, '\n')) ++lineCount;
 
     std::cout << "The file \"" << fileId << "\" has " << lineCount << " lines." << std::endl;
 }
@@ -462,7 +453,7 @@ void ReadFile(csa::CloudStorageClient* client, int& argc, char* argv[])
 void ReadFileRange(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
     if (!client || argc != 4)
-        throw NeedUsage{ "read-file-range <file-id> <start> <end>" };
+        throw NeedUsage{"read-file-range <file-id> <start> <end>"};
 
     auto fileId = ConsumeArg(argc, argv);
     auto start = std::stoll(ConsumeArg(argc, argv));
@@ -471,8 +462,7 @@ void ReadFileRange(csa::CloudStorageClient* client, int& argc, char* argv[])
     auto stream = client->ReadFile(fileId, csa::ReadRange(start, end));
     int lineCount = 0;
     std::string line;
-    while (std::getline(stream, line, '\n'))
-        ++lineCount;
+    while (std::getline(stream, line, '\n')) ++lineCount;
 
     std::cout << "The requested range of file \"" << fileId << "\" has " << lineCount << " lines.";
 }
@@ -480,7 +470,7 @@ void ReadFileRange(csa::CloudStorageClient* client, int& argc, char* argv[])
 void CopyFile(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
     if (!client || argc != 4)
-        throw NeedUsage{ "copy-file <file-id> <destination-parent-folder-id> <destination-name>" };
+        throw NeedUsage{"copy-file <file-id> <destination-parent-folder-id> <destination-name>"};
 
     auto fileId = ConsumeArg(argc, argv);
     auto dstParentId = ConsumeArg(argc, argv);
@@ -490,14 +480,13 @@ void CopyFile(csa::CloudStorageClient* client, int& argc, char* argv[])
     if (!fileMeta)
         throw std::runtime_error(fileMeta.GetStatus().Message());
 
-    std::cout << "Successfully copied \"" << fileId << "\" to "
-        << dstFileName << ", full metadata: " << *fileMeta;
+    std::cout << "Successfully copied \"" << fileId << "\" to " << dstFileName << ", full metadata: " << *fileMeta;
 }
 
 void CreateFolder(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
     if (!client || argc != 3)
-        throw NeedUsage{ "create-folder <parent-id> <name>" };
+        throw NeedUsage{"create-folder <parent-id> <name>"};
 
     auto parentId = ConsumeArg(argc, argv);
     auto name = ConsumeArg(argc, argv);
@@ -506,14 +495,16 @@ void CreateFolder(csa::CloudStorageClient* client, int& argc, char* argv[])
     if (!folderMeta)
         throw std::runtime_error(folderMeta.GetStatus().Message());
 
-    std::cout << "Successfully created folder \"" << name << "\", "
-        "full metadata: " << *folderMeta;
+    std::cout << "Successfully created folder \"" << name
+              << "\", "
+                 "full metadata: "
+              << *folderMeta;
 }
 
 void GetQuota(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
     if (!client || argc != 1)
-        throw NeedUsage{ "get-quota" };
+        throw NeedUsage{"get-quota"};
 
     auto quota = client->GetQuota();
     if (!quota)
@@ -525,7 +516,7 @@ void GetQuota(csa::CloudStorageClient* client, int& argc, char* argv[])
 void GetUserInfo(csa::CloudStorageClient* client, int& argc, char* argv[])
 {
     if (!client || argc != 1)
-        throw NeedUsage{ "get-user-info" };
+        throw NeedUsage{"get-user-info"};
 
     auto info = client->GetUserInfo();
     if (!info)
@@ -534,9 +525,10 @@ void GetUserInfo(csa::CloudStorageClient* client, int& argc, char* argv[])
     std::cout << "User info: " << *info;
 }
 
-} // namespace
+}  // namespace
 
-int main(int argc, char* argv[]) try 
+int main(int argc, char* argv[])
+try
 {
     using CmdFn = std::function<void(csa::CloudStorageClient*, int&, char*[])>;
     std::map<std::string, CmdFn> cmdMap = {
@@ -566,7 +558,8 @@ int main(int argc, char* argv[]) try
     };
     for (auto&& cmd : cmdMap)
     {
-        try {
+        try
+        {
             int fakeArgc = 0;
             cmd.second(nullptr, fakeArgc, argv);
         }
@@ -584,8 +577,8 @@ int main(int argc, char* argv[]) try
     }
 
     std::string provider = ConsumeArg(argc, argv);
-    auto provider_it = std::find_if(csa::ProviderNames.begin(), csa::ProviderNames.end(), [&provider](auto& item) {
-        return item.second == provider; });
+    auto provider_it = std::find_if(csa::ProviderNames.begin(), csa::ProviderNames.end(),
+                                    [&provider](auto& item) { return item.second == provider; });
     if (provider_it == std::end(csa::ProviderNames))
     {
         std::cerr << "Unknown provider: " << provider << std::endl;
@@ -596,8 +589,7 @@ int main(int argc, char* argv[]) try
         csa::CloudStorageClient::CreateDefaultClient(csa::EProvider::GoogleDrive);
     if (!client)
     {
-        std::cerr << "Failed to create cloud storage client, status=" << client.GetStatus()
-            << std::endl;
+        std::cerr << "Failed to create cloud storage client, status=" << client.GetStatus() << std::endl;
         return 1;
     }
 

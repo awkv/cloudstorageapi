@@ -29,8 +29,7 @@ TEST(CurlHandleTest, AsStatus)
     {
         CURLcode curl;
         StatusCode expected;
-    } expected_codes[]
-    {
+    } expected_codes[]{
         {CURLE_OK, StatusCode::Ok},
         {CURLE_RECV_ERROR, StatusCode::Unavailable},
         {CURLE_SEND_ERROR, StatusCode::Unavailable},

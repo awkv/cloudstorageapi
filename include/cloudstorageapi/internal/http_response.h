@@ -29,9 +29,9 @@ namespace internal {
  */
 struct HttpResponse
 {
-  long m_statusCode;
-  std::string m_payload;
-  std::multimap<std::string, std::string> m_headers;
+    long m_statusCode;
+    std::string m_payload;
+    std::multimap<std::string, std::string> m_headers;
 };
 
 /**

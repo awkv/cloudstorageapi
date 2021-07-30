@@ -47,7 +47,7 @@ TEST(CurlWrappers, SigpipeHandlerDisabledTest)
     auto initialHandler = std::signal(SIGPIPE, &test_handler);
     EProvider provider = EProvider::GoogleDrive;
     CurlInitializeOnce(ClientOptions(provider, auth::CredentialFactory::CreateAnonymousCredentials(provider))
-                         .SetEnableSigpipeHandler(false));
+                           .SetEnableSigpipeHandler(false));
     auto actual = std::signal(SIGPIPE, initialHandler);
     EXPECT_EQ(actual, &test_handler);
 #endif  // defined(SIGPIPE)

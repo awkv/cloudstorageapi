@@ -14,8 +14,8 @@
 
 #pragma once
 
-#include "cloudstorageapi/internal/curl_client_base.h"
 #include "cloudstorageapi/file_metadata.h"
+#include "cloudstorageapi/internal/curl_client_base.h"
 #include "cloudstorageapi/internal/nljson.h"
 
 namespace csa {
@@ -29,8 +29,7 @@ class ObjectReadSource;
 /**
  * Implements the low-level RPCs to Cloud Storage using libcurl.
  */
-class CurlGoogleDriveClient final : public CurlClientBase,
-    public std::enable_shared_from_this<CurlGoogleDriveClient>
+class CurlGoogleDriveClient final : public CurlClientBase, public std::enable_shared_from_this<CurlGoogleDriveClient>
 {
 public:
     static std::shared_ptr<CurlGoogleDriveClient> Create(ClientOptions options)
@@ -49,7 +48,7 @@ public:
     CurlGoogleDriveClient& operator=(CurlGoogleDriveClient const& rhs) = delete;
     CurlGoogleDriveClient& operator=(CurlGoogleDriveClient&& rhs) = delete;
 
-    std::string GetProviderName() const override { return ProviderNames.at(EProvider::GoogleDrive);  }
+    std::string GetProviderName() const override { return ProviderNames.at(EProvider::GoogleDrive); }
 
     StatusOrVal<UserInfo> GetUserInfo() override;
 
@@ -69,12 +68,11 @@ public:
     StatusOrVal<FileMetadata> PatchFileMetadata(PatchFileMetadataRequest const& request) override;
     StatusOrVal<FileMetadata> RenameFile(RenameRequest const& request) override;
     StatusOrVal<FileMetadata> InsertFile(InsertFileRequest const& request) override;
-    StatusOrVal<std::unique_ptr<ObjectReadSource>> ReadFile(
-        ReadFileRangeRequest const& request) override;
-    StatusOrVal<std::unique_ptr<ResumableUploadSession>>
-        CreateResumableSession(ResumableUploadRequest const& request) override;
-    StatusOrVal<std::unique_ptr<ResumableUploadSession>>
-        RestoreResumableSession(std::string const& session_id) override;
+    StatusOrVal<std::unique_ptr<ObjectReadSource>> ReadFile(ReadFileRangeRequest const& request) override;
+    StatusOrVal<std::unique_ptr<ResumableUploadSession>> CreateResumableSession(
+        ResumableUploadRequest const& request) override;
+    StatusOrVal<std::unique_ptr<ResumableUploadSession>> RestoreResumableSession(
+        std::string const& session_id) override;
     StatusOrVal<FileMetadata> CopyFileObject(CopyFileRequest const& request) override;
 
     StatusOrVal<StorageQuota> GetQuota() override;
@@ -89,8 +87,7 @@ private:
     StatusOrVal<FileMetadata> InsertFileMultipart(InsertFileRequest const& request);
 
     template <typename RequestType>
-    StatusOrVal<std::unique_ptr<ResumableUploadSession>>
-        CreateResumableSessionGeneric(RequestType const& request);
+    StatusOrVal<std::unique_ptr<ResumableUploadSession>> CreateResumableSessionGeneric(RequestType const& request);
 
     StatusOrVal<HttpResponse> RenameGeneric(RenameRequest const& request);
     template <typename RequestType>

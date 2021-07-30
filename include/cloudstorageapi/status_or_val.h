@@ -17,9 +17,9 @@
 #pragma once
 
 #include "status.h"
-#include <utility>
 #include <optional>
 #include <stdexcept>
+#include <utility>
 
 namespace csa {
 /**
@@ -81,21 +81,20 @@ class StatusOrVal final
 {
 public:
     /**
-    * Initializes with an error status (UNKNOWN).
-    */
+     * Initializes with an error status (UNKNOWN).
+     */
     StatusOrVal() : StatusOrVal(Status(StatusCode::Unknown, "default")) {}
 
     /**
-    * Creates a new `StatusOrVal<T>` holding the error condition @p rhs.
-    *
-    * @par Post-conditions
-    * `ok() == false` and `status() == rhs`.
-    *
-    * @param rhs the status to initialize the object.
-    * @throws std::invalid_argument if `rhs.Ok()`.
-    */
-    StatusOrVal(Status rhs)
-        : m_status(std::move(rhs))
+     * Creates a new `StatusOrVal<T>` holding the error condition @p rhs.
+     *
+     * @par Post-conditions
+     * `ok() == false` and `status() == rhs`.
+     *
+     * @param rhs the status to initialize the object.
+     * @throws std::invalid_argument if `rhs.Ok()`.
+     */
+    StatusOrVal(Status rhs) : m_status(std::move(rhs))
     {
         if (m_status.Ok())
         {
@@ -104,18 +103,14 @@ public:
     }
 
     /**
-    * Assigns the given non-OK Status to this `StatusOrVal<T>`.
-    *
-    * @throws std::invalid_argument if `status.ok()`. If exceptions are disabled
-    *     the program terminates via `google::cloud::Terminate()`
-    */
-    StatusOrVal& operator=(Status status)
-    {
-        return *this = StatusOrVal(std::move(status));
-    }
+     * Assigns the given non-OK Status to this `StatusOrVal<T>`.
+     *
+     * @throws std::invalid_argument if `status.ok()`. If exceptions are disabled
+     *     the program terminates via `google::cloud::Terminate()`
+     */
+    StatusOrVal& operator=(Status status) { return *this = StatusOrVal(std::move(status)); }
 
-    StatusOrVal(StatusOrVal&& rhs)
-        : m_status(std::move(rhs.m_status))
+    StatusOrVal(StatusOrVal&& rhs) : m_status(std::move(rhs.m_status))
     {
         if (m_status.Ok())
         {
@@ -132,9 +127,7 @@ public:
     // cv-qualified version of StatusOrVal<T>, so we need to apply std::decay<> to
     // it first.
     template <typename U = T>
-    typename std::enable_if<
-        !std::is_same<StatusOrVal, typename std::decay<U>::type>::value,
-        StatusOrVal>::type&
+    typename std::enable_if<!std::is_same<StatusOrVal, typename std::decay<U>::type>::value, StatusOrVal>::type&
     operator=(U&& rhs)
     {
         m_value = std::forward<U>(rhs);
@@ -154,21 +147,21 @@ public:
     StatusOrVal(T&& rhs) : m_status(), m_value(std::move(rhs)) {}
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    StatusOrVal(T const& rhs) : m_status(), m_value (rhs) {}
+    StatusOrVal(T const& rhs) : m_status(), m_value(rhs) {}
 
     bool Ok() const { return m_status.Ok(); }
     explicit operator bool() const { return m_status.Ok(); }
 
     //@{
     /**
-    * @name Deference operators.
-    *
-    * @warning Using these operators when `ok() == false` results in undefined
-    *     behavior.
-    *
-    * @return All these return a (properly ref and const-qualified) reference to
-    *     the underlying value.
-    */
+     * @name Deference operators.
+     *
+     * @warning Using these operators when `ok() == false` results in undefined
+     *     behavior.
+     *
+     * @return All these return a (properly ref and const-qualified) reference to
+     *     the underlying value.
+     */
     T& operator*() & { return m_value.value(); }
 
     T const& operator*() const& { return m_value.value(); }
@@ -180,14 +173,14 @@ public:
 
     //@{
     /**
-    * @name Member access operators.
-    *
-    * @warning Using these operators when `ok() == false` results in undefined
-    *     behavior.
-    *
-    * @return All these return a (properly ref and const-qualified) pointer to
-    *     the underlying value.
-    */
+     * @name Member access operators.
+     *
+     * @warning Using these operators when `ok() == false` results in undefined
+     *     behavior.
+     *
+     * @return All these return a (properly ref and const-qualified) pointer to
+     *     the underlying value.
+     */
     T* operator->() & { return &m_value.value(); }
 
     T const* operator->() const& { return &m_value.value(); }
@@ -195,14 +188,14 @@ public:
 
     //@{
     /**
-    * @name Value accessors.
-    *
-    * @return All these member functions return a (properly ref and
-    *     const-qualified) reference to the underlying value.
-    *
-    * @throws `RuntimeStatusError` with the contents of `status()` if the object
-    *   does not contain a value, i.e., if `ok() == false`.
-    */
+     * @name Value accessors.
+     *
+     * @return All these member functions return a (properly ref and
+     *     const-qualified) reference to the underlying value.
+     *
+     * @throws `RuntimeStatusError` with the contents of `status()` if the object
+     *   does not contain a value, i.e., if `ok() == false`.
+     */
     T& Value() &
     {
         CheckHasValue();
@@ -230,12 +223,12 @@ public:
 
     //@{
     /**
-    * @name Status accessors.
-    *
-    * @return All these member functions return the (properly ref and
-    *     const-qualified) status. If the object contains a value then
-    *     `status().ok() == true`.
-    */
+     * @name Status accessors.
+     *
+     * @return All these member functions return the (properly ref and
+     *     const-qualified) status. If the object contains a value then
+     *     `status().ok() == true`.
+     */
     Status& GetStatus() & { return m_status; }
     Status const& GetStatus() const& { return m_status; }
     Status&& GetStatus() && { return std::move(m_status); }
@@ -267,21 +260,25 @@ private:
 // Returns true IFF both `StatusOrVal<T>` objects hold an equal `Status` or an
 // equal instance  of `T`. This function requires that `T` supports equality.
 template <typename T>
-bool operator==(StatusOrVal<T> const& a, StatusOrVal<T> const& b) {
-  if (!a || !b) return a.GetStatus() == b.GetStatus();
-  return *a == *b;
+bool operator==(StatusOrVal<T> const& a, StatusOrVal<T> const& b)
+{
+    if (!a || !b)
+        return a.GetStatus() == b.GetStatus();
+    return *a == *b;
 }
 
 // Returns true of `a` and `b` are not equal. See `operator==` docs above for
 // the definition of equal.
 template <typename T>
-bool operator!=(StatusOrVal<T> const& a, StatusOrVal<T> const& b) {
-  return !(a == b);
+bool operator!=(StatusOrVal<T> const& a, StatusOrVal<T> const& b)
+{
+    return !(a == b);
 }
 
 template <typename T>
-StatusOrVal<T> MakeStatusOrVal(T rhs) {
-  return StatusOrVal<T>(std::move(rhs));
+StatusOrVal<T> MakeStatusOrVal(T rhs)
+{
+    return StatusOrVal<T>(std::move(rhs));
 }
 
 }  // namespace csa

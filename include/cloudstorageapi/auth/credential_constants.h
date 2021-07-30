@@ -24,13 +24,13 @@ namespace auth {
 /**
  * Supported signing algorithms used in JWT auth flows.
  */
-enum class JwtSigningAlgorithms { RS256 };
+enum class JwtSigningAlgorithms
+{
+    RS256
+};
 
 /// The max lifetime in seconds of an access token.
-constexpr std::chrono::seconds OAuthAccessTokenLifetime()
-{
-  return std::chrono::seconds(3600);
-}
+constexpr std::chrono::seconds OAuthAccessTokenLifetime() { return std::chrono::seconds(3600); }
 
 /**
  * Returns the slack to consider when checking if an access token is expired.
@@ -41,10 +41,7 @@ constexpr std::chrono::seconds OAuthAccessTokenLifetime()
  * still valid, then attempt to use it two seconds later and receive an
  * error.
  */
-constexpr std::chrono::seconds OAuthAccessTokenExpirationSlack()
-{
-  return std::chrono::seconds(500);
-}
+constexpr std::chrono::seconds OAuthAccessTokenExpirationSlack() { return std::chrono::seconds(500); }
 
 }  // namespace auth
 }  // namespace csa

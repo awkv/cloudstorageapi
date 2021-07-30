@@ -13,10 +13,9 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/file_requests.h"
-
-#include "cloudstorageapi/internal/utils.h"
-#include "cloudstorageapi/internal/nljson.h"
 #include "cloudstorageapi/file_metadata.h"
+#include "cloudstorageapi/internal/nljson.h"
+#include "cloudstorageapi/internal/utils.h"
 #include <sstream>
 
 namespace csa {
@@ -31,17 +30,15 @@ std::ostream& operator<<(std::ostream& os, GetFileMetadataRequest const& r)
 
 std::ostream& operator<<(std::ostream& os, PatchFileMetadataRequest const& r)
 {
-    os << "PatchFileMetadataRequest={file_id=" << r.GetObjectId()
-        << ", original_metadata=" << r.GetOriginalMetadata()
-        << ", updated_metadata=" << r.GetUpdatedMetadata();
+    os << "PatchFileMetadataRequest={file_id=" << r.GetObjectId() << ", original_metadata=" << r.GetOriginalMetadata()
+       << ", updated_metadata=" << r.GetUpdatedMetadata();
     r.DumpOptions(os, ", ");
     return os << "}";
 }
 
 std::ostream& operator<<(std::ostream& os, InsertFileRequest const& r)
 {
-    os << "InsertFileRequest={folder_id=" << r.GetFolderId()
-       << ", name=" << r.GetName()
+    os << "InsertFileRequest={folder_id=" << r.GetFolderId() << ", name=" << r.GetName()
        << ", content=" << r.GetContent();
     r.DumpOptions(os, ", ");
     return os << "}";
@@ -56,8 +53,7 @@ std::ostream& operator<<(std::ostream& os, DeleteRequest const& r)
 
 std::ostream& operator<<(std::ostream& os, ResumableUploadRequest const& r)
 {
-    os << "ResumableUploadRequest={parent_folder_id=" << r.GetFolderId()
-        << ", object_name=" << r.GetFileName();
+    os << "ResumableUploadRequest={parent_folder_id=" << r.GetFolderId() << ", object_name=" << r.GetFileName();
     r.DumpOptions(os, ", ");
     return os << "}";
 }
@@ -65,19 +61,17 @@ std::ostream& operator<<(std::ostream& os, ResumableUploadRequest const& r)
 std::ostream& operator<<(std::ostream& os, UploadChunkRequest const& r)
 {
     os << "UploadChunkRequest={file_id="
-    << ", session_url=" << r.GetUploadSessionUrl()
-    << ", range=(" << r.GetRangeBegin() << " : " << r.GetRangeEnd() << ")"
-    << ", source_size=" << r.GetSourceSize()
-    << ", last_chunk=" << (r.IsLastChunk() ? "true" : "false");
+       << ", session_url=" << r.GetUploadSessionUrl() << ", range=(" << r.GetRangeBegin() << " : " << r.GetRangeEnd()
+       << ")"
+       << ", source_size=" << r.GetSourceSize() << ", last_chunk=" << (r.IsLastChunk() ? "true" : "false");
 
     r.DumpOptions(os, ", ");
     return os << "}";
 }
 
-std::ostream& operator<<(std::ostream& os,
-    QueryResumableUploadRequest const& r) {
-    os << "QueryResumableUploadRequest={upload_session_url="
-        << r.GetUploadSessionUrl();
+std::ostream& operator<<(std::ostream& os, QueryResumableUploadRequest const& r)
+{
+    os << "QueryResumableUploadRequest={upload_session_url=" << r.GetUploadSessionUrl();
     r.DumpOptions(os, ", ");
     return os << "}";
 }
@@ -106,7 +100,8 @@ std::int64_t ReadFileRangeRequest::GetStartingByte() const
     {
         result = (std::max)(result, GetOption<ReadFromOffset>().Value());
     }
-    if (HasOption<ReadLast>()) {
+    if (HasOption<ReadLast>())
+    {
         // The value of `StartingByte()` is unknown if `ReadLast` is set
         result = -1;
     }
@@ -122,12 +117,11 @@ std::ostream& operator<<(std::ostream& os, ReadFileRangeRequest const& r)
 
 std::ostream& operator<<(std::ostream& os, CopyFileRequest const& r)
 {
-    os << "CopyFileRequest={file_id" << r.GetObjectId()
-        << ", new_parent_id = " << r.GetNewParentId()
-        << ", new_file_name = " << r.GetNewFileName();
+    os << "CopyFileRequest={file_id" << r.GetObjectId() << ", new_parent_id = " << r.GetNewParentId()
+       << ", new_file_name = " << r.GetNewFileName();
     r.DumpOptions(os, ", ");
     return os << "}";
 }
 
-} // namespace internal
-} // namespace csa
+}  // namespace internal
+}  // namespace csa

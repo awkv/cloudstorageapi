@@ -31,7 +31,8 @@ namespace internal {
  * @tparam T the C++ type of the query parameter
  */
 template <typename P, typename T>
-class WellKnownParameter {
+class WellKnownParameter
+{
 public:
     WellKnownParameter() : m_value{} {}
     explicit WellKnownParameter(T&& value) : m_value(std::forward<T>(value)) {}
@@ -46,8 +47,7 @@ private:
 };
 
 template <typename P, typename T>
-std::ostream& operator<<(std::ostream& os,
-    WellKnownParameter<P, T> const& rhs)
+std::ostream& operator<<(std::ostream& os, WellKnownParameter<P, T> const& rhs)
 {
     if (rhs.HasValue())
     {
@@ -57,8 +57,7 @@ std::ostream& operator<<(std::ostream& os,
 }
 
 template <typename P>
-std::ostream& operator<<(std::ostream& os,
-    WellKnownParameter<P, bool> const& rhs)
+std::ostream& operator<<(std::ostream& os, WellKnownParameter<P, bool> const& rhs)
 {
     if (rhs.HasValue())
     {
@@ -75,8 +74,7 @@ std::ostream& operator<<(std::ostream& os,
  * The contentEncoding option allows applications to describe how is the data
  * encoded (binary or ASCII) in upload requests.
  */
-struct ContentEncoding
-    : public internal::WellKnownParameter<ContentEncoding, std::string>
+struct ContentEncoding : public internal::WellKnownParameter<ContentEncoding, std::string>
 {
     using WellKnownParameter<ContentEncoding, std::string>::WellKnownParameter;
     static char const* WellKnownParameterName() { return "contentEncoding"; }
@@ -118,8 +116,7 @@ struct Fields : public internal::WellKnownParameter<Fields, std::string>
  * @see https://cloud.google.com/storage/docs/object-versioning for more
  *     information on GCS Object versioning.
  */
-struct Generation
-    : public internal::WellKnownParameter<Generation, std::int64_t>
+struct Generation : public internal::WellKnownParameter<Generation, std::int64_t>
 {
     using WellKnownParameter<Generation, std::int64_t>::WellKnownParameter;
     static char const* WellKnownParameterName() { return "generation"; }
@@ -132,8 +129,7 @@ struct Generation
  * iterators by using smaller page sizes. The downside is that more requests
  * may be needed to iterate over the full range of Folders and/or Files.
  */
-struct PageSize
-    : public internal::WellKnownParameter<PageSize, std::int64_t>
+struct PageSize : public internal::WellKnownParameter<PageSize, std::int64_t>
 {
     using WellKnownParameter<PageSize, std::int64_t>::WellKnownParameter;
     static char const* WellKnownParameterName() { return "pageSize"; }
@@ -146,16 +142,10 @@ struct PageSize
  * ensure the code handles partial rewrites properly. Note that the value must
  * be a multiple of 1 MiB (1048576).
  */
-struct MaxBytesRewrittenPerCall
-    : public internal::WellKnownParameter<MaxBytesRewrittenPerCall,
-    std::int64_t>
+struct MaxBytesRewrittenPerCall : public internal::WellKnownParameter<MaxBytesRewrittenPerCall, std::int64_t>
 {
-    using WellKnownParameter<MaxBytesRewrittenPerCall,
-        std::int64_t>::WellKnownParameter;
-    static char const* WellKnownParameterName()
-    {
-        return "maxBytesRewrittenPerCall";
-    }
+    using WellKnownParameter<MaxBytesRewrittenPerCall, std::int64_t>::WellKnownParameter;
+    static char const* WellKnownParameterName() { return "maxBytesRewrittenPerCall"; }
 };
 
 /**

@@ -42,8 +42,7 @@ class ReadFileRangeRequest;
 class FileReadStreambuf : public std::basic_streambuf<char>
 {
 public:
-    FileReadStreambuf(ReadFileRangeRequest const& request,
-        std::unique_ptr<ObjectReadSource> source);
+    FileReadStreambuf(ReadFileRangeRequest const& request, std::unique_ptr<ObjectReadSource> source);
 
     /// Create a streambuf in a permanent error status.
     FileReadStreambuf(ReadFileRangeRequest const& request, Status status);
@@ -59,10 +58,7 @@ public:
     void Close();
 
     Status const& GetStatus() const { return m_status; }
-    std::multimap<std::string, std::string> const& GetHeaders() const
-    {
-        return m_headers;
-    }
+    std::multimap<std::string, std::string> const& GetHeaders() const { return m_headers; }
 
 private:
     int_type ReportError(Status status);
@@ -77,7 +73,7 @@ private:
     Status m_status;
     std::multimap<std::string, std::string> m_headers;
 };
-    
+
 /**
  * Defines a compilation barrier for libcurl.
  *
@@ -90,8 +86,7 @@ class FileWriteStreambuf : public std::basic_streambuf<char>
 public:
     FileWriteStreambuf() = default;
 
-    FileWriteStreambuf(std::unique_ptr<ResumableUploadSession> uploadSession,
-        std::size_t maxBufferSize);
+    FileWriteStreambuf(std::unique_ptr<ResumableUploadSession> uploadSession, std::size_t maxBufferSize);
 
     ~FileWriteStreambuf() override = default;
 
@@ -104,16 +99,10 @@ public:
     virtual bool IsOpen() const;
 
     /// The session id, if applicable, it is empty for non-resumable uploads.
-    virtual std::string const& GetResumableSessionId() const
-    {
-        return m_uploadSession->GetSessionId();
-    }
+    virtual std::string const& GetResumableSessionId() const { return m_uploadSession->GetSessionId(); }
 
     /// The next expected byte, if applicable, always 0 for non-resumable uploads.
-    virtual std::uint64_t GetNextExpectedByte() const
-    {
-        return m_uploadSession->GetNextExpectedByte();
-    }
+    virtual std::uint64_t GetNextExpectedByte() const { return m_uploadSession->GetNextExpectedByte(); }
 
     virtual Status GetLastStatus() const { return m_lastResponse.GetStatus(); }
 

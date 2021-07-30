@@ -37,28 +37,22 @@ struct ReadRangeData
  */
 struct ReadRange : public internal::ComplexOption<ReadRange, ReadRangeData>
 {
-    ReadRange()
-        : ComplexOption()
-    {}
+    ReadRange() : ComplexOption() {}
 
-    explicit ReadRange(std::int64_t begin, std::int64_t end)
-        : ComplexOption(ReadRangeData{ begin, end })
-    {}
+    explicit ReadRange(std::int64_t begin, std::int64_t end) : ComplexOption(ReadRangeData{begin, end}) {}
 
     static char const* name() { return "read-range"; }
 };
 
 inline std::ostream& operator<<(std::ostream& os, ReadRangeData const& rhs)
 {
-    return os << "ReadRangeData={begin=" << rhs.m_begin << ", end=" << rhs.m_end
-        << "}";
+    return os << "ReadRangeData={begin=" << rhs.m_begin << ", end=" << rhs.m_end << "}";
 }
 
 /**
  * Download all the data from the cloud storage file starting at the given offset.
  */
-struct ReadFromOffset
-    : public internal::ComplexOption<ReadFromOffset, std::int64_t>
+struct ReadFromOffset : public internal::ComplexOption<ReadFromOffset, std::int64_t>
 {
     using ComplexOption::ComplexOption;
     // GCC <= 7.0 does not use the inherited default constructor, redeclare it
@@ -79,4 +73,4 @@ struct ReadLast : public internal::ComplexOption<ReadLast, std::int64_t>
     static char const* name() { return "read-last"; }
 };
 
-} // namespace csa
+}  // namespace csa

@@ -51,8 +51,7 @@ private:
 };
 
 template <typename Derived, typename T>
-std::ostream& operator<<(std::ostream& os,
-    ComplexOption<Derived, T> const& rhs)
+std::ostream& operator<<(std::ostream& os, ComplexOption<Derived, T> const& rhs)
 {
     if (rhs.HasValue())
     {

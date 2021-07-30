@@ -24,12 +24,13 @@ namespace {
 /// @test Verify that installing the libraries
 TEST(CurlWrappers, LockingDisabledTest)
 {
-    if (!SslLibraryNeedsLocking(CurlSslLibraryId())) {
+    if (!SslLibraryNeedsLocking(CurlSslLibraryId()))
+    {
         // The test cannot execute in this case.
         return;
     }
-    CurlInitializeOnce(ClientOptions(EProvider::GoogleDrive, std::make_shared<NullCredentials>())
-                            .SetEnableSslLockingCallbacks(false));
+    CurlInitializeOnce(
+        ClientOptions(EProvider::GoogleDrive, std::make_shared<NullCredentials>()).SetEnableSslLockingCallbacks(false));
     EXPECT_FALSE(SslLockingCallbacksInstalled());
 }
 }  // namespace

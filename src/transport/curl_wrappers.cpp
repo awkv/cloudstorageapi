@@ -23,8 +23,8 @@
 #include <csignal>
 #include <iostream>
 #include <mutex>
-#include <string>
 #include <sstream>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -88,21 +88,24 @@ void InitializeSslLocking(bool enableSslCallbacks)
     // setup.
     if (!SslLibraryNeedsLocking(curlSsl))
     {
-    CSA_LOG_INFO("SSL locking callbacks not installed because the"
-                 " SSL library does not need them.");
-    return;
+        CSA_LOG_INFO(
+            "SSL locking callbacks not installed because the"
+            " SSL library does not need them.");
+        return;
     }
     if (!enableSslCallbacks)
     {
-        CSA_LOG_INFO("SSL locking callbacks not installed because the"
-                     " application disabled them.");
-    return;
+        CSA_LOG_INFO(
+            "SSL locking callbacks not installed because the"
+            " application disabled them.");
+        return;
     }
     if (CRYPTO_get_locking_callback() != nullptr)
     {
-        CSA_LOG_INFO("SSL locking callbacks not installed because there are"
-                     " callbacks already installed.");
-    return;
+        CSA_LOG_INFO(
+            "SSL locking callbacks not installed because there are"
+            " callbacks already installed.");
+        return;
     }
 
     // If we need to configure locking, make sure the library we linked against is
@@ -111,9 +114,8 @@ void InitializeSslLocking(bool enableSslCallbacks)
     // one, and that does not work because they have completely different symbols,
     // despite the version numbers suggesting otherwise.
     std::string expectedPrefix = curlSsl;
-    std::transform(expectedPrefix.begin(), expectedPrefix.end(),
-                    expectedPrefix.begin(),
-                    [](char x) { return x == '/' ? ' ' : x; });
+    std::transform(expectedPrefix.begin(), expectedPrefix.end(), expectedPrefix.begin(),
+                   [](char x) { return x == '/' ? ' ' : x; });
 
     // LibreSSL seems to be using semantic versioning, so just check the major
     // version.
@@ -135,12 +137,11 @@ void InitializeSslLocking(bool enableSslCallbacks)
     {
         std::ostringstream os;
         os << "Mismatched versions of OpenSSL linked in libcurl vs. the version"
-            << " linked by the cloudstorageapi library.\n"
-            << "libcurl is linked against " << curlSsl
-            << "\nwhile the cloudstorageapi library links against " << opensslVer
-            << "\nMismatched versions are not supported. The cloudstoragaapi "
-            << "\nlibrary needs to configure the OpenSSL library used by libcurl"
-            << "\nand this is not possible if you link different versions.";
+           << " linked by the cloudstorageapi library.\n"
+           << "libcurl is linked against " << curlSsl << "\nwhile the cloudstorageapi library links against "
+           << opensslVer << "\nMismatched versions are not supported. The cloudstoragaapi "
+           << "\nlibrary needs to configure the OpenSSL library used by libcurl"
+           << "\nand this is not possible if you link different versions.";
         // This is a case where printing to stderr is justified, this happens during
         // the library initialization, nothing else may get reported to the
         // application developer.
@@ -187,18 +188,19 @@ void InitializeSslLocking(bool) {}
 
 void InitializeSigPipeHandler(bool enableSigpipeHandler)
 {
-  if (!enableSigpipeHandler) {
-    return;
-  }
+    if (!enableSigpipeHandler)
+    {
+        return;
+    }
 #if defined(SIGPIPE)
-  std::signal(SIGPIPE, SIG_IGN);
+    std::signal(SIGPIPE, SIG_IGN);
 #endif  // SIGPIPE
 }
 
 /// Automatically initialize (and cleanup) the libcurl library.
 class CurlInitializer
 {
-    public:
+public:
     CurlInitializer() { curl_global_init(CURL_GLOBAL_ALL); }
     ~CurlInitializer() { curl_global_cleanup(); }
 };
@@ -216,8 +218,7 @@ bool SslLibraryNeedsLocking(std::string const& curlSslId)
     //    https://curl.haxx.se/libcurl/c/threadsafe.html
     // Only these library prefixes require special configuration for using safely
     // with multiple threads.
-    return (curlSslId.rfind("OpenSSL/1.0", 0) == 0 ||
-            curlSslId.rfind("LibreSSL/2", 0) == 0);
+    return (curlSslId.rfind("OpenSSL/1.0", 0) == 0 || curlSslId.rfind("LibreSSL/2", 0) == 0);
 }
 
 bool SslLockingCallbacksInstalled()
@@ -229,8 +230,7 @@ bool SslLockingCallbacksInstalled()
 #endif  // CSA_SSL_REQUIRES_LOCKS
 }
 
-std::size_t CurlAppendHeaderData(CurlReceivedHeaders& receivedHeaders,
-                                 char const* data, std::size_t size)
+std::size_t CurlAppendHeaderData(CurlReceivedHeaders& receivedHeaders, char const* data, std::size_t size)
 {
     if (size <= 2)
     {
@@ -250,19 +250,16 @@ std::size_t CurlAppendHeaderData(CurlReceivedHeaders& receivedHeaders,
     {
         header_value = std::string(separator + 2, data + size - 2);
     }
-    std::transform(header_name.begin(), header_name.end(), header_name.begin(),
-                    [](char x) { return std::tolower(x); });
+    std::transform(header_name.begin(), header_name.end(), header_name.begin(), [](char x) { return std::tolower(x); });
     receivedHeaders.emplace(std::move(header_name), std::move(header_value));
     return size;
 }
 
 void CurlInitializeOnce(ClientOptions const& options)
 {
-  static CurlInitializer curl_initializer;
-  std::call_once(SslLockingInitialized, InitializeSslLocking,
-                 options.GetEnableSslLockingCallbacks());
-  std::call_once(SigpipeHandlerInitialized, InitializeSigPipeHandler,
-                 options.GetEnableSigpipeHandler());
+    static CurlInitializer curl_initializer;
+    std::call_once(SslLockingInitialized, InitializeSslLocking, options.GetEnableSslLockingCallbacks());
+    std::call_once(SigpipeHandlerInitialized, InitializeSigPipeHandler, options.GetEnableSigpipeHandler());
 }
 
 }  // namespace internal

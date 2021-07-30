@@ -33,4 +33,4 @@ const std::map<EProvider, std::string> ProviderNames = {
     {EProvider::Cloudme, "cloudme"},
 };
 
-} // namespace csa
+}  // namespace csa

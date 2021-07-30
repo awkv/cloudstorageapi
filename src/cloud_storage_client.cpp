@@ -24,9 +24,8 @@
 
 namespace csa {
 static_assert(std::is_copy_constructible<csa::CloudStorageClient>::value,
-    "csa::CloudStorageClient must be constructible");
-static_assert(std::is_copy_assignable<csa::CloudStorageClient>::value,
-    "csa::CloudStorageClient must be assignable");
+              "csa::CloudStorageClient must be constructible");
+static_assert(std::is_copy_assignable<csa::CloudStorageClient>::value, "csa::CloudStorageClient must be assignable");
 
 StatusOrVal<CloudStorageClient> CloudStorageClient::CreateDefaultClient(EProvider provider)
 {
@@ -54,15 +53,14 @@ bool CloudStorageClient::UseSimpleUpload(std::string const& file_name) const
     return size <= m_RawClient->GetClientOptions().GetMaximumSimpleUploadSize();
 }
 
-StatusOrVal<FileMetadata> CloudStorageClient::UploadFileSimple(
-    std::string const& fileName, internal::InsertFileRequest request)
+StatusOrVal<FileMetadata> CloudStorageClient::UploadFileSimple(std::string const& fileName,
+                                                               internal::InsertFileRequest request)
 {
     std::ifstream is(fileName, std::ios::binary);
     if (!is.is_open())
     {
         std::ostringstream os;
-        os << __func__ << "(" << request << ", " << fileName
-            << "): cannot open upload file source";
+        os << __func__ << "(" << request << ", " << fileName << "): cannot open upload file source";
         return Status(StatusCode::NotFound, std::move(os).str());
     }
 
@@ -72,37 +70,37 @@ StatusOrVal<FileMetadata> CloudStorageClient::UploadFileSimple(
     return m_RawClient->InsertFile(request);
 }
 
-StatusOrVal<FileMetadata> CloudStorageClient::UploadFileResumable(
-    std::string const& fileName,
-    internal::ResumableUploadRequest const& request)
+StatusOrVal<FileMetadata> CloudStorageClient::UploadFileResumable(std::string const& fileName,
+                                                                  internal::ResumableUploadRequest const& request)
 {
     auto fileStatus = std::filesystem::status(fileName);
     if (!std::filesystem::is_regular_file(fileStatus))
     {
-        CSA_LOG_WARNING("Trying to upload {} which is not a regular file.\n"
+        CSA_LOG_WARNING(
+            "Trying to upload {} which is not a regular file.\n"
             "This is often a problem because:\n"
             "  - Some non-regular files are infinite sources of data, and the load will never complete.\n"
             "  - Some non-regular files can only be read once, and UploadFile() may need to\n"
             "    read the file more than once to compute the checksum and hashes needed to\n"
             "    preserve data integrity.\n"
             "\n"
-            "Consider using CloudStorageClient::WriteFile() instead.", fileName);
+            "Consider using CloudStorageClient::WriteFile() instead.",
+            fileName);
     }
 
     std::ifstream source(fileName, std::ios::binary);
     if (!source.is_open())
     {
         std::ostringstream os;
-        os << __func__ << "(" << request << ", " << fileName
-            << "): cannot open upload file source";
+        os << __func__ << "(" << request << ", " << fileName << "): cannot open upload file source";
         return Status(StatusCode::NotFound, std::move(os).str());
     }
 
     return UploadStreamResumable(source, request);
 }
 
-StatusOrVal<FileMetadata> CloudStorageClient::UploadStreamResumable(
-    std::istream& source, internal::ResumableUploadRequest const& request)
+StatusOrVal<FileMetadata> CloudStorageClient::UploadStreamResumable(std::istream& source,
+                                                                    internal::ResumableUploadRequest const& request)
 {
     StatusOrVal<std::unique_ptr<internal::ResumableUploadSession>> sessionStatus =
         m_RawClient->CreateResumableSession(request);
@@ -114,16 +112,14 @@ StatusOrVal<FileMetadata> CloudStorageClient::UploadStreamResumable(
     auto session = std::move(*sessionStatus);
 
     // Some cloud storages require chunks to be a multiple of some quantum in size.
-    auto chunkSize = internal::RoundUpToQuantum(
-        m_RawClient->GetClientOptions().GetUploadBufferSize(), m_RawClient->GetFileChunkQuantum());
+    auto chunkSize = internal::RoundUpToQuantum(m_RawClient->GetClientOptions().GetUploadBufferSize(),
+                                                m_RawClient->GetFileChunkQuantum());
 
-    StatusOrVal<internal::ResumableUploadResponse> uploadResponse(
-        internal::ResumableUploadResponse{});
+    StatusOrVal<internal::ResumableUploadResponse> uploadResponse(internal::ResumableUploadResponse{});
 
     // We iterate while `source` is good and the retry policy has not been
     // exhausted.
-    while (!source.eof() && uploadResponse &&
-        !uploadResponse->m_payload.has_value())
+    while (!source.eof() && uploadResponse && !uploadResponse->m_payload.has_value())
     {
         // Read a chunk of data from the source file.
         std::string buffer(chunkSize, '\0');
@@ -148,9 +144,10 @@ StatusOrVal<FileMetadata> CloudStorageClient::UploadStreamResumable(
         }
         if (session->GetNextExpectedByte() != expected)
         {
-            CSA_LOG_WARNING("Unexpected last committed byte: "
-                " expected={} got={}", expected,
-                session->GetNextExpectedByte());
+            CSA_LOG_WARNING(
+                "Unexpected last committed byte: "
+                " expected={} got={}",
+                expected, session->GetNextExpectedByte());
             source.seekg(session->GetNextExpectedByte(), std::ios::beg);
         }
     }
@@ -163,44 +160,34 @@ StatusOrVal<FileMetadata> CloudStorageClient::UploadStreamResumable(
     return *std::move(uploadResponse->m_payload);
 }
 
-FileWriteStream CloudStorageClient::WriteObjectImpl(
-    internal::ResumableUploadRequest const& request)
+FileWriteStream CloudStorageClient::WriteObjectImpl(internal::ResumableUploadRequest const& request)
 {
     auto session = m_RawClient->CreateResumableSession(request);
     if (!session)
     {
-        auto error = std::make_unique<
-            internal ::ResumableUploadSessionError>(std::move(session).GetStatus());
+        auto error = std::make_unique<internal ::ResumableUploadSessionError>(std::move(session).GetStatus());
 
-        FileWriteStream errorStream(std::make_unique<
-            internal::FileWriteStreambuf>(
-                std::move(error), 0));
+        FileWriteStream errorStream(std::make_unique<internal::FileWriteStreambuf>(std::move(error), 0));
         errorStream.setstate(std::ios::badbit | std::ios::eofbit);
         errorStream.Close();
         return errorStream;
     }
 
-    return FileWriteStream(
-        std::make_unique<internal::FileWriteStreambuf>(
-            *std::move(session),
-            m_RawClient->GetClientOptions().GetUploadBufferSize()));
+    return FileWriteStream(std::make_unique<internal::FileWriteStreambuf>(
+        *std::move(session), m_RawClient->GetClientOptions().GetUploadBufferSize()));
 }
 
-FileReadStream CloudStorageClient::ReadObjectImpl(
-    internal::ReadFileRangeRequest const& request)
+FileReadStream CloudStorageClient::ReadObjectImpl(internal::ReadFileRangeRequest const& request)
 {
     auto source = m_RawClient->ReadFile(request);
     if (!source)
     {
         FileReadStream errorStream(
-            std::make_unique<internal::FileReadStreambuf>(
-                request, std::move(source).GetStatus()));
+            std::make_unique<internal::FileReadStreambuf>(request, std::move(source).GetStatus()));
         errorStream.setstate(std::ios::badbit | std::ios::eofbit);
         return errorStream;
     }
-    auto stream = FileReadStream(
-        std::make_unique<internal::FileReadStreambuf>(
-            request, *std::move(source)));
+    auto stream = FileReadStream(std::make_unique<internal::FileReadStreambuf>(request, *std::move(source)));
     (void)stream.peek();
 
     // Without exceptions the streambuf cannot report errors, so we have to
@@ -214,11 +201,9 @@ FileReadStream CloudStorageClient::ReadObjectImpl(
 }
 
 Status CloudStorageClient::DownloadFileImpl(internal::ReadFileRangeRequest const& request,
-    std::string const& dstFileName)
+                                            std::string const& dstFileName)
 {
-    auto report_error = [&request, dstFileName](char const* func, char const* what,
-        Status const& status)
-    {
+    auto report_error = [&request, dstFileName](char const* func, char const* what, Status const& status) {
         std::ostringstream msg;
         msg << func << "(" << request << ", " << dstFileName << "): " << what
             << " - status.message=" << status.Message();
@@ -228,16 +213,15 @@ Status CloudStorageClient::DownloadFileImpl(internal::ReadFileRangeRequest const
     auto stream = ReadObjectImpl(request);
     if (!stream.GetStatus().Ok())
     {
-        return report_error(__func__, "cannot open download source object",
-            stream.GetStatus());
+        return report_error(__func__, "cannot open download source object", stream.GetStatus());
     }
 
     // Open the destination file, and immediate raise an exception on failure.
     std::ofstream os(dstFileName, std::ios::binary);
-    if (!os.is_open()) {
-        return report_error(
-            __func__, "cannot open download destination file",
-            Status(StatusCode::InvalidArgument, "ofstream::open()"));
+    if (!os.is_open())
+    {
+        return report_error(__func__, "cannot open download destination file",
+                            Status(StatusCode::InvalidArgument, "ofstream::open()"));
     }
 
     std::string buffer;
@@ -252,14 +236,13 @@ Status CloudStorageClient::DownloadFileImpl(internal::ReadFileRangeRequest const
     if (!os.good())
     {
         return report_error(__func__, "cannot close download destination file",
-            Status(StatusCode::Unknown, "ofstream::close()"));
+                            Status(StatusCode::Unknown, "ofstream::close()"));
     }
     if (!stream.GetStatus().Ok())
     {
-        return report_error(__func__, "error reading download source object",
-            stream.GetStatus());
+        return report_error(__func__, "error reading download source object", stream.GetStatus());
     }
     return Status();
 }
 
-}; // namespace csa
+};  // namespace csa

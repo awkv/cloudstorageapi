@@ -25,13 +25,11 @@ namespace testing {
 namespace internal {
 
 // A unary predicate-formatter for csa::Status.
-::testing::AssertionResult IsOkPredFormat(char const* expr,
-                                        ::csa::Status const& status);
+::testing::AssertionResult IsOkPredFormat(char const* expr, ::csa::Status const& status);
 
 // A unary predicate-formatter for csa::StatusOrVal<T>.
 template <typename T>
-::testing::AssertionResult IsOkPredFormat(
-    char const* expr, ::csa::StatusOrVal<T> const& status_or)
+::testing::AssertionResult IsOkPredFormat(char const* expr, ::csa::StatusOrVal<T> const& status_or)
 {
     if (status_or)
     {
@@ -44,8 +42,6 @@ template <typename T>
 }  // namespace testing
 }  // namespace csa
 
-#define ASSERT_STATUS_OK(val) \
-  ASSERT_PRED_FORMAT1(csa::testing::internal::IsOkPredFormat, val)
+#define ASSERT_STATUS_OK(val) ASSERT_PRED_FORMAT1(csa::testing::internal::IsOkPredFormat, val)
 
-#define EXPECT_STATUS_OK(val) \
-  EXPECT_PRED_FORMAT1(csa::testing::internal::IsOkPredFormat, val)
+#define EXPECT_STATUS_OK(val) EXPECT_PRED_FORMAT1(csa::testing::internal::IsOkPredFormat, val)

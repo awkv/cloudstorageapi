@@ -45,9 +45,7 @@ TEST(StatusOrTest, StatusConstructorInvalid)
 {
     testing::util::ExpectException<std::invalid_argument>(
         [&] { StatusOrVal<int> actual(Status{}); },
-        [&](std::invalid_argument const& ex) {
-            EXPECT_THAT(ex.what(), HasSubstr("StatusOrVal"));
-        },
+        [&](std::invalid_argument const& ex) { EXPECT_THAT(ex.what(), HasSubstr("StatusOrVal")); },
         "exceptions are disabled: ");
 }
 
@@ -60,7 +58,9 @@ TEST(StatusOrTest, StatusAssignment)
     EXPECT_EQ(error, sorv.GetStatus());
 }
 
-struct NoEquality {};
+struct NoEquality
+{
+};
 
 TEST(StatusOrTest, Equality)
 {
@@ -105,42 +105,38 @@ TEST(StatusOrTest, ValueAccessorNonConstThrows)
 {
     StatusOrVal<int> actual(Status(StatusCode::Internal, "BAD"));
 
-    testing::util::ExpectException<RuntimeStatusError>(
-        [&] { actual.Value(); },
-        [&](RuntimeStatusError const& ex) {
-            EXPECT_EQ(StatusCode::Internal, ex.GetStatus().Code());
-            EXPECT_EQ("BAD", ex.GetStatus().Message());
-        },
-        "exceptions are disabled: BAD \\[INTERNAL\\]");
+    testing::util::ExpectException<RuntimeStatusError>([&] { actual.Value(); },
+                                                       [&](RuntimeStatusError const& ex) {
+                                                           EXPECT_EQ(StatusCode::Internal, ex.GetStatus().Code());
+                                                           EXPECT_EQ("BAD", ex.GetStatus().Message());
+                                                       },
+                                                       "exceptions are disabled: BAD \\[INTERNAL\\]");
 
-    testing::util::ExpectException<RuntimeStatusError>(
-        [&] { std::move(actual).Value(); },
-        [&](RuntimeStatusError const& ex) {
-            EXPECT_EQ(StatusCode::Internal, ex.GetStatus().Code());
-            EXPECT_EQ("BAD", ex.GetStatus().Message());
-        },
-        "exceptions are disabled: BAD \\[INTERNAL\\]");
+    testing::util::ExpectException<RuntimeStatusError>([&] { std::move(actual).Value(); },
+                                                       [&](RuntimeStatusError const& ex) {
+                                                           EXPECT_EQ(StatusCode::Internal, ex.GetStatus().Code());
+                                                           EXPECT_EQ("BAD", ex.GetStatus().Message());
+                                                       },
+                                                       "exceptions are disabled: BAD \\[INTERNAL\\]");
 }
 
 TEST(StatusOrTest, ValueAccessorConstThrows)
 {
     StatusOrVal<int> actual(Status(StatusCode::Internal, "BAD"));
 
-    testing::util::ExpectException<RuntimeStatusError>(
-        [&] { actual.Value(); },
-        [&](RuntimeStatusError const& ex) {
-            EXPECT_EQ(StatusCode::Internal, ex.GetStatus().Code());
-            EXPECT_EQ("BAD", ex.GetStatus().Message());
-        },
-        "exceptions are disabled: BAD \\[INTERNAL\\]");
+    testing::util::ExpectException<RuntimeStatusError>([&] { actual.Value(); },
+                                                       [&](RuntimeStatusError const& ex) {
+                                                           EXPECT_EQ(StatusCode::Internal, ex.GetStatus().Code());
+                                                           EXPECT_EQ("BAD", ex.GetStatus().Message());
+                                                       },
+                                                       "exceptions are disabled: BAD \\[INTERNAL\\]");
 
-    testing::util::ExpectException<RuntimeStatusError>(
-        [&] { std::move(actual).Value(); },
-        [&](RuntimeStatusError const& ex) {
-            EXPECT_EQ(StatusCode::Internal, ex.GetStatus().Code());
-            EXPECT_EQ("BAD", ex.GetStatus().Message());
-        },
-        "exceptions are disabled: BAD \\[INTERNAL\\]");
+    testing::util::ExpectException<RuntimeStatusError>([&] { std::move(actual).Value(); },
+                                                       [&](RuntimeStatusError const& ex) {
+                                                           EXPECT_EQ(StatusCode::Internal, ex.GetStatus().Code());
+                                                           EXPECT_EQ("BAD", ex.GetStatus().Message());
+                                                       },
+                                                       "exceptions are disabled: BAD \\[INTERNAL\\]");
 }
 
 TEST(StatusOrTest, StatusConstAccessors)
@@ -190,8 +186,7 @@ TEST(StatusOrNoDefaultConstructor, DefaultConstructed)
 
 TEST(StatusOrNoDefaultConstructor, ValueConstructed)
 {
-    StatusOrVal<NoDefaultConstructor> actual(
-        NoDefaultConstructor(std::string("foo")));
+    StatusOrVal<NoDefaultConstructor> actual(NoDefaultConstructor(std::string("foo")));
     EXPECT_STATUS_OK(actual);
     EXPECT_EQ(actual->Str(), "foo");
 }

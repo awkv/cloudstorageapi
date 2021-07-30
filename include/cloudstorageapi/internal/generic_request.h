@@ -50,7 +50,7 @@ public:
     }
 
     template <typename HttpRequest>
-    void AddOptionsToHttpRequest(HttpRequest& request) const 
+    void AddOptionsToHttpRequest(HttpRequest& request) const
     {
         request.AddOption(m_option);
     }
@@ -73,9 +73,8 @@ public:
         return false;
     }
 
-    template <typename O, typename std::enable_if<std::is_same<O, Option>::value,
-        int>::type = 0>
-        O GetOption() const
+    template <typename O, typename std::enable_if<std::is_same<O, Option>::value, int>::type = 0>
+    O GetOption() const
     {
         return m_option;
     }
@@ -132,16 +131,14 @@ public:
         return GenericRequestBase<Derived, Options...>::template HasOption<O>();
     }
 
-    template <typename O, typename std::enable_if<std::is_same<O, Option>::value,
-        int>::type = 0>
-        O GetOption() const
+    template <typename O, typename std::enable_if<std::is_same<O, Option>::value, int>::type = 0>
+    O GetOption() const
     {
         return m_option;
     }
 
-    template <typename O, typename std::enable_if<!std::is_same<O, Option>::value,
-        int>::type = 0>
-        O GetOption() const
+    template <typename O, typename std::enable_if<!std::is_same<O, Option>::value, int>::type = 0>
+    O GetOption() const
     {
         return GenericRequestBase<Derived, Options...>::template GetOption<O>();
     }
@@ -195,13 +192,10 @@ private:
  */
 template <typename Derived, typename... Options>
 class GenericRequest
-    : public GenericRequestBase<Derived, CustomHeader, Fields,
-             IfMatchEtag, IfNoneMatchEtag, Options...>
-{ 
+    : public GenericRequestBase<Derived, CustomHeader, Fields, IfMatchEtag, IfNoneMatchEtag, Options...>
+{
 public:
-    using Super =
-        GenericRequestBase<Derived, CustomHeader, Fields, IfMatchEtag,
-        IfNoneMatchEtag, Options...>;
+    using Super = GenericRequestBase<Derived, CustomHeader, Fields, IfMatchEtag, IfNoneMatchEtag, Options...>;
 
     template <typename H, typename... T>
     Derived& SetMultipleOptions(H&& h, T&&... tail)

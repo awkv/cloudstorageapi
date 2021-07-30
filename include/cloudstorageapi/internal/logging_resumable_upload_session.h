@@ -27,15 +27,13 @@ namespace internal {
 class LoggingResumableUploadSession : public ResumableUploadSession
 {
 public:
-    explicit LoggingResumableUploadSession(
-        std::unique_ptr<ResumableUploadSession> session)
+    explicit LoggingResumableUploadSession(std::unique_ptr<ResumableUploadSession> session)
         : m_session(std::move(session))
-    {}
+    {
+    }
 
-    StatusOrVal<ResumableUploadResponse> UploadChunk(
-        std::string const& buffer) override;
-    StatusOrVal<ResumableUploadResponse> UploadFinalChunk(
-        std::string const& buffer, std::uint64_t uploadSize) override;
+    StatusOrVal<ResumableUploadResponse> UploadChunk(std::string const& buffer) override;
+    StatusOrVal<ResumableUploadResponse> UploadFinalChunk(std::string const& buffer, std::uint64_t uploadSize) override;
     StatusOrVal<ResumableUploadResponse> ResetSession() override;
     std::uint64_t GetNextExpectedByte() const override;
     std::string const& GetSessionId() const override;
@@ -43,7 +41,7 @@ public:
     StatusOrVal<ResumableUploadResponse> const& GetLastResponse() const override;
     bool Done() const override;
 
- private:
+private:
     std::unique_ptr<ResumableUploadSession> m_session;
 };
 

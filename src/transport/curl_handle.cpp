@@ -17,8 +17,8 @@
 #include "cloudstorageapi/internal/curl_handle.h"
 #include "cloudstorageapi/internal/log.h"
 #include "cloudstorageapi/internal/utils.h"
-#include <string.h>
 #include <sstream>
+#include <string.h>
 #ifdef _WIN32
 #include <winsock.h>
 #else
@@ -31,9 +31,7 @@ namespace {
 
 std::size_t const kMaxDataDebugSize = 48;
 
-extern "C"
-int CurlHandleDebugCallback(CURL*, curl_infotype type, char* data,
-                            std::size_t size, void* userptr)
+extern "C" int CurlHandleDebugCallback(CURL*, curl_infotype type, char* data, std::size_t size, void* userptr)
 {
     auto debug_buffer = reinterpret_cast<std::string*>(userptr);
     switch (type)
@@ -66,37 +64,25 @@ int CurlHandleDebugCallback(CURL*, curl_infotype type, char* data,
     return 0;
 }
 
-extern "C"
-std::size_t CurlHandleReadCallback(char* ptr, std::size_t size,
-                                              std::size_t nmemb,
-                                              void* userdata)
+extern "C" std::size_t CurlHandleReadCallback(char* ptr, std::size_t size, std::size_t nmemb, void* userdata)
 {
     auto* callback = reinterpret_cast<CurlHandle::ReaderCallback*>(userdata);
     return callback->operator()(ptr, size, nmemb);
 }
 
-extern "C"
-std::size_t CurlHandleWriteCallback(void* contents, std::size_t size,
-                                    std::size_t nmemb,
-                                    void* userdata)
+extern "C" std::size_t CurlHandleWriteCallback(void* contents, std::size_t size, std::size_t nmemb, void* userdata)
 {
     auto* callback = reinterpret_cast<CurlHandle::WriterCallback*>(userdata);
     return callback->operator()(contents, size, nmemb);
 }
 
-extern "C"
-std::size_t CurlHandleHeaderCallback(char* contents,
-                                     std::size_t size,
-                                     std::size_t nitems,
-                                     void* userdata)
+extern "C" std::size_t CurlHandleHeaderCallback(char* contents, std::size_t size, std::size_t nitems, void* userdata)
 {
     auto* callback = reinterpret_cast<CurlHandle::HeaderCallback*>(userdata);
     return callback->operator()(contents, size, nitems);
 }
 
-extern "C"
-int CurlSetSocketOptions(void* userdata, curl_socket_t curlfd,
-                         curlsocktype purpose)
+extern "C" int CurlSetSocketOptions(void* userdata, curl_socket_t curlfd, curlsocktype purpose)
 {
     auto* options = reinterpret_cast<CurlHandle::SocketOptions*>(userdata);
     switch (purpose)
@@ -108,15 +94,14 @@ int CurlSetSocketOptions(void* userdata, curl_socket_t curlfd,
         {
             auto size = static_cast<long>(options->m_recvBufferSize);
 #if _WIN32
-            int r = setsockopt(curlfd, SOL_SOCKET, SO_RCVBUF,
-                                reinterpret_cast<char const*>(&size), sizeof(size));
+            int r = setsockopt(curlfd, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char const*>(&size), sizeof(size));
 #else
             int r = setsockopt(curlfd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
 #endif  // WIN32
             if (r != 0)
             {
                 CSA_LOG_ERROR("{}(): setting socket recv buffer size to {} error={} [{}]", __func__, size,
-                    ::strerror(errno), errno);
+                              ::strerror(errno), errno);
                 return CURL_SOCKOPT_ERROR;
             }
         }
@@ -124,15 +109,14 @@ int CurlSetSocketOptions(void* userdata, curl_socket_t curlfd,
         {
             auto size = static_cast<long>(options->m_sendBufferSize);
 #if _WIN32
-            int r = setsockopt(curlfd, SOL_SOCKET, SO_SNDBUF,
-                                reinterpret_cast<char const*>(&size), sizeof(size));
+            int r = setsockopt(curlfd, SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char const*>(&size), sizeof(size));
 #else
             auto r = setsockopt(curlfd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
 #endif  // WIN32
             if (r != 0)
             {
                 CSA_LOG_ERROR("{}(): setting socket send buffer size to {} error={} [{}]", __func__, size,
-                    ::strerror(errno), errno);
+                              ::strerror(errno), errno);
                 return CURL_SOCKOPT_ERROR;
             }
         }
@@ -140,15 +124,14 @@ int CurlSetSocketOptions(void* userdata, curl_socket_t curlfd,
     case CURLSOCKTYPE_ACCEPT:
     case CURLSOCKTYPE_LAST:
         break;
-    } // switch(purpose)
+    }  // switch(purpose)
 
     return CURL_SOCKOPT_OK;
 }
 
 }  // namespace
 
-CurlHandle::CurlHandle()
-    : m_handle(curl_easy_init(), &curl_easy_cleanup)
+CurlHandle::CurlHandle() : m_handle(curl_easy_init(), &curl_easy_cleanup)
 {
     if (m_handle.get() == nullptr)
     {
@@ -156,10 +139,7 @@ CurlHandle::CurlHandle()
     }
 }
 
-CurlHandle::~CurlHandle()
-{
-    FlushDebug(__func__);
-}
+CurlHandle::~CurlHandle() { FlushDebug(__func__); }
 
 void CurlHandle::SetReaderCallback(ReaderCallback callback)
 {
@@ -182,7 +162,8 @@ void CurlHandle::SetWriterCallback(WriterCallback callback)
     SetOption(CURLOPT_WRITEFUNCTION, &CurlHandleWriteCallback);
 }
 
-void CurlHandle::ResetWriterCallback() {
+void CurlHandle::ResetWriterCallback()
+{
     SetOption(CURLOPT_WRITEDATA, nullptr);
     SetOption(CURLOPT_WRITEFUNCTION, nullptr);
     m_writerCallback = WriterCallback();
@@ -195,7 +176,8 @@ void CurlHandle::SetHeaderCallback(HeaderCallback callback)
     SetOption(CURLOPT_HEADERFUNCTION, &CurlHandleHeaderCallback);
 }
 
-void CurlHandle::ResetHeaderCallback() {
+void CurlHandle::ResetHeaderCallback()
+{
     SetOption(CURLOPT_HEADERDATA, nullptr);
     SetOption(CURLOPT_HEADERFUNCTION, nullptr);
     m_headerCallback = HeaderCallback();
@@ -234,7 +216,7 @@ void CurlHandle::FlushDebug(char const* where)
 {
     if (!m_debugBuffer.empty())
     {
-        CSA_LOG_DEBUG( "{} {}", where, m_debugBuffer);
+        CSA_LOG_DEBUG("{} {}", where, m_debugBuffer);
         m_debugBuffer.clear();
     }
 }
@@ -295,25 +277,21 @@ Status CurlHandle::AsStatus(CURLcode e, char const* where)
 void CurlHandle::ThrowSetOptionError(CURLcode e, CURLoption opt, long param)
 {
     std::ostringstream os;
-    os << "Error [" << e << "]=" << curl_easy_strerror(e)
-        << " while setting curl option [" << opt << "] to " << param;
+    os << "Error [" << e << "]=" << curl_easy_strerror(e) << " while setting curl option [" << opt << "] to " << param;
     throw std::runtime_error(os.str());
 }
 
-void CurlHandle::ThrowSetOptionError(CURLcode e, CURLoption opt,
-                                     char const* param)
+void CurlHandle::ThrowSetOptionError(CURLcode e, CURLoption opt, char const* param)
 {
     std::ostringstream os;
-    os << "Error [" << e << "]=" << curl_easy_strerror(e)
-        << " while setting curl option [" << opt << "] to " << param;
+    os << "Error [" << e << "]=" << curl_easy_strerror(e) << " while setting curl option [" << opt << "] to " << param;
     throw std::runtime_error(os.str());
 }
 
 void CurlHandle::ThrowSetOptionError(CURLcode e, CURLoption opt, void* param)
 {
     std::ostringstream os;
-    os << "Error [" << e << "]=" << curl_easy_strerror(e)
-        << " while setting curl option [" << opt << "] to " << param;
+    os << "Error [" << e << "]=" << curl_easy_strerror(e) << " while setting curl option [" << opt << "] to " << param;
     throw std::runtime_error(os.str());
 }
 

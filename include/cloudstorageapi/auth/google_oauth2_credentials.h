@@ -30,11 +30,10 @@ public:
     // There is another oauth2 token refresh end ponit "https://www.googleapis.com/oauth2/v4/token";
 
     static std::string BuildRequestPayload(OAuth2CredentialsInfo const& info);
-    static StatusOrVal<RefreshingCredentialsWrapper::TemporaryToken>
-        ParseOAuth2RefreshResponse(internal::HttpResponse const& response,
-        std::chrono::system_clock::time_point now);
-    static StatusOrVal<OAuth2CredentialsInfo> ParseOAuth2Credentials(
-        internal::nl::json const& jsonCreds, std::string const& source);
+    static StatusOrVal<RefreshingCredentialsWrapper::TemporaryToken> ParseOAuth2RefreshResponse(
+        internal::HttpResponse const& response, std::chrono::system_clock::time_point now);
+    static StatusOrVal<OAuth2CredentialsInfo> ParseOAuth2Credentials(internal::nl::json const& jsonCreds,
+                                                                     std::string const& source);
 };
 
 using GoogleOAuth2Credentials = OAuth2Credentials<GoogleAuthHandler>;

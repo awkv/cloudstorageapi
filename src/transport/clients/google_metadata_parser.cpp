@@ -26,8 +26,7 @@ namespace {
  * This simplifies the implementation of ToJsonString() because we repeat this
  * check for many attributes.
  */
-void SetIfNotEmpty(nl::json& json, char const* key,
-                   std::string const& value)
+void SetIfNotEmpty(nl::json& json, char const* key, std::string const& value)
 {
     if (value.empty())
     {
@@ -36,8 +35,7 @@ void SetIfNotEmpty(nl::json& json, char const* key,
     json[key] = value;
 }
 
-void SetIfDifferent(nl::json& json, char const* key,
-    std::string const& originalValue, std::string const& updatedValue)
+void SetIfDifferent(nl::json& json, char const* key, std::string const& originalValue, std::string const& updatedValue)
 {
     if (originalValue != updatedValue)
         json[key] = updatedValue;
@@ -70,8 +68,9 @@ StatusOrVal<FileMetadata> GoogleMetadataParser::ParseFileMetadata(std::string co
     auto json = nl::json::parse(payload, nullptr, false);
     if (json.is_discarded())
     {
-        return Status(StatusCode::InvalidArgument, "Invalid file metadata object. "
-        "Failed to parse json.");
+        return Status(StatusCode::InvalidArgument,
+                      "Invalid file metadata object. "
+                      "Failed to parse json.");
     }
     return ParseFileMetadata(json);
 }
@@ -103,8 +102,9 @@ StatusOrVal<FolderMetadata> GoogleMetadataParser::ParseFolderMetadata(std::strin
     auto json = nl::json::parse(payload, nullptr, false);
     if (json.is_discarded())
     {
-        return Status(StatusCode::InvalidArgument, "Invalid folder metadata object. "
-            "Failed to parse json.");
+        return Status(StatusCode::InvalidArgument,
+                      "Invalid folder metadata object. "
+                      "Failed to parse json.");
     }
     return ParseFolderMetadata(json);
 }
@@ -133,8 +133,7 @@ StatusOrVal<nl::json> GoogleMetadataParser::ComposeFolderMetadata(FolderMetadata
     return jmeta;
 }
 
-StatusOrVal<nl::json> GoogleMetadataParser::PatchFileMetadata(
-    FileMetadata const& original, FileMetadata const& updated)
+StatusOrVal<nl::json> GoogleMetadataParser::PatchFileMetadata(FileMetadata const& original, FileMetadata const& updated)
 {
     nl::json jmeta({});
     auto status = PatchCommonMetadata(jmeta, original, updated);
@@ -146,8 +145,8 @@ StatusOrVal<nl::json> GoogleMetadataParser::PatchFileMetadata(
     return jmeta;
 }
 
-StatusOrVal<nl::json> GoogleMetadataParser::PatchFolderMetadata(
-    FolderMetadata const& original, FolderMetadata const& updated)
+StatusOrVal<nl::json> GoogleMetadataParser::PatchFolderMetadata(FolderMetadata const& original,
+                                                                FolderMetadata const& updated)
 {
     nl::json jmeta({});
     auto status = PatchCommonMetadata(jmeta, original, updated);
@@ -181,11 +180,11 @@ Status GoogleMetadataParser::ParseCommonMetadata(CommonMetadata& result, nl::jso
 }
 
 Status GoogleMetadataParser::ComposeCommonMetadata(nl::json& result, CommonMetadata const& meta)
-{    
+{
     SetIfNotEmpty(result, "id", meta.GetCloudId());
     SetIfNotEmpty(result, "name", meta.GetName());
     if (!meta.GetParentId().empty())
-        result["parents"] = nl::json::array({ meta.GetParentId() });
+        result["parents"] = nl::json::array({meta.GetParentId()});
     // ? result["createdTime"] = FormatRfc3339Time(meta.GetChangeTime());
     const auto epochTimePoint = std::chrono::time_point<std::chrono::system_clock>{};
     if (meta.GetChangeTime() > epochTimePoint)
@@ -194,8 +193,8 @@ Status GoogleMetadataParser::ComposeCommonMetadata(nl::json& result, CommonMetad
     return Status();
 }
 
-Status GoogleMetadataParser::PatchCommonMetadata(nl::json& result,
-    CommonMetadata const& original, CommonMetadata const& updated)
+Status GoogleMetadataParser::PatchCommonMetadata(nl::json& result, CommonMetadata const& original,
+                                                 CommonMetadata const& updated)
 {
     // Set only relevant fields: https://developers.google.com/drive/api/v3/reference/files/update
     if (original.GetModifyTime() != updated.GetModifyTime())

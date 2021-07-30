@@ -13,21 +13,19 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/generic_object_requests.h"
-#include <sstream>
 #include <iterator>
+#include <sstream>
 
 namespace csa {
 namespace internal {
 
 std::ostream& operator<<(std::ostream& os, RenameRequest const& r)
 {
-    os << "RenameRequest={object_id=" << r.GetObjectId()
-        << ", new_name=" << r.GetNewName()
-        << ", parent_id=" << r.GetParentId()
-        << ", new_parent_id=" << r.GetNewParentId();
+    os << "RenameRequest={object_id=" << r.GetObjectId() << ", new_name=" << r.GetNewName()
+       << ", parent_id=" << r.GetParentId() << ", new_parent_id=" << r.GetNewParentId();
     r.DumpOptions(os, ", ");
     return os << "}";
 }
 
-} // namespace internal
-} // namespace csa
+}  // namespace internal
+}  // namespace csa

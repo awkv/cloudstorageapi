@@ -18,35 +18,31 @@
 #include "cloudstorageapi/internal/curl_handle.h"
 #include "cloudstorageapi/internal/curl_request_builder.h"
 #include "cloudstorageapi/terminate_handler.h"
-
 #include <sstream>
 
 namespace csa {
 namespace internal {
 namespace {
 
-extern "C" void CurlShareLockCallback(CURL*, curl_lock_data data,
-    curl_lock_access, void* userptr)
+extern "C" void CurlShareLockCallback(CURL*, curl_lock_data data, curl_lock_access, void* userptr)
 {
     auto* client = reinterpret_cast<CurlClientBase*>(userptr);
     client->LockShared(data);
 }
 
-extern "C" void CurlShareUnlockCallback(CURL*, curl_lock_data data,
-    void* userptr)
+extern "C" void CurlShareUnlockCallback(CURL*, curl_lock_data data, void* userptr)
 {
     auto* client = reinterpret_cast<CurlClientBase*>(userptr);
     client->UnlockShared(data);
 }
 
-std::shared_ptr<CurlHandleFactory> CreateHandleFactory(
-    ClientOptions const& options)
+std::shared_ptr<CurlHandleFactory> CreateHandleFactory(ClientOptions const& options)
 {
-    if (options.GetConnectionPoolSize() == 0) {
+    if (options.GetConnectionPoolSize() == 0)
+    {
         return std::make_shared<DefaultCurlHandleFactory>();
     }
-    return std::make_shared<PooledCurlHandleFactory>(
-        options.GetConnectionPoolSize());
+    return std::make_shared<PooledCurlHandleFactory>(options.GetConnectionPoolSize());
 }
 
 std::string UrlEscapeString(std::string const& value)
@@ -59,14 +55,13 @@ std::string UrlEscapeString(std::string const& value)
 
 CurlClientBase::CurlClientBase(ClientOptions options)
     : m_options(std::move(options)),
-    m_share(curl_share_init(), &curl_share_cleanup),
-    m_generator(csa::internal::MakeDefaultPRNG()),
-    m_storageFactory(CreateHandleFactory(m_options)),
-    m_uploadFactory(CreateHandleFactory(m_options))
+      m_share(curl_share_init(), &curl_share_cleanup),
+      m_generator(csa::internal::MakeDefaultPRNG()),
+      m_storageFactory(CreateHandleFactory(m_options)),
+      m_uploadFactory(CreateHandleFactory(m_options))
 {
     curl_share_setopt(m_share.get(), CURLSHOPT_LOCKFUNC, CurlShareLockCallback);
-    curl_share_setopt(m_share.get(), CURLSHOPT_UNLOCKFUNC,
-        CurlShareUnlockCallback);
+    curl_share_setopt(m_share.get(), CURLSHOPT_UNLOCKFUNC, CurlShareUnlockCallback);
     curl_share_setopt(m_share.get(), CURLSHOPT_USERDATA, this);
     curl_share_setopt(m_share.get(), CURLSHOPT_SHARE, CURL_LOCK_DATA_CONNECT);
     curl_share_setopt(m_share.get(), CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);
@@ -78,8 +73,7 @@ CurlClientBase::CurlClientBase(ClientOptions options)
     CurlInitializeOnce(options);
 }
 
-StatusOrVal<std::string> CurlClientBase::AuthorizationHeader(
-    std::shared_ptr<auth::Credentials> const& credentials)
+StatusOrVal<std::string> CurlClientBase::AuthorizationHeader(std::shared_ptr<auth::Credentials> const& credentials)
 {
     return credentials->AuthorizationHeader();
 }
@@ -153,10 +147,7 @@ Status CurlClientBase::SetupBuilderCommon(CurlRequestBuilder& builder, char cons
     {
         return std::move(authHeader).GetStatus();
     }
-    builder.SetMethod(method)
-        .ApplyClientOptions(m_options)
-        .SetCurlShare(m_share.get())
-        .AddHeader(authHeader.Value());
+    builder.SetMethod(method).ApplyClientOptions(m_options).SetCurlShare(m_share.get()).AddHeader(authHeader.Value());
     return Status();
 }
 

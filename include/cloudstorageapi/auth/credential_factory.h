@@ -15,8 +15,8 @@
 #pragma once
 
 #include "cloudstorageapi/auth/credentials.h"
-#include "cloudstorageapi/status_or_val.h"
 #include "cloudstorageapi/providers.h"
+#include "cloudstorageapi/status_or_val.h"
 
 namespace csa {
 namespace auth {
@@ -24,7 +24,6 @@ namespace auth {
 class CredentialFactory
 {
 public:
-
     CredentialFactory() = delete;
 
     /**
@@ -48,8 +47,8 @@ public:
     /**
      * Creates an AuthorizedUserCredentials from a JSON file at the specified path.
      */
-    static StatusOrVal<std::shared_ptr<Credentials>>
-        CreateAuthorizedUserCredentialsFromJsonFilePath(EProvider provider, std::string const& path);
+    static StatusOrVal<std::shared_ptr<Credentials>> CreateAuthorizedUserCredentialsFromJsonFilePath(
+        EProvider provider, std::string const& path);
 
     /**
      * Creates an AuthorizedUserCredentials from a JSON string.
@@ -57,10 +56,9 @@ public:
      * @note It is strongly preferred to instead use service account credentials
      * with Cloud Storage client libraries.
      */
-    static StatusOrVal<std::shared_ptr<Credentials>>
-        CreateAuthorizedUserCredentialsFromJsonContents(EProvider provider, std::string const& contents,
-            std::string const& sourceFile);
+    static StatusOrVal<std::shared_ptr<Credentials>> CreateAuthorizedUserCredentialsFromJsonContents(
+        EProvider provider, std::string const& contents, std::string const& sourceFile);
 };
 
-} // namespace auth
-} // namespace csa
+}  // namespace auth
+}  // namespace csa

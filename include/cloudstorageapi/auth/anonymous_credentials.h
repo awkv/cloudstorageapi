@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once 
+#pragma once
 
 #include "cloudstorageapi/auth/credentials.h"
 #include <string>
@@ -36,16 +36,12 @@ class AnonymousCredentials : public Credentials
 public:
     AnonymousCredentials() = default;
 
-
     /**
      * While other Credentials subclasses return a string containing an
      * Authorization HTTP header from this method, this class always returns an
      * empty string as its value.
      */
-    StatusOrVal<std::string> AuthorizationHeader() override
-    {
-        return std::string{};
-    }
+    StatusOrVal<std::string> AuthorizationHeader() override { return std::string{}; }
 };
 
 }  // namespace auth

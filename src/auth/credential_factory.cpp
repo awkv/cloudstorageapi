@@ -14,8 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "cloudstorageapi/auth/anonymous_credentials.h"
 #include "cloudstorageapi/auth/credential_factory.h"
+#include "cloudstorageapi/auth/anonymous_credentials.h"
 #include "cloudstorageapi/auth/default_credentials_file.h"
 #include "cloudstorageapi/auth/google_oauth2_credentials.h"
 #include "cloudstorageapi/internal/nljson.h"
@@ -24,8 +24,7 @@
 namespace csa {
 namespace auth {
 
-StatusOrVal<std::shared_ptr<Credentials>>
-CredentialFactory::CreateDefaultCredentials(EProvider provider)
+StatusOrVal<std::shared_ptr<Credentials>> CredentialFactory::CreateDefaultCredentials(EProvider provider)
 {
     // Check if CSA_CREDENTIALS environment variable is set.
     auto path = DefaultCredentialsFilePathFromEnvVarOrEmpty();
@@ -46,14 +45,13 @@ std::shared_ptr<Credentials> CredentialFactory::CreateAnonymousCredentials(EProv
     return std::make_shared<AnonymousCredentials>();
 }
 
-StatusOrVal<std::shared_ptr<Credentials>>
-CredentialFactory::CreateAuthorizedUserCredentialsFromJsonFilePath(
+StatusOrVal<std::shared_ptr<Credentials>> CredentialFactory::CreateAuthorizedUserCredentialsFromJsonFilePath(
     EProvider provider, std::string const& path)
 {
     std::ifstream ifs(path);
     if (!ifs.good())
     {
-        // Failed to read a file because it either doesn't exist, no permissions 
+        // Failed to read a file because it either doesn't exist, no permissions
         // or any other reason.
         return Status(StatusCode::Unknown, "Cannot open credentials file " + path);
     }
@@ -62,40 +60,36 @@ CredentialFactory::CreateAuthorizedUserCredentialsFromJsonFilePath(
     return CreateAuthorizedUserCredentialsFromJsonContents(provider, contents, path);
 }
 
-StatusOrVal<std::shared_ptr<Credentials>>
-CredentialFactory::CreateAuthorizedUserCredentialsFromJsonContents(
+StatusOrVal<std::shared_ptr<Credentials>> CredentialFactory::CreateAuthorizedUserCredentialsFromJsonContents(
     EProvider provider, std::string const& contents, std::string const& sourceFile)
 {
     auto credJson = internal::nl::json::parse(contents, nullptr, false);
     if (credJson.is_discarded())
     {
-        return Status(StatusCode::InvalidArgument,
-            "Invalid credentials file " + sourceFile);
+        return Status(StatusCode::InvalidArgument, "Invalid credentials file " + sourceFile);
     }
 
     std::shared_ptr<Credentials> creds = nullptr;
     switch (provider)
     {
-        case EProvider::GoogleDrive:
-        {
-            auto info = GoogleAuthHandler::ParseOAuth2Credentials(credJson, sourceFile);
-            if (!info)
-                return info.GetStatus();
-            creds = std::make_shared<GoogleOAuth2Credentials>(*info);
-        }
-        break;
+    case EProvider::GoogleDrive:
+    {
+        auto info = GoogleAuthHandler::ParseOAuth2Credentials(credJson, sourceFile);
+        if (!info)
+            return info.GetStatus();
+        creds = std::make_shared<GoogleOAuth2Credentials>(*info);
+    }
+    break;
 
-        default:
-            assert(0&&"Failed to create credentials: unexpected provider.");
-            return StatusOrVal<std::shared_ptr<Credentials>>(
-                Status(StatusCode::InvalidArgument,
-                    "Unsupported provider when reading Default Credentials file from " +
-                    sourceFile + "."));
-
+    default:
+        assert(0 && "Failed to create credentials: unexpected provider.");
+        return StatusOrVal<std::shared_ptr<Credentials>>(
+            Status(StatusCode::InvalidArgument,
+                   "Unsupported provider when reading Default Credentials file from " + sourceFile + "."));
     }
 
     return StatusOrVal<std::shared_ptr<Credentials>>(creds);
 }
 
-} // namespace auth
-} // namespace csa
+}  // namespace auth
+}  // namespace csa

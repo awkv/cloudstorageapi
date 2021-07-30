@@ -21,8 +21,7 @@
 namespace csa {
 namespace internal {
 
-StatusOrVal<ResumableUploadResponse> LoggingResumableUploadSession::UploadChunk(
-    std::string const& buffer)
+StatusOrVal<ResumableUploadResponse> LoggingResumableUploadSession::UploadChunk(std::string const& buffer)
 {
     CSA_LOG_INFO("{}() << {{buffer.size={{{}}}", __func__, buffer.size());
     auto response = m_session->UploadChunk(buffer);
@@ -32,14 +31,13 @@ StatusOrVal<ResumableUploadResponse> LoggingResumableUploadSession::UploadChunk(
     }
     else
     {
-        CSA_LOG_INFO("{}() >> status={{{}}}", __func__ , response.GetStatus());
+        CSA_LOG_INFO("{}() >> status={{{}}}", __func__, response.GetStatus());
     }
     return response;
 }
 
-StatusOrVal<ResumableUploadResponse>
-LoggingResumableUploadSession::UploadFinalChunk(std::string const& buffer,
-                                                std::uint64_t uploadSize)
+StatusOrVal<ResumableUploadResponse> LoggingResumableUploadSession::UploadFinalChunk(std::string const& buffer,
+                                                                                     std::uint64_t uploadSize)
 {
     CSA_LOG_INFO("{}() << upload_size={}, buffer.size={}", __func__, uploadSize, buffer.size());
     auto response = m_session->UploadFinalChunk(buffer, uploadSize);
@@ -54,8 +52,7 @@ LoggingResumableUploadSession::UploadFinalChunk(std::string const& buffer,
     return response;
 }
 
-StatusOrVal<ResumableUploadResponse>
-LoggingResumableUploadSession::ResetSession()
+StatusOrVal<ResumableUploadResponse> LoggingResumableUploadSession::ResetSession()
 {
     CSA_LOG_INFO("{}() << {{}}", __func__);
     auto response = m_session->ResetSession();
@@ -91,8 +88,7 @@ std::size_t LoggingResumableUploadSession::GetFileChunkSizeQuantum() const
     return m_session->GetFileChunkSizeQuantum();
 }
 
-StatusOrVal<ResumableUploadResponse> const&
-LoggingResumableUploadSession::GetLastResponse() const
+StatusOrVal<ResumableUploadResponse> const& LoggingResumableUploadSession::GetLastResponse() const
 {
     CSA_LOG_INFO("{}() << {{}}", __func__);
     auto const& response = m_session->GetLastResponse();
@@ -107,10 +103,7 @@ LoggingResumableUploadSession::GetLastResponse() const
     return response;
 }
 
-bool LoggingResumableUploadSession::Done() const
-{
-    return m_session->Done();
-}
+bool LoggingResumableUploadSession::Done() const { return m_session->Done(); }
 
 }  // namespace internal
 }  // namespace csa

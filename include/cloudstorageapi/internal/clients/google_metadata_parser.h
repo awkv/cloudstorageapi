@@ -37,16 +37,13 @@ public:
     static StatusOrVal<nl::json> ComposeFileMetadata(FileMetadata const& meta);
     static StatusOrVal<nl::json> ComposeFolderMetadata(FolderMetadata const& meta);
 
-    static StatusOrVal<nl::json> PatchFileMetadata(FileMetadata const& original,
-        FileMetadata const& updated);
-    static StatusOrVal<nl::json> PatchFolderMetadata(FolderMetadata const& original,
-        FolderMetadata const& updated);
+    static StatusOrVal<nl::json> PatchFileMetadata(FileMetadata const& original, FileMetadata const& updated);
+    static StatusOrVal<nl::json> PatchFolderMetadata(FolderMetadata const& original, FolderMetadata const& updated);
 
 private:
     static Status ParseCommonMetadata(CommonMetadata& result, nl::json const& json);
     static Status ComposeCommonMetadata(nl::json& result, CommonMetadata const& meta);
-    static Status PatchCommonMetadata(nl::json& result, CommonMetadata const& original,
-        CommonMetadata const& updated);
+    static Status PatchCommonMetadata(nl::json& result, CommonMetadata const& original, CommonMetadata const& updated);
 };
 }  // namespace internal
 }  // namespace csa

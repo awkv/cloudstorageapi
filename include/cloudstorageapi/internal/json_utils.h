@@ -25,7 +25,6 @@ namespace internal {
 class JsonUtils
 {
 public:
-
     /**
      * Parses a boolean field, even if it is represented by a string type in the
      * JSON object.
@@ -42,8 +41,7 @@ public:
      * Parses an unsigned integer field, even if it is represented by a string type
      * in the JSON object.
      */
-    static std::uint32_t ParseUnsignedInt(nl::json const& json,
-        char const* fieldName);
+    static std::uint32_t ParseUnsignedInt(nl::json const& json, char const* fieldName);
 
     /**
      * Parses a long integer field, even if it is represented by a string type in
@@ -55,8 +53,7 @@ public:
      * Parses an unsigned long integer field, even if it is represented by a string
      * type in the JSON object.
      */
-    static std::uint64_t ParseUnsignedLong(nl::json const& json,
-        char const* fieldName);
+    static std::uint64_t ParseUnsignedLong(nl::json const& json, char const* fieldName);
 
     /**
      * Parses a RFC 3339 timestamp.
@@ -64,8 +61,7 @@ public:
      * @return the value of @p field_name in @p json, or the epoch if the field is
      * not present.
      */
-    static std::chrono::system_clock::time_point ParseRFC3339Timestamp(
-        nl::json const& json, char const* fieldName);
+    static std::chrono::system_clock::time_point ParseRFC3339Timestamp(nl::json const& json, char const* fieldName);
 };
 
 }  // namespace internal

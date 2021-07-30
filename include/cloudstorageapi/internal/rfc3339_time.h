@@ -34,8 +34,7 @@ namespace internal {
  *
  * @see https://tools.ietf.org/html/rfc3339
  */
-std::chrono::system_clock::time_point ParseRfc3339(
-    std::string const& timestamp);
+std::chrono::system_clock::time_point ParseRfc3339(std::string const& timestamp);
 
 /**
  * Formats @p tp as a RFC-3339 timestamp.

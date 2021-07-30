@@ -38,8 +38,7 @@ using CurlString = std::unique_ptr<char, decltype(&curl_free)>;
 using CurlHeaders = std::unique_ptr<curl_slist, decltype(&curl_slist_free_all)>;
 
 using CurlReceivedHeaders = std::multimap<std::string, std::string>;
-std::size_t CurlAppendHeaderData(CurlReceivedHeaders& received_headers,
-                                 char const* data, std::size_t size);
+std::size_t CurlAppendHeaderData(CurlReceivedHeaders& received_headers, char const* data, std::size_t size);
 
 using CurlShare = std::unique_ptr<CURLSH, decltype(&curl_share_cleanup)>;
 

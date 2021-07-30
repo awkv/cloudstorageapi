@@ -34,15 +34,14 @@ TEST(CurlWrappers, SigpipeHandlerEnabledTest)
     return;  // nothing to do
 #else
     auto initial_handler = std::signal(SIGPIPE, &test_handler);
-    CurlInitializeOnce(ClientOptions(auth::CreateAnonymousCredentials())
-                         .SetEnableSigpipeHandler(true));
+    CurlInitializeOnce(ClientOptions(auth::CreateAnonymousCredentials()).SetEnableSigpipeHandler(true));
     auto actual = std::signal(SIGPIPE, initialHandler);
     EXPECT_EQ(actual, SIG_IGN);
 
     // Also verify a second call has no effect.
     EProvider provider = EProvider::GoogleDrive;
     CurlInitializeOnce(ClientOptions(provider, auth::CredentialFactory::CreateAnonymousCredentials(provider))
-                            .SetEnableSigpipeHandler(true));
+                           .SetEnableSigpipeHandler(true));
     actual = std::signal(SIGPIPE, initial_handler);
     EXPECT_EQ(actual, initial_handler);
 #endif  // defined(SIGPIPE)

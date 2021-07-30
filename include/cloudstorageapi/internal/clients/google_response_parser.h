@@ -14,13 +14,12 @@
 
 #pragma once
 
-#include "cloudstorageapi/status_or_val.h"
 #include "cloudstorageapi/internal/file_requests.h"
 #include "cloudstorageapi/internal/folder_requests.h"
-#include "cloudstorageapi/internal/nljson.h"
 #include "cloudstorageapi/internal/json_utils.h"
+#include "cloudstorageapi/internal/nljson.h"
 #include "cloudstorageapi/internal/resumable_upload_session.h"
-
+#include "cloudstorageapi/status_or_val.h"
 #include <sstream>
 
 namespace csa {
@@ -37,23 +36,23 @@ public:
 
     // Base function templates. They overload on json and string. They have no body because
     // only specializations will be used.
-    template<typename ResponseType>
-    static StatusOrVal<ResponseType> ParseResponse(nl::json const& json); // no implementation
-    template<typename ResponseType>
-    static StatusOrVal<ResponseType> ParseResponse(std::string const& payload); // no implementation
-    template<typename ResponseType>
-    static StatusOrVal<ResponseType> ParseResponse(HttpResponse response); // no implementation
+    template <typename ResponseType>
+    static StatusOrVal<ResponseType> ParseResponse(nl::json const& json);  // no implementation
+    template <typename ResponseType>
+    static StatusOrVal<ResponseType> ParseResponse(std::string const& payload);  // no implementation
+    template <typename ResponseType>
+    static StatusOrVal<ResponseType> ParseResponse(HttpResponse response);  // no implementation
 
     // Specializations for concrete response types
-    template<>
+    template <>
     static StatusOrVal<ListFolderResponse> ParseResponse<ListFolderResponse>(nl::json const& json);
-    template<>
+    template <>
     static StatusOrVal<ListFolderResponse> ParseResponse<ListFolderResponse>(std::string const& payload);
-    template<>
+    template <>
     static StatusOrVal<ResumableUploadResponse> ParseResponse<ResumableUploadResponse>(HttpResponse response);
 };
 
-template<>
+template <>
 inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListFolderResponse>(nl::json const& json)
 {
     if (json.empty())
@@ -62,8 +61,8 @@ inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListF
     }
     else if (json.value("kind", "") != ResponseKindFileList)
     {
-        return Status(StatusCode::Internal, "Unexpected folder list response kind: " +
-        json.value("kind", "") + ". Expected: " + ResponseKindFileList);
+        return Status(StatusCode::Internal, "Unexpected folder list response kind: " + json.value("kind", "") +
+                                                ". Expected: " + ResponseKindFileList);
     }
 
     ListFolderResponse result{};
@@ -84,8 +83,9 @@ inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListF
                     }
                     else
                     {
-                        return Status(StatusCode::InvalidArgument, "Invalid list folder request."
-                        "Failed to parse folder metadata.");
+                        return Status(StatusCode::InvalidArgument,
+                                      "Invalid list folder request."
+                                      "Failed to parse folder metadata.");
                     }
                 }
                 else
@@ -97,8 +97,9 @@ inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListF
                     }
                     else
                     {
-                        return Status(StatusCode::InvalidArgument, "Invalid list folder request."
-                        "Failed to parse file metadata.");
+                        return Status(StatusCode::InvalidArgument,
+                                      "Invalid list folder request."
+                                      "Failed to parse file metadata.");
                     }
                 }
             }
@@ -108,21 +109,24 @@ inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListF
     return result;
 }
 
-template<>
-inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListFolderResponse>(std::string const& payload)
+template <>
+inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListFolderResponse>(
+    std::string const& payload)
 {
     auto json = nl::json::parse(payload, nullptr, false);
     if (json.is_discarded())
     {
-        return Status(StatusCode::InvalidArgument, "Invalid folder list response. "
-            "Failed to parse json.");
+        return Status(StatusCode::InvalidArgument,
+                      "Invalid folder list response. "
+                      "Failed to parse json.");
     }
 
     return ParseResponse<ListFolderResponse>(json);
 }
 
-template<>
-inline StatusOrVal<ResumableUploadResponse> GoogleResponseParser::ParseResponse<ResumableUploadResponse>(HttpResponse response)
+template <>
+inline StatusOrVal<ResumableUploadResponse> GoogleResponseParser::ParseResponse<ResumableUploadResponse>(
+    HttpResponse response)
 {
     ResumableUploadResponse result;
     if (response.m_statusCode == 200 || response.m_statusCode == 201)
@@ -158,7 +162,7 @@ inline StatusOrVal<ResumableUploadResponse> GoogleResponseParser::ParseResponse<
     {
         std::ostringstream os;
         os << __func__ << "() missing range header in resumable upload response"
-            << ", response=" << response;
+           << ", response=" << response;
         result.m_annotations = std::move(os).str();
         return result;
     }
@@ -172,7 +176,7 @@ inline StatusOrVal<ResumableUploadResponse> GoogleResponseParser::ParseResponse<
     {
         std::ostringstream os;
         os << __func__ << "() cannot parse range: header in resumable upload"
-            << " response, header=" << range << ", response=" << response;
+           << " response, header=" << range << ", response=" << response;
         result.m_annotations = std::move(os).str();
         return result;
     }
@@ -187,7 +191,7 @@ inline StatusOrVal<ResumableUploadResponse> GoogleResponseParser::ParseResponse<
     {
         std::ostringstream os;
         os << __func__ << "() cannot parse range: header in resumable upload"
-            << " response, header=" << range << ", response=" << response;
+           << " response, header=" << range << ", response=" << response;
         result.m_annotations = std::move(os).str();
     }
 
@@ -196,4 +200,3 @@ inline StatusOrVal<ResumableUploadResponse> GoogleResponseParser::ParseResponse<
 
 }  // namespace internal
 }  // namespace csa
-

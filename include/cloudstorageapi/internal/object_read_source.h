@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include "cloudstorageapi/status_or_val.h"
 #include "cloudstorageapi/internal/http_response.h"
+#include "cloudstorageapi/status_or_val.h"
 #include <string>
 
 namespace csa {
@@ -80,10 +80,7 @@ public:
 
     bool IsOpen() const override { return false; }
     StatusOrVal<HttpResponse> Close() override { return m_status; }
-    StatusOrVal<ReadSourceResult> Read(char*, std::size_t) override
-    {
-        return m_status;
-    }
+    StatusOrVal<ReadSourceResult> Read(char*, std::size_t) override { return m_status; }
 
 private:
     Status m_status;

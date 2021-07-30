@@ -16,12 +16,12 @@
 
 #pragma once
 
+#include "cloudstorageapi/client_options.h"
 #include "cloudstorageapi/internal/empty_response.h"
 #include "cloudstorageapi/internal/file_requests.h"
 #include "cloudstorageapi/internal/folder_requests.h"
 #include "cloudstorageapi/internal/object_read_source.h"
 #include "cloudstorageapi/internal/resumable_upload_session.h"
-#include "cloudstorageapi/client_options.h"
 #include "cloudstorageapi/status.h"
 #include "cloudstorageapi/status_or_val.h"
 #include "cloudstorageapi/storage_quota.h"
@@ -32,7 +32,8 @@ namespace internal {
 /**
  * Defines the interface used to communicate with Google Cloud Storage.
  */
-class RawClient {
+class RawClient
+{
 public:
     virtual ~RawClient() = default;
 
@@ -61,12 +62,11 @@ public:
     virtual StatusOrVal<FileMetadata> PatchFileMetadata(PatchFileMetadataRequest const& request) = 0;
     virtual StatusOrVal<FileMetadata> RenameFile(RenameRequest const& request) = 0;
     virtual StatusOrVal<FileMetadata> InsertFile(InsertFileRequest const& request) = 0;
-    virtual StatusOrVal<std::unique_ptr<ObjectReadSource>> ReadFile(
-        ReadFileRangeRequest const& request) = 0;
-    virtual StatusOrVal<std::unique_ptr<ResumableUploadSession>>
-         CreateResumableSession(ResumableUploadRequest const& request) = 0;
-    virtual StatusOrVal<std::unique_ptr<ResumableUploadSession>>
-         RestoreResumableSession(std::string const& session_id) = 0;
+    virtual StatusOrVal<std::unique_ptr<ObjectReadSource>> ReadFile(ReadFileRangeRequest const& request) = 0;
+    virtual StatusOrVal<std::unique_ptr<ResumableUploadSession>> CreateResumableSession(
+        ResumableUploadRequest const& request) = 0;
+    virtual StatusOrVal<std::unique_ptr<ResumableUploadSession>> RestoreResumableSession(
+        std::string const& session_id) = 0;
     // TODO: The name is expected to be `CopyFile`. But there is a macro in windows.h with this name.
     virtual StatusOrVal<FileMetadata> CopyFileObject(CopyFileRequest const& request) = 0;
     //@}

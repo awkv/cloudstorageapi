@@ -28,28 +28,21 @@ namespace {
 {
     std::ostringstream os;
     os << "Error parsing RFC 3339 timestamp: " << msg
-        << " Valid format is YYYY-MM-DD[Tt]HH:MM:SS[.s+](Z|[+-]HH:MM), got="
-        << timestamp;
+       << " Valid format is YYYY-MM-DD[Tt]HH:MM:SS[.s+](Z|[+-]HH:MM), got=" << timestamp;
     throw std::invalid_argument(os.str());
 }
 
-bool IsLeapYear(int year)
-{
-    return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
-}
+bool IsLeapYear(int year) { return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)); }
 
 namespace {
-    auto constexpr MonthsInYear = 12;
-    auto constexpr HoursInDay = 24;
-    auto constexpr MinutesInHour =
-        std::chrono::seconds(std::chrono::minutes(1)).count();
-    auto constexpr SecondsInMinute =
-        std::chrono::minutes(std::chrono::hours(1)).count();
+auto constexpr MonthsInYear = 12;
+auto constexpr HoursInDay = 24;
+auto constexpr MinutesInHour = std::chrono::seconds(std::chrono::minutes(1)).count();
+auto constexpr SecondsInMinute = std::chrono::minutes(std::chrono::hours(1)).count();
 
-} // namespace
+}  // namespace
 
-std::chrono::system_clock::time_point ParseDateTime(
-    char const*& buffer, std::string const& timestamp)
+std::chrono::system_clock::time_point ParseDateTime(char const*& buffer, std::string const& timestamp)
 {
     // Use std::mktime to compute the number of seconds because RFC 3339 requires
     // working with civil time, including the annoying leap seconds, and mktime
@@ -59,17 +52,16 @@ std::chrono::system_clock::time_point ParseDateTime(
     int hours, minutes, seconds;
 
     int pos;
-    auto count =
-        std::sscanf(buffer, "%4d-%2d-%2d%c%2d:%2d:%2d%n", &year, &month, &day,
-            &date_time_separator, &hours, &minutes, &seconds, &pos);
+    auto count = std::sscanf(buffer, "%4d-%2d-%2d%c%2d:%2d:%2d%n", &year, &month, &day, &date_time_separator, &hours,
+                             &minutes, &seconds, &pos);
     // All the fields up to this point have fixed width, so total width must be:
     auto constexpr ExpectedWidth = 19;
     auto constexpr ExpectedFields = 7;
     if (count != ExpectedFields || pos != ExpectedWidth)
     {
         ReportError(timestamp,
-            "Invalid format for RFC 3339 timestamp detected while parsing"
-            " the base date and time portion.");
+                    "Invalid format for RFC 3339 timestamp detected while parsing"
+                    " the base date and time portion.");
     }
     if (date_time_separator != 'T' && date_time_separator != 't')
     {
@@ -134,8 +126,7 @@ std::chrono::system_clock::time_point ParseDateTime(
     return std::chrono::system_clock::from_time_t(std::mktime(&tm));
 }
 
-std::chrono::system_clock::duration ParseFractionalSeconds(
-    char const*& buffer, std::string const& timestamp)
+std::chrono::system_clock::duration ParseFractionalSeconds(char const*& buffer, std::string const& timestamp)
 {
     if (buffer[0] != '.')
     {
@@ -168,8 +159,7 @@ std::chrono::system_clock::duration ParseFractionalSeconds(
         std::chrono::nanoseconds(fractional_seconds));
 }
 
-std::chrono::seconds ParseOffset(char const*& buffer,
-    std::string const& timestamp)
+std::chrono::seconds ParseOffset(char const*& buffer, std::string const& timestamp)
 {
     if (buffer[0] == '+' || buffer[0] == '-')
     {
@@ -196,11 +186,9 @@ std::chrono::seconds ParseOffset(char const*& buffer,
         using std::chrono::duration_cast;
         if (positive)
         {
-            return duration_cast<std::chrono::seconds>(std::chrono::hours(hours) +
-                std::chrono::minutes(minutes));
+            return duration_cast<std::chrono::seconds>(std::chrono::hours(hours) + std::chrono::minutes(minutes));
         }
-        return duration_cast<std::chrono::seconds>(-std::chrono::hours(hours) -
-            std::chrono::minutes(minutes));
+        return duration_cast<std::chrono::seconds>(-std::chrono::hours(hours) - std::chrono::minutes(minutes));
     }
     if (buffer[0] != 'Z' && buffer[0] != 'z')
     {
@@ -223,11 +211,10 @@ std::string FormatFractional(std::chrono::nanoseconds ns)
     auto constexpr MaxNanosecondsDigits = 9;
     auto constexpr BufferSize = 16;
     static_assert(BufferSize > (MaxNanosecondsDigits  // digits
-        + 1                    // period
-        + 1),                  // NUL terminator
-        "Buffer is not large enough for printing nanoseconds");
-    auto constexpr NanosecondsPerMillisecond =
-        nanoseconds(milliseconds(1)).count();
+                                + 1                   // period
+                                + 1),                 // NUL terminator
+                  "Buffer is not large enough for printing nanoseconds");
+    auto constexpr NanosecondsPerMillisecond = nanoseconds(milliseconds(1)).count();
     auto constexpr MillisecondsPerSecond = milliseconds(seconds(1)).count();
 
     std::array<char, BufferSize> buffer{};
@@ -247,8 +234,7 @@ std::string FormatFractional(std::chrono::nanoseconds ns)
         return buffer.data();
     }
 
-    std::snprintf(buffer.data(), buffer.size(), ".%09lld",
-        static_cast<long long>(ns.count()));
+    std::snprintf(buffer.data(), buffer.size(), ".%09lld", static_cast<long long>(ns.count()));
     return buffer.data();
 }
 
@@ -271,16 +257,14 @@ std::tm AsUtcTm(std::chrono::system_clock::time_point tp)
 namespace csa {
 namespace internal {
 
-std::chrono::system_clock::time_point ParseRfc3339(
-    std::string const& timestamp)
+std::chrono::system_clock::time_point ParseRfc3339(std::string const& timestamp)
 {
     // TODO: dynamically change the timezone offset.
     // Because this computation is a bit expensive, assume the timezone offset
     // does not change during the lifetime of the program.  This function takes
     // the current time, converts to UTC and then convert back to a time_t.  The
     // difference is the offset.
-    static std::chrono::seconds const LocalTimeOffset = []()
-    {
+    static std::chrono::seconds const LocalTimeOffset = []() {
         auto now = std::time(nullptr);
         std::tm lcl;
         // The standard C++ function to convert time_t to a struct tm is not thread
@@ -313,14 +297,14 @@ std::string FormatRfc3339(std::chrono::system_clock::time_point tp)
 {
     auto constexpr TimestampFormatSize = 256;
     static_assert(TimestampFormatSize > ((4 + 1)    // YYYY-
-                                        + (2 + 1)  // MM-
-                                        + 2        // DD
-                                        + 1        // T
-                                        + (2 + 1)  // HH:
-                                        + (2 + 1)  // MM:
-                                        + 2        // SS
-                                        + 1),      // Z
-                                        "Buffer size not large enough for YYYY-MM-DDTHH:MM:SSZ format");
+                                         + (2 + 1)  // MM-
+                                         + 2        // DD
+                                         + 1        // T
+                                         + (2 + 1)  // HH:
+                                         + (2 + 1)  // MM:
+                                         + 2        // SS
+                                         + 1),      // Z
+                  "Buffer size not large enough for YYYY-MM-DDTHH:MM:SSZ format");
 
     std::tm tm = AsUtcTm(tp);
     std::array<char, TimestampFormatSize> buffer{};
@@ -330,8 +314,7 @@ std::string FormatRfc3339(std::chrono::system_clock::time_point tp)
     // Add the fractional seconds...
     auto duration = tp.time_since_epoch();
     using std::chrono::duration_cast;
-    auto fractional = duration_cast<std::chrono::nanoseconds>(
-        duration - duration_cast<std::chrono::seconds>(duration));
+    auto fractional = duration_cast<std::chrono::nanoseconds>(duration - duration_cast<std::chrono::seconds>(duration));
     result += FormatFractional(fractional);
     result += "Z";
     return result;

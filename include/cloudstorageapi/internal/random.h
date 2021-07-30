@@ -56,9 +56,7 @@ Generator MakePRNG()
     // on the size of its state.  The size in bits is `Generator::state_size`.
     // We convert that to the number of `unsigned int` values; as this is what
     // std::random_device returns.
-    auto const S =
-        Generator::state_size *
-        (Generator::word_size / std::numeric_limits<unsigned int>::digits);
+    auto const S = Generator::state_size * (Generator::word_size / std::numeric_limits<unsigned int>::digits);
 
     // Extract the necessary number of entropy bits.
     std::vector<unsigned int> entropy(S);

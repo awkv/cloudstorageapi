@@ -19,21 +19,18 @@ namespace csa {
 
 bool operator==(FolderMetadata const& lhs, FolderMetadata const& rhs)
 {
-    return static_cast<CommonMetadata const&>(lhs) == rhs &&
-        lhs.m_CanCreateFolders == rhs.m_CanCreateFolders &&
-        lhs.m_CanUploadFile == rhs.m_CanUploadFile;
+    return static_cast<CommonMetadata const&>(lhs) == rhs && lhs.m_CanCreateFolders == rhs.m_CanCreateFolders &&
+           lhs.m_CanUploadFile == rhs.m_CanUploadFile;
 }
 
 std::ostream& operator<<(std::ostream& os, FolderMetadata const& rhs)
 {
     internal::IosFlagsSaver save_format(os);
-    os << std::boolalpha << "FolderMetadata={"
-       << static_cast<CommonMetadata const&>(rhs)
-       << ", CanCreateFolders=" << (rhs.GetCanCreateFolders())
-       << ", CanUploadFiles=" << (rhs.GetCanUploadFile())
+    os << std::boolalpha << "FolderMetadata={" << static_cast<CommonMetadata const&>(rhs)
+       << ", CanCreateFolders=" << (rhs.GetCanCreateFolders()) << ", CanUploadFiles=" << (rhs.GetCanUploadFile())
        << "}";
 
     return os;
 }
 
-} // namespace csa
+}  // namespace csa

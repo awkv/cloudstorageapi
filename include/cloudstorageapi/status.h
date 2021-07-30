@@ -56,13 +56,12 @@ std::ostream& operator<<(std::ostream& os, StatusCode code);
  *
  * It contains the status code and error message (if applicable) from a JSON request.
  */
-class Status 
+class Status
 {
 public:
     Status() = default;
 
-    explicit Status(StatusCode statusCode, std::string message)
-        : m_code(statusCode), m_message(std::move(message)) {}
+    explicit Status(StatusCode statusCode, std::string message) : m_code(statusCode), m_message(std::move(message)) {}
 
     bool Ok() const { return m_code == StatusCode::Ok; }
 
@@ -74,21 +73,21 @@ private:
     std::string m_message;
 };
 
-inline std::ostream& operator<<(std::ostream& os, Status const& rhs) {
-  return os << rhs.Message() << " [" << StatusCodeToString(rhs.Code()) << "]";
+inline std::ostream& operator<<(std::ostream& os, Status const& rhs)
+{
+    return os << rhs.Message() << " [" << StatusCodeToString(rhs.Code()) << "]";
 }
 
-inline bool operator==(Status const& lhs, Status const& rhs) {
-  return lhs.Code() == rhs.Code() && lhs.Message() == rhs.Message();
+inline bool operator==(Status const& lhs, Status const& rhs)
+{
+    return lhs.Code() == rhs.Code() && lhs.Message() == rhs.Message();
 }
 
-inline bool operator!=(Status const& lhs, Status const& rhs) {
-  return !(lhs == rhs);
-}
+inline bool operator!=(Status const& lhs, Status const& rhs) { return !(lhs == rhs); }
 
 class RuntimeStatusError : public std::runtime_error
 {
- public:
+public:
     explicit RuntimeStatusError(Status status);
 
     Status const& GetStatus() const { return m_status; }

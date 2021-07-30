@@ -22,7 +22,7 @@
 namespace csa {
 
 using ListFolderReader = internal::PaginationRange<internal::ListFolderResponse::MetadataItem,
-    internal::ListFolderRequest, internal::ListFolderResponse>;
+                                                   internal::ListFolderRequest, internal::ListFolderResponse>;
 
 using ListFolderIterator = ListFolderReader::iterator;
 

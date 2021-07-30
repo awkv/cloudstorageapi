@@ -51,8 +51,8 @@ TEST(AssertOkTest, AssertionFailed)
 {
     EXPECT_FATAL_FAILURE(
         {
-          Status status(StatusCode::Internal, "oh no!");
-          ASSERT_STATUS_OK(status);
+            Status status(StatusCode::Internal, "oh no!");
+            ASSERT_STATUS_OK(status);
         },
         "Value of: status\nExpected: is OK\nActual: oh no! [INTERNAL]");
 }
@@ -61,8 +61,8 @@ TEST(AssertOkTest, AssertionFailedStatusOr)
 {
     EXPECT_FATAL_FAILURE(
         {
-          StatusOrVal<int> statusOrVal(Status(StatusCode::Internal, "oh no!"));
-          ASSERT_STATUS_OK(statusOrVal);
+            StatusOrVal<int> statusOrVal(Status(StatusCode::Internal, "oh no!"));
+            ASSERT_STATUS_OK(statusOrVal);
         },
         "Value of: statusOrVal\nExpected: is OK\nActual: oh no! [INTERNAL]");
 }
@@ -71,22 +71,22 @@ TEST(AssertOkTest, AssertionFailedDescription)
 {
     EXPECT_FATAL_FAILURE(
         {
-          Status status(StatusCode::Internal, "oh no!");
-          ASSERT_STATUS_OK(status) << "my precious assertion failed";
+            Status status(StatusCode::Internal, "oh no!");
+            ASSERT_STATUS_OK(status) << "my precious assertion failed";
         },
         "Value of: status\nExpected: is OK\nActual: oh no! [INTERNAL]\nmy "
-            "precious assertion failed");
+        "precious assertion failed");
 }
 
 TEST(AssertOkTest, AssertionFailedDescriptionStatusOr)
 {
     EXPECT_FATAL_FAILURE(
         {
-          StatusOrVal<int> statusOrVal(Status(StatusCode::Internal, "oh no!"));
-          ASSERT_STATUS_OK(statusOrVal) << "my precious assertion failed";
+            StatusOrVal<int> statusOrVal(Status(StatusCode::Internal, "oh no!"));
+            ASSERT_STATUS_OK(statusOrVal) << "my precious assertion failed";
         },
         "Value of: statusOrVal\nExpected: is OK\nActual: oh no! [INTERNAL]\nmy "
-            "precious assertion failed");
+        "precious assertion failed");
 }
 
 TEST(ExpectOkTest, ExpectOk)
@@ -117,8 +117,8 @@ TEST(ExpectOkTest, ExpectionFailed)
 {
     EXPECT_NONFATAL_FAILURE(
         {
-          Status status(StatusCode::Internal, "oh no!");
-          EXPECT_STATUS_OK(status);
+            Status status(StatusCode::Internal, "oh no!");
+            EXPECT_STATUS_OK(status);
         },
         "Value of: status\nExpected: is OK\nActual: oh no! [INTERNAL]");
 }
@@ -127,8 +127,8 @@ TEST(ExpectOkTest, ExpectionFailedStatusOr)
 {
     EXPECT_NONFATAL_FAILURE(
         {
-          StatusOrVal<int> statusOrVal(Status(StatusCode::Internal, "oh no!"));
-          EXPECT_STATUS_OK(statusOrVal);
+            StatusOrVal<int> statusOrVal(Status(StatusCode::Internal, "oh no!"));
+            EXPECT_STATUS_OK(statusOrVal);
         },
         "Value of: statusOrVal\nExpected: is OK\nActual: oh no! [INTERNAL]");
 }
@@ -137,20 +137,20 @@ TEST(ExpectOkTest, ExpectionFailedDescription)
 {
     EXPECT_NONFATAL_FAILURE(
         {
-          Status status(StatusCode::Internal, "oh no!");
-          EXPECT_STATUS_OK(status) << "my precious assertion failed";
+            Status status(StatusCode::Internal, "oh no!");
+            EXPECT_STATUS_OK(status) << "my precious assertion failed";
         },
         "Value of: status\nExpected: is OK\nActual: oh no! [INTERNAL]\nmy "
-            "precious assertion failed");
+        "precious assertion failed");
 }
 
 TEST(ExpectOkTest, ExpectionFailedDescriptionStatusOr)
 {
     EXPECT_NONFATAL_FAILURE(
         {
-          StatusOrVal<int> statusOrVal(Status(StatusCode::Internal, "oh no!"));
-          EXPECT_STATUS_OK(statusOrVal) << "my precious assertion failed";
+            StatusOrVal<int> statusOrVal(Status(StatusCode::Internal, "oh no!"));
+            EXPECT_STATUS_OK(statusOrVal) << "my precious assertion failed";
         },
         "Value of: statusOrVal\nExpected: is OK\nActual: oh no! [INTERNAL]\nmy "
-            "precious assertion failed");
+        "precious assertion failed");
 }

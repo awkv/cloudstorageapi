@@ -42,7 +42,8 @@ TEST(BenchmarksRandom, Basic)
  * the test would just crash (or not compile, as we use EXPECT_NO_THROW). It is
  * simpler to compile the test only when exceptions are enabled.
  */
-TEST(Random, Threads) {
+TEST(Random, Threads)
+{
     auto constexpr NumWorkers = 64;
     auto constexpr Iterations = 100;
     std::vector<std::future<int>> workers(NumWorkers);
@@ -55,11 +56,12 @@ TEST(Random, Threads) {
                 (void)g();
             }
             return Iterations;
-            });
         });
+    });
 
     int count = 0;
-    for (auto& f : workers) {
+    for (auto& f : workers)
+    {
         SCOPED_TRACE("testing with worker " + std::to_string(count++));
         int result = 0;
         EXPECT_NO_THROW(result = f.get());

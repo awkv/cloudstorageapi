@@ -16,32 +16,26 @@
 
 #include "cloudstorageapi/internal/file_streambuf.h"
 #include "cloudstorageapi/internal/file_requests.h"
-#include "cloudstorageapi/internal/utils.h"
 #include "cloudstorageapi/internal/log.h"
+#include "cloudstorageapi/internal/utils.h"
 #include <algorithm>
 #include <sstream>
 
 namespace csa {
 namespace internal {
 
-FileReadStreambuf::FileReadStreambuf(
-    ReadFileRangeRequest const& request,
-    std::unique_ptr<ObjectReadSource> source)
+FileReadStreambuf::FileReadStreambuf(ReadFileRangeRequest const& request, std::unique_ptr<ObjectReadSource> source)
     : m_source(std::move(source))
 {
 }
 
-FileReadStreambuf::FileReadStreambuf(ReadFileRangeRequest const& request,
-    Status status)
+FileReadStreambuf::FileReadStreambuf(ReadFileRangeRequest const& request, Status status)
     : m_source(new ObjectReadErrorSource(status))
 {
     m_status = std::move(status);
 }
 
-bool FileReadStreambuf::IsOpen() const
-{
-    return m_source->IsOpen();
-}
+bool FileReadStreambuf::IsOpen() const { return m_source->IsOpen(); }
 
 void FileReadStreambuf::Close()
 {
@@ -65,8 +59,7 @@ StatusOrVal<FileReadStreambuf::int_type> FileReadStreambuf::Peek()
 
     m_currentIosBuffer.resize(128 * 1024);
     std::size_t n = m_currentIosBuffer.size();
-    StatusOrVal<ReadSourceResult> readResult =
-        m_source->Read(m_currentIosBuffer.data(), n);
+    StatusOrVal<ReadSourceResult> readResult = m_source->Read(m_currentIosBuffer.data(), n);
     if (!readResult.Ok())
     {
         return std::move(readResult).GetStatus();
@@ -99,7 +92,8 @@ StatusOrVal<FileReadStreambuf::int_type> FileReadStreambuf::Peek()
 FileReadStreambuf::int_type FileReadStreambuf::underflow()
 {
     auto nextChar = Peek();
-    if (!nextChar) {
+    if (!nextChar)
+    {
         return ReportError(nextChar.GetStatus());
     }
 
@@ -108,8 +102,7 @@ FileReadStreambuf::int_type FileReadStreambuf::underflow()
 
 std::streamsize FileReadStreambuf::xsgetn(char* s, std::streamsize count)
 {
-    CSA_LOG_INFO("{}(): count={}, in_avail={}, status={}", __func__, count,
-         in_avail(), m_status);
+    CSA_LOG_INFO("{}(): count={}, in_avail={}, status={}", __func__, count, in_avail(), m_status);
     // This function optimizes stream.read(), the data is copied directly from the
     // data source (typically libcurl) into a buffer provided by the application.
     std::streamsize offset = 0;
@@ -126,25 +119,23 @@ std::streamsize FileReadStreambuf::xsgetn(char* s, std::streamsize count)
     offset += fromInternal;
     if (offset >= count)
     {
-        CSA_LOG_INFO("{}(): count={}, in_avail={}, offset={}", __func__, count,
-            in_avail(), offset);
+        CSA_LOG_INFO("{}(): count={}, in_avail={}, offset={}", __func__, count, in_avail(), offset);
         ReportError(Status());
         return offset;
     }
 
-    StatusOrVal<ReadSourceResult> readResult =
-        m_source->Read(s + offset, static_cast<std::size_t>(count - offset));
+    StatusOrVal<ReadSourceResult> readResult = m_source->Read(s + offset, static_cast<std::size_t>(count - offset));
     // If there was an error set the internal state, but we still return the
     // number of bytes.
     if (!readResult)
     {
-        CSA_LOG_INFO("{}(): count={}, in_avail={}, offset={}, status={}", __func__ , count,
-            in_avail(), offset, readResult.GetStatus());
+        CSA_LOG_INFO("{}(): count={}, in_avail={}, offset={}, status={}", __func__, count, in_avail(), offset,
+                     readResult.GetStatus());
         ReportError(std::move(readResult).GetStatus());
         return offset;
     }
-    CSA_LOG_INFO("{}(): count={}, in_avail={}, offset={}, readResult->bytes_received={}",
-        __func__, count, in_avail(), offset, readResult->m_bytesReceived);
+    CSA_LOG_INFO("{}(): count={}, in_avail={}, offset={}, readResult->bytes_received={}", __func__, count, in_avail(),
+                 offset, readResult->m_bytesReceived);
 
     offset += readResult->m_bytesReceived;
 
@@ -193,13 +184,10 @@ void FileReadStreambuf::SetEmptyRegion()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-FileWriteStreambuf::FileWriteStreambuf(
-    std::unique_ptr<ResumableUploadSession> uploadSession,
-    std::size_t maxBufferSize)
+FileWriteStreambuf::FileWriteStreambuf(std::unique_ptr<ResumableUploadSession> uploadSession, std::size_t maxBufferSize)
     : m_uploadSession(std::move(uploadSession)),
-    m_maxBufferSize(RoundUpToQuantum(maxBufferSize, m_uploadSession->GetFileChunkSizeQuantum())),
-    m_lastResponse(ResumableUploadResponse{
-        {}, 0, {}, ResumableUploadResponse::UploadState::InProgress, {} })
+      m_maxBufferSize(RoundUpToQuantum(maxBufferSize, m_uploadSession->GetFileChunkSizeQuantum())),
+      m_lastResponse(ResumableUploadResponse{{}, 0, {}, ResumableUploadResponse::UploadState::InProgress, {}})
 {
     m_currentIosBuffer.resize(m_maxBufferSize);
     auto pbeg = m_currentIosBuffer.data();
@@ -220,10 +208,7 @@ StatusOrVal<ResumableUploadResponse> FileWriteStreambuf::Close()
     return FlushFinal();
 }
 
-bool FileWriteStreambuf::IsOpen() const
-{
-    return static_cast<bool>(m_uploadSession) && !m_uploadSession->Done();
-}
+bool FileWriteStreambuf::IsOpen() const { return static_cast<bool>(m_uploadSession) && !m_uploadSession->Done(); }
 
 int FileWriteStreambuf::sync()
 {
@@ -235,8 +220,7 @@ int FileWriteStreambuf::sync()
     return 0;
 }
 
-std::streamsize FileWriteStreambuf::xsputn(char const* s,
-    std::streamsize count)
+std::streamsize FileWriteStreambuf::xsputn(char const* s, std::streamsize count)
 {
     if (!IsOpen())
     {
@@ -247,8 +231,7 @@ std::streamsize FileWriteStreambuf::xsputn(char const* s,
     while (bytesCopied != count)
     {
         std::streamsize remainingBufferSize = epptr() - pptr();
-        std::streamsize bytesToCopy =
-            std::min(count - bytesCopied, remainingBufferSize);
+        std::streamsize bytesToCopy = std::min(count - bytesCopied, remainingBufferSize);
         std::copy(s, s + bytesToCopy, pptr());
         pbump(static_cast<int>(bytesToCopy));
         bytesCopied += bytesToCopy;
@@ -260,10 +243,8 @@ std::streamsize FileWriteStreambuf::xsputn(char const* s,
         // resumable_session_id can still be retrieved.
         if (!m_lastResponse.Ok())
         {
-            m_uploadSession = std::unique_ptr<ResumableUploadSession>(
-                new ResumableUploadSessionError(m_lastResponse.GetStatus(),
-                    GetNextExpectedByte(),
-                    GetResumableSessionId()));
+            m_uploadSession = std::unique_ptr<ResumableUploadSession>(new ResumableUploadSessionError(
+                m_lastResponse.GetStatus(), GetNextExpectedByte(), GetResumableSessionId()));
             return traits_type::eof();
         }
     }
@@ -361,8 +342,8 @@ StatusOrVal<ResumableUploadResponse> FileWriteStreambuf::Flush()
         if (bytesUploaded < 0)
         {
             std::ostringstream errorMessage;
-            errorMessage << "Could not continue upload stream. CSA requested byte "
-                << actualNextByte << " which has already been uploaded.";
+            errorMessage << "Could not continue upload stream. CSA requested byte " << actualNextByte
+                         << " which has already been uploaded.";
             return Status(StatusCode::Aborted, errorMessage.str());
         }
     }
@@ -370,9 +351,8 @@ StatusOrVal<ResumableUploadResponse> FileWriteStreambuf::Flush()
     {
         std::ostringstream errorMessage;
         errorMessage << "Could not continue upload stream. "
-            << "CSA requested unexpected byte. (expected: "
-            << expectedNextByte << ", actual: " << actualNextByte
-            << ")";
+                     << "CSA requested unexpected byte. (expected: " << expectedNextByte
+                     << ", actual: " << actualNextByte << ")";
         return Status(StatusCode::Aborted, errorMessage.str());
     }
 
@@ -382,5 +362,5 @@ StatusOrVal<ResumableUploadResponse> FileWriteStreambuf::Flush()
     return m_lastResponse;
 }
 
-} // namespace internal
-} // namespace csa
+}  // namespace internal
+}  // namespace csa

@@ -14,8 +14,7 @@
 
 namespace csa {
 
-constexpr auto CSA_VERSION_MAJOR @CSA_VERSION_MAJOR@
-constexpr auto CSA_VERSION_MINOR @CSA_VERSION_MINOR@
-constexpr auto CSA_VERSION_PATCH @CSA_VERSION_PATCH@
+constexpr auto CSA_VERSION_MAJOR @CSA_VERSION_MAJOR @ constexpr auto CSA_VERSION_MINOR @CSA_VERSION_MINOR
+    @ constexpr auto CSA_VERSION_PATCH @CSA_VERSION_PATCH @
 
-} // namespace csa
+}  // namespace csa

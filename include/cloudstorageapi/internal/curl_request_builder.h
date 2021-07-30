@@ -33,8 +33,7 @@ class CurlRequestBuilder
 public:
     using RequestType = CurlRequest;
 
-    explicit CurlRequestBuilder(std::string base_url,
-        std::shared_ptr<CurlHandleFactory> factory);
+    explicit CurlRequestBuilder(std::string base_url, std::shared_ptr<CurlHandleFactory> factory);
 
     /**
      * Creates a http request with the given payload.
@@ -122,8 +121,7 @@ public:
     CurlRequestBuilder& AddHeader(std::string const& header);
 
     // Adds a parameter for a request.
-    CurlRequestBuilder& AddQueryParameter(std::string const& key,
-        std::string const& value);
+    CurlRequestBuilder& AddQueryParameter(std::string const& key, std::string const& value);
 
     // Changes the http method used for this request.
     CurlRequestBuilder& SetMethod(std::string const& method);
@@ -138,16 +136,10 @@ public:
     std::string UserAgentSuffix() const;
 
     // URL-escapes a string.
-    CurlString MakeEscapedString(std::string const& s)
-    {
-        return m_handle.MakeEscapedString(s);
-    }
+    CurlString MakeEscapedString(std::string const& s) { return m_handle.MakeEscapedString(s); }
 
     // Get the last local IP address from the factory.
-    std::string LastClientIpAddress() const
-    {
-        return m_factory->LastClientIpAddress();
-    }
+    std::string LastClientIpAddress() const { return m_factory->LastClientIpAddress(); }
 
 private:
     void ValidateBuilderState(char const* where) const;

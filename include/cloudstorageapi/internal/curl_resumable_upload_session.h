@@ -29,16 +29,15 @@ namespace internal {
 class CurlResumableUploadSession : public ResumableUploadSession
 {
 public:
-    explicit CurlResumableUploadSession(std::shared_ptr<CurlClientBase> client,
-        std::string sessionId)
+    explicit CurlResumableUploadSession(std::shared_ptr<CurlClientBase> client, std::string sessionId)
         : m_client(std::move(client)), m_sessionId(std::move(sessionId))
-    {}
+    {
+    }
 
-    StatusOrVal<ResumableUploadResponse> UploadChunk(
-        std::string const& buffer) override;
+    StatusOrVal<ResumableUploadResponse> UploadChunk(std::string const& buffer) override;
 
-    StatusOrVal<ResumableUploadResponse> UploadFinalChunk(
-        std::string const& buffer, std::uint64_t upload_size) override;
+    StatusOrVal<ResumableUploadResponse> UploadFinalChunk(std::string const& buffer,
+                                                          std::uint64_t upload_size) override;
 
     StatusOrVal<ResumableUploadResponse> ResetSession() override;
 
@@ -50,14 +49,10 @@ public:
 
     bool Done() const override { return m_done; }
 
-    StatusOrVal<ResumableUploadResponse> const& GetLastResponse() const override
-    {
-        return m_lastResponse;
-    }
+    StatusOrVal<ResumableUploadResponse> const& GetLastResponse() const override { return m_lastResponse; }
 
 private:
-    void Update(StatusOrVal<ResumableUploadResponse> const& result,
-        std::size_t chunk_size);
+    void Update(StatusOrVal<ResumableUploadResponse> const& result, std::size_t chunk_size);
 
     std::shared_ptr<CurlClientBase> m_client;
     std::string m_sessionId;

@@ -21,18 +21,13 @@ namespace csa {
 namespace testing {
 namespace internal {
 
-ScopedEnvironment::ScopedEnvironment(std::string variable,
-    std::optional<std::string> const& value)
-    : m_variable(std::move(variable)),
-    m_prevValue(csa::internal::GetEnv(m_variable.c_str()))
+ScopedEnvironment::ScopedEnvironment(std::string variable, std::optional<std::string> const& value)
+    : m_variable(std::move(variable)), m_prevValue(csa::internal::GetEnv(m_variable.c_str()))
 {
     csa::internal::SetEnv(m_variable.c_str(), value);
 }
 
-ScopedEnvironment::~ScopedEnvironment()
-{
-    csa::internal::SetEnv(m_variable.c_str(), std::move(m_prevValue));
-}
+ScopedEnvironment::~ScopedEnvironment() { csa::internal::SetEnv(m_variable.c_str(), std::move(m_prevValue)); }
 
 }  // namespace internal
 }  // namespace testing

@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include "cloudstorageapi/status_or_val.h"
 #include "cloudstorageapi/client_options.h"
+#include "cloudstorageapi/status_or_val.h"
 #include "curl_wrappers.h"
 #include <curl/curl.h>
 
@@ -32,7 +32,7 @@ namespace internal {
  */
 class CurlHandle
 {
- public:
+public:
     explicit CurlHandle();
     ~CurlHandle();
 
@@ -60,72 +60,69 @@ class CurlHandle
     }
 
     /**
-    * Define the callback type for sending data.
-    *
-    * In the conventions of libcurl, the read callbacks are invoked by the
-    * library to gather more data to send to the server.
-    *
-    * @see https://curl.haxx.se/libcurl/c/CURLOPT_READFUNCTION.html
-    */
-    using ReaderCallback = std::function<std::size_t(char* ptr, std::size_t size,
-                                                    std::size_t nmemb)>;
+     * Define the callback type for sending data.
+     *
+     * In the conventions of libcurl, the read callbacks are invoked by the
+     * library to gather more data to send to the server.
+     *
+     * @see https://curl.haxx.se/libcurl/c/CURLOPT_READFUNCTION.html
+     */
+    using ReaderCallback = std::function<std::size_t(char* ptr, std::size_t size, std::size_t nmemb)>;
 
     /**
-    * Define the callback type for receiving data.
-    *
-    * In the conventions of libcurl, the write callbacks are invoked by the
-    * library when more data has been received.
-    *
-    * @see https://curl.haxx.se/libcurl/c/CURLOPT_WRITEFUNCTION.html
-    */
-    using WriterCallback = std::function<std::size_t(void* ptr, std::size_t size,
-                                                    std::size_t nmemb)>;
+     * Define the callback type for receiving data.
+     *
+     * In the conventions of libcurl, the write callbacks are invoked by the
+     * library when more data has been received.
+     *
+     * @see https://curl.haxx.se/libcurl/c/CURLOPT_WRITEFUNCTION.html
+     */
+    using WriterCallback = std::function<std::size_t(void* ptr, std::size_t size, std::size_t nmemb)>;
 
     /**
-    * Define the callback type for receiving header data.
-    *
-    * In the conventions of libcurl, the header callbacks are invoked when new
-    * header-like data is received.
-    *
-    * @see https://curl.haxx.se/libcurl/c/CURLOPT_HEADERFUNCTION.html
-    */
-    using HeaderCallback = std::function<std::size_t(
-        char* contents, std::size_t size, std::size_t nitems)>;
+     * Define the callback type for receiving header data.
+     *
+     * In the conventions of libcurl, the header callbacks are invoked when new
+     * header-like data is received.
+     *
+     * @see https://curl.haxx.se/libcurl/c/CURLOPT_HEADERFUNCTION.html
+     */
+    using HeaderCallback = std::function<std::size_t(char* contents, std::size_t size, std::size_t nitems)>;
 
     /**
-    * Sets the reader callback.
-    *
-    * @param callback this function must remain valid until either
-    *     `ResetReaderCallback` returns, or this object is destroyed.
-    *
-    * @see the notes on `ReaderCallback` for the semantics of the callback.
-    */
+     * Sets the reader callback.
+     *
+     * @param callback this function must remain valid until either
+     *     `ResetReaderCallback` returns, or this object is destroyed.
+     *
+     * @see the notes on `ReaderCallback` for the semantics of the callback.
+     */
     void SetReaderCallback(ReaderCallback callback);
 
     // Resets the reader callback.
     void ResetReaderCallback();
 
     /**
-    * Sets the writer callback.
-    *
-    * @param callback this function must remain valid until either
-    *     `ResetWriterCallback` returns, or this object is destroyed.
-    *
-    * @see the notes on `WriterCallback` for the semantics of the callback.
-    */
+     * Sets the writer callback.
+     *
+     * @param callback this function must remain valid until either
+     *     `ResetWriterCallback` returns, or this object is destroyed.
+     *
+     * @see the notes on `WriterCallback` for the semantics of the callback.
+     */
     void SetWriterCallback(WriterCallback callback);
 
     // Resets the reader callback.
     void ResetWriterCallback();
 
     /**
-    * Sets the header callback.
-    *
-    * @param callback this function must remain valid until either
-    *    `ResetHeaderCallback` returns, or this object is destroyed
-    *
-    * @see the notes on `ReaderCallback` for the semantics of the callback.
-    */
+     * Sets the header callback.
+     *
+     * @param callback this function must remain valid until either
+     *    `ResetHeaderCallback` returns, or this object is destroyed
+     *
+     * @see the notes on `ReaderCallback` for the semantics of the callback.
+     */
     void SetHeaderCallback(HeaderCallback callback);
 
     /// Resets the reader callback.
@@ -146,9 +143,7 @@ class CurlHandle
     // URL-escapes a string.
     CurlString MakeEscapedString(std::string const& s)
     {
-        return CurlString(
-            curl_easy_escape(m_handle.get(), s.data(), static_cast<int>(s.length())),
-            &curl_free);
+        return CurlString(curl_easy_escape(m_handle.get(), s.data(), static_cast<int>(s.length())), &curl_free);
     }
 
     template <typename T>
@@ -193,8 +188,7 @@ class CurlHandle
     // Convert a CURLE_* error code to a google::cloud::Status().
     static Status AsStatus(CURLcode e, char const* where);
 
- private:
-
+private:
     explicit CurlHandle(CurlPtr ptr) : m_handle(std::move(ptr)) {}
 
     friend class CurlDownloadRequest;

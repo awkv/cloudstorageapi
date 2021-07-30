@@ -40,11 +40,10 @@ public:
     CurlClientBase& operator=(CurlClientBase const& rhs) = delete;
     CurlClientBase& operator=(CurlClientBase&& rhs) = delete;
 
-    using LockFunction =
-        std::function<void(CURL*, curl_lock_data, curl_lock_access)>;
+    using LockFunction = std::function<void(CURL*, curl_lock_data, curl_lock_access)>;
     using UnlockFunction = std::function<void(CURL*, curl_lock_data)>;
 
-    ClientOptions const& GetClientOptions() const override { return m_options;  }
+    ClientOptions const& GetClientOptions() const override { return m_options; }
 
     StatusOrVal<std::string> AuthorizationHeader(std::shared_ptr<auth::Credentials> const&);
 
@@ -58,10 +57,8 @@ public:
     // them is very different from the standard retry loop. Also note that these
     // are virtual functions only because we need to override them in the unit
     // tests.
-    virtual StatusOrVal<ResumableUploadResponse> UploadChunk(
-        UploadChunkRequest const&) = 0;
-    virtual StatusOrVal<ResumableUploadResponse> QueryResumableUpload(
-        QueryResumableUploadRequest const&) = 0;
+    virtual StatusOrVal<ResumableUploadResponse> UploadChunk(UploadChunkRequest const&) = 0;
+    virtual StatusOrVal<ResumableUploadResponse> QueryResumableUpload(QueryResumableUploadRequest const&) = 0;
     //@}
 
 protected:
@@ -74,8 +71,7 @@ protected:
 
     /// Applies the common configuration parameters to @p builder.
     template <typename Request>
-    Status SetupBuilder(CurlRequestBuilder& builder, Request const& request,
-        char const* method);
+    Status SetupBuilder(CurlRequestBuilder& builder, Request const& request, char const* method);
 
     ClientOptions m_options;
 
@@ -90,7 +86,7 @@ protected:
     std::mutex m_muRNG;
     DefaultPRNG m_generator;  // GUARDED_BY(m_muRNG);
 
-     // The factories must be listed *after* the CurlShare. libcurl keeps a
+    // The factories must be listed *after* the CurlShare. libcurl keeps a
     // usage count on each CURLSH* handle, which is only released once the CURL*
     // handle is *closed*. So we want the order of destruction to be (1)
     // factories, as that will delete all the CURL* handles, and then (2) CURLSH*.
@@ -100,8 +96,7 @@ protected:
 };
 
 template <typename Request>
-inline Status CurlClientBase::SetupBuilder(CurlRequestBuilder& builder, Request const& request,
-    char const* method)
+inline Status CurlClientBase::SetupBuilder(CurlRequestBuilder& builder, Request const& request, char const* method)
 {
     auto status = SetupBuilderCommon(builder, method);
     if (!status.Ok())

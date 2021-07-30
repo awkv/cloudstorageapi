@@ -25,15 +25,9 @@ namespace auth {
  * Returns the Application Default %Credentials environment variable name.
  * It stores a file path which should be checked when loading default credentials.
  */
-inline constexpr const char* DefaultCredentialsEnvVar()
-{
-    return "CSA_CREDENTIALS";
-}
+inline constexpr const char* DefaultCredentialsEnvVar() { return "CSA_CREDENTIALS"; }
 
-inline constexpr const char* DefaultTestCredentialsEnvVar()
-{
-    return "CSA_TEST_CREDENTIALS";
-}
+inline constexpr const char* DefaultTestCredentialsEnvVar() { return "CSA_TEST_CREDENTIALS"; }
 
 inline constexpr const char* HomeEnvVar()
 {
@@ -41,7 +35,7 @@ inline constexpr const char* HomeEnvVar()
     return "APPDATA";
 #else
     return "HOME";
-#endif // WIN32
+#endif  // WIN32
 }
 
 /**
@@ -53,5 +47,5 @@ std::string DefaultCredentialsFilePathFromEnvVarOrEmpty();
  * Returns the path to the Application Default %Credentials file, if set.
  */
 std::string DefaultCredentialsFilePathFromWellKnownPathOrEmpty();
-} // namespace auth
-} // namespace csa
+}  // namespace auth
+}  // namespace csa

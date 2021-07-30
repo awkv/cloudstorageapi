@@ -45,13 +45,13 @@ public:
 
     CurlRequest(CurlRequest&& rhs) noexcept(false)
         : m_url(std::move(rhs.m_url)),
-        m_headers(std::move(rhs.m_headers)),
-        m_userAgent(std::move(rhs.m_userAgent)),
-        m_responsePayload(std::move(rhs.m_responsePayload)),
-        m_receivedHeaders(std::move(rhs.m_receivedHeaders)),
-        m_socketOptions(rhs.m_socketOptions),
-        m_handle(std::move(rhs.m_handle)),
-        m_factory(std::move(rhs.m_factory))
+          m_headers(std::move(rhs.m_headers)),
+          m_userAgent(std::move(rhs.m_userAgent)),
+          m_responsePayload(std::move(rhs.m_responsePayload)),
+          m_receivedHeaders(std::move(rhs.m_receivedHeaders)),
+          m_socketOptions(rhs.m_socketOptions),
+          m_handle(std::move(rhs.m_handle)),
+          m_factory(std::move(rhs.m_factory))
     {
         ResetOptions();
     }

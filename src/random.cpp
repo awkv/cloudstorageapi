@@ -19,12 +19,12 @@
 namespace csa {
 namespace internal {
 
-std::string Sample(DefaultPRNG& gen, int n, std::string const& population) {
+std::string Sample(DefaultPRNG& gen, int n, std::string const& population)
+{
     std::uniform_int_distribution<std::size_t> rd(0, population.size() - 1);
 
     std::string result(std::size_t(n), '0');
-    std::generate(result.begin(), result.end(),
-        [&rd, &gen, &population]() { return population[rd(gen)]; });
+    std::generate(result.begin(), result.end(), [&rd, &gen, &population]() { return population[rd(gen)]; });
     return result;
 }
 

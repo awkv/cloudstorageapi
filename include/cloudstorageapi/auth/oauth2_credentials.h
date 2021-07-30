@@ -40,7 +40,7 @@ struct OAuth2CredentialsInfo
  * Takes a OAuth2CredentialsInfo and obtains access tokens from the
  * Authorization Service as needed.
  *
- * If the current access token is invalid or nearing expiration, this will 
+ * If the current access token is invalid or nearing expiration, this will
  * class will first obtain a new access token before returning
  * the Authorization header string.
  *
@@ -52,17 +52,14 @@ struct OAuth2CredentialsInfo
  * @tparam ClockType a dependency injection point to fetch the current time.
  *     This should generally not be overridden except for testing.
  */
-template<typename AuthHandler,
-    typename HttpRequestBuilderType = internal::CurlRequestBuilder,
-    typename ClockType = std::chrono::system_clock>
+template <typename AuthHandler, typename HttpRequestBuilderType = internal::CurlRequestBuilder,
+          typename ClockType = std::chrono::system_clock>
 class OAuth2Credentials : public Credentials
 {
 public:
-    explicit OAuth2Credentials(OAuth2CredentialsInfo const& info)
-        : m_clock()
+    explicit OAuth2Credentials(OAuth2CredentialsInfo const& info) : m_clock()
     {
-        HttpRequestBuilderType requestBuilder(
-            info.m_tokenUri, internal::GetDefaultCurlHandleFactory());
+        HttpRequestBuilderType requestBuilder(info.m_tokenUri, internal::GetDefaultCurlHandleFactory());
         m_payload = AuthHandler::BuildRequestPayload(info);
         m_request = requestBuilder.BuildRequest();
     }
@@ -70,8 +67,7 @@ public:
     StatusOrVal<std::string> AuthorizationHeader() override
     {
         std::unique_lock<std::mutex> lock(m_mu);
-        return m_refreshingCreds.AuthorizationHeader(m_clock.now(),
-            [this] { return Refresh(); });
+        return m_refreshingCreds.AuthorizationHeader(m_clock.now(), [this] { return Refresh(); });
     }
 
 private:

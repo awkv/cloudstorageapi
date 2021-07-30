@@ -18,28 +18,27 @@
 
 namespace csa {
 
+/**
+ * This structure represents user information.
+ */
+struct UserInfo
+{
     /**
-     * This structure represents user information.
+     * User email address.
+     * This may not be present in certain contexts
+     * if the user has not made their email address visible to the requester.
      */
-    struct UserInfo
-    {
-        /** 
-         * User email address.
-         * This may not be present in certain contexts
-         * if the user has not made their email address visible to the requester.
-         */
-        std::string m_email;
+    std::string m_email;
 
-        /** A plain text displayable name for this user if available. */
-        std::string m_name;
-    };
+    /** A plain text displayable name for this user if available. */
+    std::string m_name;
+};
 
-    inline std::ostream& operator<<(std::ostream& os, UserInfo const& ui)
-    {
-        os << "user_info={"
-            << "email=" << ui.m_email
-            << ", name=" << ui.m_name;
-        return os << "}";
-    }
+inline std::ostream& operator<<(std::ostream& os, UserInfo const& ui)
+{
+    os << "user_info={"
+       << "email=" << ui.m_email << ", name=" << ui.m_name;
+    return os << "}";
+}
 
-} // namespace csa
+}  // namespace csa

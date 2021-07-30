@@ -21,59 +21,56 @@ namespace csa {
 namespace {
 std::string StatusWhat(Status const& status)
 {
-  std::ostringstream os;
-  os << status;
-  return std::move(os).str();
+    std::ostringstream os;
+    os << status;
+    return std::move(os).str();
 }
 }  // namespace
 
 std::string StatusCodeToString(StatusCode code)
 {
-  switch (code)
-  {
+    switch (code)
+    {
     case StatusCode::Ok:
-      return "OK";
+        return "OK";
     case StatusCode::Cancelled:
-      return "CANCELLED";
+        return "CANCELLED";
     case StatusCode::Unknown:
-      return "UNKNOWN";
+        return "UNKNOWN";
     case StatusCode::InvalidArgument:
-      return "INVALID_ARGUMENT";
+        return "INVALID_ARGUMENT";
     case StatusCode::DeadlineExceeded:
-      return "DEADLINE_EXCEEDED";
+        return "DEADLINE_EXCEEDED";
     case StatusCode::NotFound:
-      return "NOT_FOUND";
+        return "NOT_FOUND";
     case StatusCode::AlreadyExists:
-      return "ALREADY_EXISTS";
+        return "ALREADY_EXISTS";
     case StatusCode::PermissionDenied:
-      return "PERMISSION_DENIED";
+        return "PERMISSION_DENIED";
     case StatusCode::Unauthenticated:
-      return "UNAUTHENTICATED";
+        return "UNAUTHENTICATED";
     case StatusCode::ResourceExhausted:
-      return "RESOURCE_EXHAUSTED";
+        return "RESOURCE_EXHAUSTED";
     case StatusCode::FailedPrecondition:
-      return "FAILED_PRECONDITION";
+        return "FAILED_PRECONDITION";
     case StatusCode::Aborted:
-      return "ABORTED";
+        return "ABORTED";
     case StatusCode::OutOfRange:
-      return "OUT_OF_RANGE";
+        return "OUT_OF_RANGE";
     case StatusCode::Unimplemented:
-      return "UNIMPLEMENTED";
+        return "UNIMPLEMENTED";
     case StatusCode::Internal:
-      return "INTERNAL";
+        return "INTERNAL";
     case StatusCode::Unavailable:
-      return "UNAVAILABLE";
+        return "UNAVAILABLE";
     case StatusCode::DataLoss:
-      return "DATA_LOSS";
+        return "DATA_LOSS";
     default:
-      return "UNEXPECTED_STATUS_CODE=" + std::to_string(static_cast<int>(code));
-  }
+        return "UNEXPECTED_STATUS_CODE=" + std::to_string(static_cast<int>(code));
+    }
 }
 
-std::ostream& operator<<(std::ostream& os, StatusCode code)
-{
-  return os << StatusCodeToString(code);
-}
+std::ostream& operator<<(std::ostream& os, StatusCode code) { return os << StatusCodeToString(code); }
 
 RuntimeStatusError::RuntimeStatusError(Status status)
     : std::runtime_error(StatusWhat(status)), m_status(std::move(status))

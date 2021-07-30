@@ -14,13 +14,12 @@
 
 #pragma once
 
+#include "common_metadata.h"
+#include "internal/complex_option.h"
 #include <chrono>
 #include <cinttypes>
 #include <string>
 #include <vector>
-
-#include "common_metadata.h"
-#include "internal/complex_option.h"
 
 namespace csa {
 
@@ -33,13 +32,9 @@ public:
     void SetCanUploadFile(bool canUploadFile) { m_CanUploadFile = canUploadFile; }
 
     friend bool operator==(FolderMetadata const& lhs, FolderMetadata const& rhs);
-    friend bool operator!=(FolderMetadata const& lhs, FolderMetadata const& rhs)
-    {
-        return !(lhs == rhs);
-    }
+    friend bool operator!=(FolderMetadata const& lhs, FolderMetadata const& rhs) { return !(lhs == rhs); }
 
 private:
-
     friend std::ostream& operator<<(std::ostream& os, FolderMetadata const& rhs);
 
     bool m_CanCreateFolders;
@@ -48,12 +43,11 @@ private:
 
 std::ostream& operator<<(std::ostream& os, FolderMetadata const& rhs);
 
-struct WithFolderMetadata
-    : public internal::ComplexOption<WithFolderMetadata, FolderMetadata>
+struct WithFolderMetadata : public internal::ComplexOption<WithFolderMetadata, FolderMetadata>
 {
     using ComplexOption<WithFolderMetadata, FolderMetadata>::ComplexOption;
     static char const* name() { return "object-metadata"; }
 };
 
 using FolderMetadataSharedPtr = std::shared_ptr<FolderMetadata>;
-} // namespace csa
+}  // namespace csa

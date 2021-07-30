@@ -23,8 +23,7 @@ namespace csa {
 namespace internal {
 namespace {
 // An empty callback just to test things.
-extern "C" void testCb(int /*mode*/, int /*type*/, char const* /*file*/,
-                        int /*line*/) {}
+extern "C" void testCb(int /*mode*/, int /*type*/, char const* /*file*/, int /*line*/) {}
 
 /// @test Verify that installing the libraries
 TEST(CurlWrappers, LockingDisabledTest)
@@ -37,8 +36,8 @@ TEST(CurlWrappers, LockingDisabledTest)
     // Install a trivial callback, this should disable the installation of the
     // normal callbacks in the the curl wrappers.
     CRYPTO_set_locking_callback(testCb);
-    CurlInitializeOnce(ClientOptions(EProvider::GoogleDrive, std::make_shared<NullCredentials>())
-                            .SetEnableSslLockingCallbacks(true));
+    CurlInitializeOnce(
+        ClientOptions(EProvider::GoogleDrive, std::make_shared<NullCredentials>()).SetEnableSslLockingCallbacks(true));
     EXPECT_FALSE(SslLockingCallbacksInstalled());
 }
 }  // namespace

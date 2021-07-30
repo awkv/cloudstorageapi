@@ -61,8 +61,7 @@ void SetEnv(char const* variable, std::optional<std::string> value);
  * characters wide and contains the hexdump of the data.  The columns are
  * separated by a single space.
  */
-std::string BinaryDataAsDebugString(char const* data, std::size_t size,
-    std::size_t max_output_bytes = 0);
+std::string BinaryDataAsDebugString(char const* data, std::size_t size, std::size_t max_output_bytes = 0);
 
 /**
  * Generate a string that is not found in @p message.
@@ -91,14 +90,12 @@ std::string BinaryDataAsDebugString(char const* data, std::size_t size,
  * @return a string not found in @p message.
  */
 template <typename RandomStringGenerator,
-    typename std::enable_if<std::is_invocable<RandomStringGenerator,
-    int>::value,int>::type = 0>
-std::string GenerateMessageBoundary(std::string const& message,
-    RandomStringGenerator&& random_string_generator, int initial_size, int growth_size)
+          typename std::enable_if<std::is_invocable<RandomStringGenerator, int>::value, int>::type = 0>
+std::string GenerateMessageBoundary(std::string const& message, RandomStringGenerator&& random_string_generator,
+                                    int initial_size, int growth_size)
 {
     std::string candidate = random_string_generator(initial_size);
-    for (std::string::size_type i = message.find(candidate, 0);
-        i != std::string::npos; i = message.find(candidate, i))
+    for (std::string::size_type i = message.find(candidate, 0); i != std::string::npos; i = message.find(candidate, i))
     {
         candidate += random_string_generator(growth_size);
     }

@@ -25,4 +25,4 @@ class NullCredentials : public auth::Credentials
     StatusOrVal<std::string> AuthorizationHeader() { return std::string{}; }
 };
 
-} // namespace csa
+}  // namespace csa

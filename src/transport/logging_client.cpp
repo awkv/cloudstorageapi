@@ -14,11 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "cloudstorageapi/internal/log.h"
 #include "cloudstorageapi/internal/logging_client.h"
+#include "cloudstorageapi/internal/log.h"
 #include "cloudstorageapi/internal/logging_resumable_upload_session.h"
 #include "cloudstorageapi/internal/raw_client_wrapper_utils.h"
-
 #include <sstream>
 
 namespace csa {
@@ -37,8 +36,7 @@ namespace {
  */
 template <typename MemberFunction>
 static typename Signature<MemberFunction>::ReturnType MakeCall(
-    RawClient& client, MemberFunction function,
-    typename Signature<MemberFunction>::RequestType const& request,
+    RawClient& client, MemberFunction function, typename Signature<MemberFunction>::RequestType const& request,
     char const* context)
 {
     CSA_LOG_INFO("{}() {}", context, request);
@@ -70,20 +68,16 @@ static typename Signature<MemberFunction>::ReturnType MakeCall(
  */
 template <typename MemberFunction>
 static typename Signature<MemberFunction>::ReturnType MakeCallNoResponseLogging(
-    csa::internal::RawClient& client,
-    MemberFunction function,
-    typename Signature<MemberFunction>::RequestType const& request,
-    char const* context)
+    csa::internal::RawClient& client, MemberFunction function,
+    typename Signature<MemberFunction>::RequestType const& request, char const* context)
 {
     CSA_LOG_INFO("{}() {}", context, request);
     return (client.*function)(request);
 }
 
 template <typename MemberFunction>
-static typename Signature<MemberFunction>::ReturnType MakeCallNoRequest(
-    csa::internal::RawClient& client,
-    MemberFunction function,
-    char const* context)
+static typename Signature<MemberFunction>::ReturnType MakeCallNoRequest(csa::internal::RawClient& client,
+                                                                        MemberFunction function, char const* context)
 {
     CSA_LOG_INFO("{}()", context);
 
@@ -101,30 +95,18 @@ static typename Signature<MemberFunction>::ReturnType MakeCallNoRequest(
 
 }  // namespace
 
-LoggingClient::LoggingClient(std::shared_ptr<RawClient> client)
-    : m_client(std::move(client))
-{
-}
+LoggingClient::LoggingClient(std::shared_ptr<RawClient> client) : m_client(std::move(client)) {}
 
-ClientOptions const& LoggingClient::GetClientOptions() const
-{
-    return m_client->GetClientOptions();
-}
+ClientOptions const& LoggingClient::GetClientOptions() const { return m_client->GetClientOptions(); }
 
-std::string LoggingClient::GetProviderName() const
-{
-    return m_client->GetProviderName();
-}
+std::string LoggingClient::GetProviderName() const { return m_client->GetProviderName(); }
 
 StatusOrVal<UserInfo> LoggingClient::GetUserInfo()
 {
     return MakeCallNoRequest(*m_client, &RawClient::GetUserInfo, __func__);
 }
 
-std::size_t LoggingClient::GetFileChunkQuantum() const
-{
-    return m_client->GetFileChunkQuantum();
-}
+std::size_t LoggingClient::GetFileChunkQuantum() const { return m_client->GetFileChunkQuantum(); }
 
 StatusOrVal<EmptyResponse> LoggingClient::Delete(DeleteRequest const& request)
 {
@@ -176,18 +158,15 @@ StatusOrVal<FileMetadata> LoggingClient::InsertFile(InsertFileRequest const& req
     return MakeCall(*m_client, &RawClient::InsertFile, request, __func__);
 }
 
-StatusOrVal<std::unique_ptr<ObjectReadSource>> LoggingClient::ReadFile(
-    ReadFileRangeRequest const& request)
+StatusOrVal<std::unique_ptr<ObjectReadSource>> LoggingClient::ReadFile(ReadFileRangeRequest const& request)
 {
-    return MakeCallNoResponseLogging(*m_client, &RawClient::ReadFile, request,
-        __func__);
+    return MakeCallNoResponseLogging(*m_client, &RawClient::ReadFile, request, __func__);
 }
 
-StatusOrVal<std::unique_ptr<ResumableUploadSession>>
-LoggingClient::CreateResumableSession(ResumableUploadRequest const& request)
+StatusOrVal<std::unique_ptr<ResumableUploadSession>> LoggingClient::CreateResumableSession(
+    ResumableUploadRequest const& request)
 {
-    auto result = MakeCallNoResponseLogging(
-        *m_client, &RawClient::CreateResumableSession, request, __func__);
+    auto result = MakeCallNoResponseLogging(*m_client, &RawClient::CreateResumableSession, request, __func__);
     if (!result.Ok())
     {
         CSA_LOG_INFO("{}() >> status={{{}}}", __func__, result.GetStatus());
@@ -195,19 +174,16 @@ LoggingClient::CreateResumableSession(ResumableUploadRequest const& request)
     }
 
     return std::unique_ptr<ResumableUploadSession>(
-        std::make_unique<LoggingResumableUploadSession>(
-            std::move(result).Value()));
+        std::make_unique<LoggingResumableUploadSession>(std::move(result).Value()));
 }
 
-StatusOrVal<std::unique_ptr<ResumableUploadSession>>
-LoggingClient::RestoreResumableSession(std::string const& sessionId)
+StatusOrVal<std::unique_ptr<ResumableUploadSession>> LoggingClient::RestoreResumableSession(
+    std::string const& sessionId)
 {
-    return MakeCallNoResponseLogging(
-        *m_client, &RawClient::RestoreResumableSession, sessionId, __func__);
+    return MakeCallNoResponseLogging(*m_client, &RawClient::RestoreResumableSession, sessionId, __func__);
 }
 
-StatusOrVal<FileMetadata> 
-LoggingClient::CopyFileObject(CopyFileRequest const& request)
+StatusOrVal<FileMetadata> LoggingClient::CopyFileObject(CopyFileRequest const& request)
 {
     return MakeCall(*m_client, &RawClient::CopyFileObject, request, __func__);
 }
@@ -217,5 +193,5 @@ StatusOrVal<StorageQuota> LoggingClient::GetQuota()
     return MakeCallNoRequest(*m_client, &RawClient::GetQuota, __func__);
 }
 
-} // namespace internal
-} // namespace csa
+}  // namespace internal
+}  // namespace csa

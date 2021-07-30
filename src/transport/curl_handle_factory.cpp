@@ -24,16 +24,12 @@ std::shared_ptr<CurlHandleFactory> defaultCurlHandleFactory;
 
 std::shared_ptr<CurlHandleFactory> GetDefaultCurlHandleFactory()
 {
-    std::call_once(defaultCurlHandleFactoryInitialized, [] {
-    defaultCurlHandleFactory = std::make_shared<DefaultCurlHandleFactory>();
-        });
+    std::call_once(defaultCurlHandleFactoryInitialized,
+                   [] { defaultCurlHandleFactory = std::make_shared<DefaultCurlHandleFactory>(); });
     return defaultCurlHandleFactory;
 }
 
-CurlPtr DefaultCurlHandleFactory::CreateHandle()
-{
-    return CurlPtr(curl_easy_init(), &curl_easy_cleanup);
-}
+CurlPtr DefaultCurlHandleFactory::CreateHandle() { return CurlPtr(curl_easy_init(), &curl_easy_cleanup); }
 
 void DefaultCurlHandleFactory::CleanupHandle(CurlPtr&& h)
 {
@@ -48,18 +44,11 @@ void DefaultCurlHandleFactory::CleanupHandle(CurlPtr&& h)
     h.reset();
 }
 
-CurlMulti DefaultCurlHandleFactory::CreateMultiHandle()
-{
-    return CurlMulti(curl_multi_init(), &curl_multi_cleanup);
-}
+CurlMulti DefaultCurlHandleFactory::CreateMultiHandle() { return CurlMulti(curl_multi_init(), &curl_multi_cleanup); }
 
-void DefaultCurlHandleFactory::CleanupMultiHandle(CurlMulti&& m)
-{
-    m.reset();
-}
+void DefaultCurlHandleFactory::CleanupMultiHandle(CurlMulti&& m) { m.reset(); }
 
-PooledCurlHandleFactory::PooledCurlHandleFactory(std::size_t maximum_size)
-    : m_maximumSize(maximum_size)
+PooledCurlHandleFactory::PooledCurlHandleFactory(std::size_t maximum_size) : m_maximumSize(maximum_size)
 {
     m_handles.reserve(maximum_size);
     m_multiHandles.reserve(maximum_size);

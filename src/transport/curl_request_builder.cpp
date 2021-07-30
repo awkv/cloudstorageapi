@@ -19,8 +19,7 @@
 namespace csa {
 namespace internal {
 
-CurlRequestBuilder::CurlRequestBuilder(
-    std::string base_url, std::shared_ptr<CurlHandleFactory> factory)
+CurlRequestBuilder::CurlRequestBuilder(std::string base_url, std::shared_ptr<CurlHandleFactory> factory)
     : m_factory(std::move(factory)),
       m_handle(m_factory->CreateHandle()),
       m_headers(nullptr, &curl_slist_free_all),
@@ -44,8 +43,7 @@ CurlRequest CurlRequestBuilder::BuildRequest()
     return request;
 }
 
-CurlDownloadRequest CurlRequestBuilder::BuildDownloadRequest(
-    std::string payload)
+CurlDownloadRequest CurlRequestBuilder::BuildDownloadRequest(std::string payload)
 {
     ValidateBuilderState(__func__);
     CurlDownloadRequest request;
@@ -62,8 +60,7 @@ CurlDownloadRequest CurlRequestBuilder::BuildDownloadRequest(
     return request;
 }
 
-CurlRequestBuilder& CurlRequestBuilder::ApplyClientOptions(
-    ClientOptions const& options)
+CurlRequestBuilder& CurlRequestBuilder::ApplyClientOptions(ClientOptions const& options)
 {
     ValidateBuilderState(__func__);
     m_socketOptions.m_recvBufferSize = options.GetMaximumSocketRecvSize();
@@ -82,8 +79,7 @@ CurlRequestBuilder& CurlRequestBuilder::AddHeader(std::string const& header)
     return *this;
 }
 
-CurlRequestBuilder& CurlRequestBuilder::AddQueryParameter(
-    std::string const& key, std::string const& value)
+CurlRequestBuilder& CurlRequestBuilder::AddQueryParameter(std::string const& key, std::string const& value)
 {
     ValidateBuilderState(__func__);
     std::string parameter = m_queryParameterSeparator;

@@ -12,224 +12,223 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "cloudstorageapi/internal/clients/curl_googledrive_client.h"
 #include "cloudstorageapi/internal/clients/google_metadata_parser.h"
 #include "cloudstorageapi/internal/clients/google_response_parser.h"
-#include "cloudstorageapi/internal/clients/curl_googledrive_client.h"
-#include "cloudstorageapi/internal/curl_resumable_upload_session.h"
 #include "cloudstorageapi/internal/curl_request_builder.h"
+#include "cloudstorageapi/internal/curl_resumable_upload_session.h"
 #include "cloudstorageapi/internal/object_read_source.h"
 #include "cloudstorageapi/internal/resumable_upload_session.h"
 #include "cloudstorageapi/internal/utils.h"
-
 #include <functional>
 #include <sstream>
 
 namespace csa {
 namespace internal {
 namespace {
-    constexpr auto EndPoint = "https://www.googleapis.com/drive/v3";
-    constexpr auto FilesEndPoint = "https://www.googleapis.com/drive/v3/files";
-    constexpr auto FilesUploadEndPoint = "https://www.googleapis.com/upload/drive/v3/files";
-    constexpr auto UserInfoEndPoint = "https://www.googleapis.com/oauth2/v1/userinfo";
-    constexpr auto OAuthRoot = "https://accounts.google.com/o/oauth2";
-    constexpr auto AboutEndPoint = "https://www.googleapis.com/drive/v3/about";
-    constexpr auto ObjectMetadataFields = "kind,id,name,mimeType,parents,capabilities/canDownload,capabilities/canAddChildren,size,modifiedTime";
-    constexpr auto QuotaFields = "storageQuota/limit, storageQuota/usageInDrive";
-    constexpr auto UserFields = "user/displayName, user/emailAddress";
+constexpr auto EndPoint = "https://www.googleapis.com/drive/v3";
+constexpr auto FilesEndPoint = "https://www.googleapis.com/drive/v3/files";
+constexpr auto FilesUploadEndPoint = "https://www.googleapis.com/upload/drive/v3/files";
+constexpr auto UserInfoEndPoint = "https://www.googleapis.com/oauth2/v1/userinfo";
+constexpr auto OAuthRoot = "https://accounts.google.com/o/oauth2";
+constexpr auto AboutEndPoint = "https://www.googleapis.com/drive/v3/about";
+constexpr auto ObjectMetadataFields =
+    "kind,id,name,mimeType,parents,capabilities/canDownload,capabilities/canAddChildren,size,modifiedTime";
+constexpr auto QuotaFields = "storageQuota/limit, storageQuota/usageInDrive";
+constexpr auto UserFields = "user/displayName, user/emailAddress";
 
-    // Chunks must be multiples of 256 KiB:
-    // https://developers.google.com/drive/api/v3/manage-uploads#resumable
-    constexpr std::size_t ChunkSizeQuantum = 256 * 1024UL;
+// Chunks must be multiples of 256 KiB:
+// https://developers.google.com/drive/api/v3/manage-uploads#resumable
+constexpr std::size_t ChunkSizeQuantum = 256 * 1024UL;
 
-    std::string GetRangeHeader(UploadChunkRequest const& request)
-    {
-        std::ostringstream os;
-        os << "Content-Range: bytes ";
-        auto& payload = request.GetPayload();
-        if (payload.empty())
-        {
-            // This typically happens when the sender realizes too late that the
-            // previous chunk was really the last chunk (e.g. the file is exactly a
-            // multiple of the quantum, reading the last chunk from a file, or sending
-            // it as part of a stream that does not detect the EOF), the formatting of
-            // the range is special in this case.
-            os << "*";
-        }
-        else
-        {
-            os << request.GetRangeBegin() << "-" << request.GetRangeEnd();
-        }
-
-        if (!request.IsLastChunk())
-        {
-            os << "/*";
-        }
-        else
-        {
-            os << "/" << request.GetSourceSize();
-        }
-
-        return std::move(os).str();
-    }
-
-    std::string GetRangeHeader(ReadFileRangeRequest const& request)
-    {
-        if (request.HasOption<ReadRange>() && request.HasOption<ReadFromOffset>())
-        {
-            auto range = request.GetOption<ReadRange>().Value();
-            auto offset = request.GetOption<ReadFromOffset>().Value();
-            auto begin = (std::max)(range.m_begin, offset);
-            return "Range: bytes=" + std::to_string(begin) + "-" +
-                std::to_string(range.m_end - 1);
-        }
-        if (request.HasOption<ReadRange>())
-        {
-            auto range = request.GetOption<ReadRange>().Value();
-            return "Range: bytes=" + std::to_string(range.m_begin) + "-" +
-                std::to_string(range.m_end - 1);
-        }
-        if (request.HasOption<ReadFromOffset>())
-        {
-            auto offset = request.GetOption<ReadFromOffset>().Value();
-            if (offset != 0)
-            {
-                return "Range: bytes=" + std::to_string(offset) + "-";
-            }
-        }
-        if (request.HasOption<ReadLast>())
-        {
-            auto last = request.GetOption<ReadLast>().Value();
-            return "Range: bytes=-" + std::to_string(last);
-        }
-        return "";
-    }
-
-    template <typename ParseFunctor>
-    auto CheckAndParse(ParseFunctor f, StatusOrVal<HttpResponse> response)
-        -> decltype(f(response->m_payload))
-    {
-        if (!response.Ok())
-        {
-            return std::move(response).GetStatus();
-        }
-        if (response->m_statusCode >= 300)
-        {
-            return AsStatus(*response);
-        }
-
-        return f(response->m_payload);
-    }
-
-    template <typename ReturnType>
-    StatusOrVal<ReturnType> ParseFromHttpResponse(StatusOrVal<HttpResponse> response)
-    {
-        using ParseResponseFunc = StatusOrVal<ReturnType>(*)(std::string const&);
-        return CheckAndParse(std::bind(static_cast<ParseResponseFunc>(&GoogleResponseParser::ParseResponse<ReturnType>),
-            std::placeholders::_1), response);
-    }
-
-    StatusOrVal<FileMetadata> ParseFileMetadata(StatusOrVal<HttpResponse> response)
-    {
-        using ParseFileMetadataFunc = StatusOrVal<FileMetadata>(*)(std::string const&);
-        return CheckAndParse(std::bind(static_cast<ParseFileMetadataFunc>(&GoogleMetadataParser::ParseFileMetadata),
-            std::placeholders::_1), response);
-    }
-
-    StatusOrVal<FolderMetadata> ParseFolderMetadata(StatusOrVal<HttpResponse> response)
-    {
-        using ParseFolderMetadataFunc = StatusOrVal<FolderMetadata>(*)(std::string const&);
-        return CheckAndParse(std::bind(static_cast<ParseFolderMetadataFunc>(&GoogleMetadataParser::ParseFolderMetadata),
-            std::placeholders::_1), response);
-    }
-
-    StatusOrVal<StorageQuota> ParseQuota(StatusOrVal<HttpResponse> response)
-    {
-        auto ParseQuotaFunc = [](std::string const& jsonStr) -> StatusOrVal<StorageQuota> {
-            auto json = nl::json::parse(jsonStr, nullptr, false);
-            if (json.is_discarded() || !json.is_object())
-            {
-                return Status(StatusCode::InvalidArgument, "Invalid About drive object. "
-                    "Failed to parse json.");
-            }
-
-            constexpr auto quotaKey = "storageQuota";
-            constexpr auto limitKey = "limit";
-            constexpr auto usageKey = "usageInDrive";
-            if (json.contains(quotaKey))
-            {
-                auto& jsonQuota = json[quotaKey];
-                if (jsonQuota.count(usageKey))
-                {
-                    // `limit` key may be absent. It means user has unlimited storage.
-                    const std::int64_t total = jsonQuota.count(limitKey) ? 
-                        JsonUtils::ParseLong(jsonQuota, limitKey) : (std::numeric_limits<std::int64_t>::max)();
-                    const std::int64_t usage = JsonUtils::ParseLong(jsonQuota, usageKey);
-
-                    return StorageQuota{total, usage};
-                }
-            }
-            return Status(StatusCode::InvalidArgument, "Correct storageQuota not found in About reponse.");
-        };
-
-        return CheckAndParse(std::bind(ParseQuotaFunc, std::placeholders::_1), response);
-    }
-
-    StatusOrVal<UserInfo> ParseUser(StatusOrVal<HttpResponse> response)
-    {
-        auto ParseUserFunc = [](std::string const& jsonStr) -> StatusOrVal<UserInfo> {
-            auto json = nl::json::parse(jsonStr, nullptr, false);
-            if (json.is_discarded() || !json.is_object())
-            {
-                return Status(StatusCode::InvalidArgument, "Invalid About drive object. "
-                    "Failed to parse json.");
-            }
-
-            constexpr auto userKey = "user";
-            constexpr auto nameKey = "displayName";
-            constexpr auto emailKey = "emailAddress";
-
-            if (json.contains(userKey))
-            {
-                auto& jsonUser = json[userKey];
-                if (jsonUser.count(nameKey))
-                {
-                    const std::string name = jsonUser[nameKey];
-                    // This may not be present in certain contexts
-                    // if the user has not made their email address visible to the requester.
-                    const std::string email = jsonUser.count(emailKey) ? jsonUser[emailKey] : "";
-
-                    return UserInfo{email, name};
-                }
-            }
-            return Status(StatusCode::InvalidArgument, "Correct User object not found in About response.");
-        };
-
-        return CheckAndParse(std::bind(ParseUserFunc, std::placeholders::_1), response);
-    }
-
-    StatusOrVal<EmptyResponse> ReturnEmptyResponse(StatusOrVal<HttpResponse> response)
-    {
-        auto emptyResponseReturner = [](std::string const&) { return StatusOrVal(EmptyResponse{}); };
-        return CheckAndParse(emptyResponseReturner, response);
-    }
-
-    FolderMetadata CreateDefaultFolderMetadata(std::string const& parent, std::string const& name)
-    {
-        auto now = std::chrono::system_clock::now();
-        FolderMetadata fmeta;
-        fmeta.SetModifyTime(now);
-        fmeta.SetAccessTime(now);
-        fmeta.SetChangeTime(now);
-        fmeta.SetParentId(parent);
-        fmeta.SetName(name);
-        return fmeta;
-    }
-} // namespace
-
-CurlGoogleDriveClient::CurlGoogleDriveClient(ClientOptions options)
-    : CurlClientBase(std::move(options))
+std::string GetRangeHeader(UploadChunkRequest const& request)
 {
+    std::ostringstream os;
+    os << "Content-Range: bytes ";
+    auto& payload = request.GetPayload();
+    if (payload.empty())
+    {
+        // This typically happens when the sender realizes too late that the
+        // previous chunk was really the last chunk (e.g. the file is exactly a
+        // multiple of the quantum, reading the last chunk from a file, or sending
+        // it as part of a stream that does not detect the EOF), the formatting of
+        // the range is special in this case.
+        os << "*";
+    }
+    else
+    {
+        os << request.GetRangeBegin() << "-" << request.GetRangeEnd();
+    }
+
+    if (!request.IsLastChunk())
+    {
+        os << "/*";
+    }
+    else
+    {
+        os << "/" << request.GetSourceSize();
+    }
+
+    return std::move(os).str();
 }
+
+std::string GetRangeHeader(ReadFileRangeRequest const& request)
+{
+    if (request.HasOption<ReadRange>() && request.HasOption<ReadFromOffset>())
+    {
+        auto range = request.GetOption<ReadRange>().Value();
+        auto offset = request.GetOption<ReadFromOffset>().Value();
+        auto begin = (std::max)(range.m_begin, offset);
+        return "Range: bytes=" + std::to_string(begin) + "-" + std::to_string(range.m_end - 1);
+    }
+    if (request.HasOption<ReadRange>())
+    {
+        auto range = request.GetOption<ReadRange>().Value();
+        return "Range: bytes=" + std::to_string(range.m_begin) + "-" + std::to_string(range.m_end - 1);
+    }
+    if (request.HasOption<ReadFromOffset>())
+    {
+        auto offset = request.GetOption<ReadFromOffset>().Value();
+        if (offset != 0)
+        {
+            return "Range: bytes=" + std::to_string(offset) + "-";
+        }
+    }
+    if (request.HasOption<ReadLast>())
+    {
+        auto last = request.GetOption<ReadLast>().Value();
+        return "Range: bytes=-" + std::to_string(last);
+    }
+    return "";
+}
+
+template <typename ParseFunctor>
+auto CheckAndParse(ParseFunctor f, StatusOrVal<HttpResponse> response) -> decltype(f(response->m_payload))
+{
+    if (!response.Ok())
+    {
+        return std::move(response).GetStatus();
+    }
+    if (response->m_statusCode >= 300)
+    {
+        return AsStatus(*response);
+    }
+
+    return f(response->m_payload);
+}
+
+template <typename ReturnType>
+StatusOrVal<ReturnType> ParseFromHttpResponse(StatusOrVal<HttpResponse> response)
+{
+    using ParseResponseFunc = StatusOrVal<ReturnType> (*)(std::string const&);
+    return CheckAndParse(std::bind(static_cast<ParseResponseFunc>(&GoogleResponseParser::ParseResponse<ReturnType>),
+                                   std::placeholders::_1),
+                         response);
+}
+
+StatusOrVal<FileMetadata> ParseFileMetadata(StatusOrVal<HttpResponse> response)
+{
+    using ParseFileMetadataFunc = StatusOrVal<FileMetadata> (*)(std::string const&);
+    return CheckAndParse(
+        std::bind(static_cast<ParseFileMetadataFunc>(&GoogleMetadataParser::ParseFileMetadata), std::placeholders::_1),
+        response);
+}
+
+StatusOrVal<FolderMetadata> ParseFolderMetadata(StatusOrVal<HttpResponse> response)
+{
+    using ParseFolderMetadataFunc = StatusOrVal<FolderMetadata> (*)(std::string const&);
+    return CheckAndParse(std::bind(static_cast<ParseFolderMetadataFunc>(&GoogleMetadataParser::ParseFolderMetadata),
+                                   std::placeholders::_1),
+                         response);
+}
+
+StatusOrVal<StorageQuota> ParseQuota(StatusOrVal<HttpResponse> response)
+{
+    auto ParseQuotaFunc = [](std::string const& jsonStr) -> StatusOrVal<StorageQuota> {
+        auto json = nl::json::parse(jsonStr, nullptr, false);
+        if (json.is_discarded() || !json.is_object())
+        {
+            return Status(StatusCode::InvalidArgument,
+                          "Invalid About drive object. "
+                          "Failed to parse json.");
+        }
+
+        constexpr auto quotaKey = "storageQuota";
+        constexpr auto limitKey = "limit";
+        constexpr auto usageKey = "usageInDrive";
+        if (json.contains(quotaKey))
+        {
+            auto& jsonQuota = json[quotaKey];
+            if (jsonQuota.count(usageKey))
+            {
+                // `limit` key may be absent. It means user has unlimited storage.
+                const std::int64_t total = jsonQuota.count(limitKey) ? JsonUtils::ParseLong(jsonQuota, limitKey)
+                                                                     : (std::numeric_limits<std::int64_t>::max)();
+                const std::int64_t usage = JsonUtils::ParseLong(jsonQuota, usageKey);
+
+                return StorageQuota{total, usage};
+            }
+        }
+        return Status(StatusCode::InvalidArgument, "Correct storageQuota not found in About reponse.");
+    };
+
+    return CheckAndParse(std::bind(ParseQuotaFunc, std::placeholders::_1), response);
+}
+
+StatusOrVal<UserInfo> ParseUser(StatusOrVal<HttpResponse> response)
+{
+    auto ParseUserFunc = [](std::string const& jsonStr) -> StatusOrVal<UserInfo> {
+        auto json = nl::json::parse(jsonStr, nullptr, false);
+        if (json.is_discarded() || !json.is_object())
+        {
+            return Status(StatusCode::InvalidArgument,
+                          "Invalid About drive object. "
+                          "Failed to parse json.");
+        }
+
+        constexpr auto userKey = "user";
+        constexpr auto nameKey = "displayName";
+        constexpr auto emailKey = "emailAddress";
+
+        if (json.contains(userKey))
+        {
+            auto& jsonUser = json[userKey];
+            if (jsonUser.count(nameKey))
+            {
+                const std::string name = jsonUser[nameKey];
+                // This may not be present in certain contexts
+                // if the user has not made their email address visible to the requester.
+                const std::string email = jsonUser.count(emailKey) ? jsonUser[emailKey] : "";
+
+                return UserInfo{email, name};
+            }
+        }
+        return Status(StatusCode::InvalidArgument, "Correct User object not found in About response.");
+    };
+
+    return CheckAndParse(std::bind(ParseUserFunc, std::placeholders::_1), response);
+}
+
+StatusOrVal<EmptyResponse> ReturnEmptyResponse(StatusOrVal<HttpResponse> response)
+{
+    auto emptyResponseReturner = [](std::string const&) { return StatusOrVal(EmptyResponse{}); };
+    return CheckAndParse(emptyResponseReturner, response);
+}
+
+FolderMetadata CreateDefaultFolderMetadata(std::string const& parent, std::string const& name)
+{
+    auto now = std::chrono::system_clock::now();
+    FolderMetadata fmeta;
+    fmeta.SetModifyTime(now);
+    fmeta.SetAccessTime(now);
+    fmeta.SetChangeTime(now);
+    fmeta.SetParentId(parent);
+    fmeta.SetName(name);
+    return fmeta;
+}
+}  // namespace
+
+CurlGoogleDriveClient::CurlGoogleDriveClient(ClientOptions options) : CurlClientBase(std::move(options)) {}
 
 StatusOrVal<UserInfo> CurlGoogleDriveClient::GetUserInfo()
 {
@@ -253,8 +252,7 @@ StatusOrVal<ResumableUploadResponse> CurlGoogleDriveClient::UploadChunk(UploadCh
     }
     builder.AddHeader(GetRangeHeader(request));
     builder.AddHeader("Content-Type: application/octet-stream");
-    builder.AddHeader("Content-Length: " +
-        std::to_string(request.GetPayload().size()));
+    builder.AddHeader("Content-Length: " + std::to_string(request.GetPayload().size()));
     auto response = builder.BuildRequest().MakeRequest(request.GetPayload());
     if (!response.Ok())
     {
@@ -267,7 +265,8 @@ StatusOrVal<ResumableUploadResponse> CurlGoogleDriveClient::UploadChunk(UploadCh
     return AsStatus(*response);
 }
 
-StatusOrVal<ResumableUploadResponse> CurlGoogleDriveClient::QueryResumableUpload(QueryResumableUploadRequest const& request)
+StatusOrVal<ResumableUploadResponse> CurlGoogleDriveClient::QueryResumableUpload(
+    QueryResumableUploadRequest const& request)
 {
     CurlRequestBuilder builder(request.GetUploadSessionUrl(), m_uploadFactory);
     auto status = SetupBuilder(builder, request, "PUT");
@@ -290,10 +289,7 @@ StatusOrVal<ResumableUploadResponse> CurlGoogleDriveClient::QueryResumableUpload
     return AsStatus(*response);
 }
 
-std::size_t CurlGoogleDriveClient::GetFileChunkQuantum() const
-{
-    return ChunkSizeQuantum;
-}
+std::size_t CurlGoogleDriveClient::GetFileChunkQuantum() const { return ChunkSizeQuantum; }
 
 StatusOrVal<EmptyResponse> CurlGoogleDriveClient::Delete(DeleteRequest const& request)
 {
@@ -318,16 +314,17 @@ StatusOrVal<ListFolderResponse> CurlGoogleDriveClient::ListFolder(ListFolderRequ
 
     std::string qVal = "('" + request.GetObjectId() + "' in parents) and trashed=false";
     builder.AddQueryParameter("q", qVal);
-    builder.AddQueryParameter("fields", "kind,nextPageToken,incompleteSearch,"
-        "files(" + std::string(ObjectMetadataFields) + ")");
+    builder.AddQueryParameter("fields",
+                              "kind,nextPageToken,incompleteSearch,"
+                              "files(" +
+                                  std::string(ObjectMetadataFields) + ")");
     std::string pageToken = request.GetPageToken();
     if (!pageToken.empty())
     {
         builder.AddQueryParameter("pageToken", std::move(pageToken));
     }
 
-    return ParseFromHttpResponse<ListFolderResponse>(
-        builder.BuildRequest().MakeRequest(std::string{}));
+    return ParseFromHttpResponse<ListFolderResponse>(builder.BuildRequest().MakeRequest(std::string{}));
 }
 
 StatusOrVal<FolderMetadata> CurlGoogleDriveClient::GetFolderMetadata(GetFolderMetadataRequest const& request)
@@ -366,14 +363,13 @@ StatusOrVal<FolderMetadata> CurlGoogleDriveClient::CreateFolder(CreateFolderRequ
     }
     else
     {
-        fmeta = CreateDefaultFolderMetadata(request.GetParent(),
-            request.GetName());
+        fmeta = CreateDefaultFolderMetadata(request.GetParent(), request.GetName());
     }
 
     auto jmeta = GoogleMetadataParser::ComposeFolderMetadata(fmeta);
     if (!jmeta.Ok())
         return jmeta.GetStatus();
-    
+
     builder.AddHeader("content-type: application/json");
     builder.AddQueryParameter("fields", ObjectMetadataFields);
     auto response = builder.BuildRequest().MakeRequest(jmeta.Value().dump());
@@ -388,8 +384,8 @@ StatusOrVal<FolderMetadata> CurlGoogleDriveClient::RenameFolder(RenameRequest co
 
 StatusOrVal<FolderMetadata> CurlGoogleDriveClient::PatchFolderMetadata(PatchFolderMetadataRequest const& request)
 {
-    auto metaJson = GoogleMetadataParser::PatchFolderMetadata(
-        request.GetOriginalMetadata(), request.GetUpdatedMetadata());
+    auto metaJson =
+        GoogleMetadataParser::PatchFolderMetadata(request.GetOriginalMetadata(), request.GetUpdatedMetadata());
     if (!metaJson.Ok())
         return metaJson.GetStatus();
     return ParseFolderMetadata(PatchMetadataGeneric(request, metaJson.Value()));
@@ -411,8 +407,8 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::GetFileMetadata(GetFileMetadata
 
 StatusOrVal<FileMetadata> CurlGoogleDriveClient::PatchFileMetadata(PatchFileMetadataRequest const& request)
 {
-    auto metaJson = GoogleMetadataParser::PatchFileMetadata(
-        request.GetOriginalMetadata(), request.GetUpdatedMetadata());
+    auto metaJson =
+        GoogleMetadataParser::PatchFileMetadata(request.GetOriginalMetadata(), request.GetUpdatedMetadata());
     if (!metaJson.Ok())
         return metaJson.GetStatus();
     return ParseFileMetadata(PatchMetadataGeneric(request, metaJson.Value()));
@@ -428,12 +424,11 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::InsertFile(InsertFileRequest co
     // If the object metadata is specified, then we need to do a multipart upload.
     if (request.HasOption<WithFileMetadata>() || !request.GetName().empty() || !request.GetFolderId().empty())
         return InsertFileMultipart(request);
-    else   // Otherwise do a simple upload.
+    else  // Otherwise do a simple upload.
         return InsertFileSimple(request);
 }
 
-StatusOrVal<std::unique_ptr<ObjectReadSource>> CurlGoogleDriveClient::ReadFile(
-    ReadFileRangeRequest const& request)
+StatusOrVal<std::unique_ptr<ObjectReadSource>> CurlGoogleDriveClient::ReadFile(ReadFileRangeRequest const& request)
 {
     CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(), m_storageFactory);
     auto status = SetupBuilder(builder, request, "GET");
@@ -447,21 +442,19 @@ StatusOrVal<std::unique_ptr<ObjectReadSource>> CurlGoogleDriveClient::ReadFile(
         builder.AddHeader(GetRangeHeader(request));
     }
 
-    return std::unique_ptr<ObjectReadSource>(
-        new CurlDownloadRequest(builder.BuildDownloadRequest(std::string{})));
+    return std::unique_ptr<ObjectReadSource>(new CurlDownloadRequest(builder.BuildDownloadRequest(std::string{})));
 }
 
-StatusOrVal<std::unique_ptr<ResumableUploadSession>>
-CurlGoogleDriveClient::CreateResumableSession(ResumableUploadRequest const& request)
+StatusOrVal<std::unique_ptr<ResumableUploadSession>> CurlGoogleDriveClient::CreateResumableSession(
+    ResumableUploadRequest const& request)
 {
     return CreateResumableSessionGeneric(request);
 }
 
-StatusOrVal<std::unique_ptr<ResumableUploadSession>>
-CurlGoogleDriveClient::RestoreResumableSession(std::string const& sessionId)
+StatusOrVal<std::unique_ptr<ResumableUploadSession>> CurlGoogleDriveClient::RestoreResumableSession(
+    std::string const& sessionId)
 {
-    auto session =
-        std::make_unique<CurlResumableUploadSession>(shared_from_this(), sessionId);
+    auto session = std::make_unique<CurlResumableUploadSession>(shared_from_this(), sessionId);
     auto response = session->ResetSession();
     if (response.GetStatus().Ok())
     {
@@ -472,8 +465,7 @@ CurlGoogleDriveClient::RestoreResumableSession(std::string const& sessionId)
 
 StatusOrVal<FileMetadata> CurlGoogleDriveClient::CopyFileObject(CopyFileRequest const& request)
 {
-    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId() + "/copy",
-        m_storageFactory);
+    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId() + "/copy", m_storageFactory);
     auto status = SetupBuilder(builder, request, "POST");
     if (!status.Ok())
     {
@@ -520,15 +512,14 @@ std::string CurlGoogleDriveClient::PickBoundary(std::string const& textToAvoid)
     // larger than `text_to_avoid`.  And we only make (approximately) one pass
     // over `text_to_avoid`.
     auto generateCandidate = [this](int n) {
-        static std::string const charArray =
-            "abcdefghijklmnopqrstuvwxyz012456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        static std::string const charArray = "abcdefghijklmnopqrstuvwxyz012456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         std::unique_lock<std::mutex> lk(m_muRNG);
         return csa::internal::Sample(m_generator, n, charArray);
     };
     constexpr int candidateInitialSize = 16;
     constexpr int candidateGrowthSize = 4;
-    return GenerateMessageBoundary(textToAvoid, std::move(generateCandidate),
-        candidateInitialSize, candidateGrowthSize);
+    return GenerateMessageBoundary(textToAvoid, std::move(generateCandidate), candidateInitialSize,
+                                   candidateGrowthSize);
 }
 
 StatusOrVal<FileMetadata> CurlGoogleDriveClient::InsertFileSimple(InsertFileRequest const& request)
@@ -542,13 +533,13 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::InsertFileSimple(InsertFileRequ
 
     // Set the content type of a sensible value, the application can override this
     // in the options for the request.
-    if (!request.HasOption<ContentType>()) {
+    if (!request.HasOption<ContentType>())
+    {
         builder.AddHeader("content-type: application/octet-stream");
     }
 
     builder.AddQueryParameter("uploadType", "media");
-    builder.AddHeader("Content-Length: " +
-        std::to_string(request.GetContent().size()));
+    builder.AddHeader("Content-Length: " + std::to_string(request.GetContent().size()));
     builder.AddQueryParameter("fields", ObjectMetadataFields);
     auto response = builder.BuildRequest().MakeRequest(request.GetContent());
 
@@ -582,7 +573,7 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::InsertFileMultipart(InsertFileR
             return meta.GetStatus();
         jmeta = meta.Value();
     }
-    
+
     if (!request.GetName().empty())
         jmeta["name"] = request.GetName();
 
@@ -593,15 +584,14 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::InsertFileMultipart(InsertFileR
     const std::string marker = "--" + boundary;
 
     // 4. Format the first part, including the separators and the headers.
-    writer << marker << crlf << "content-type: application/json; charset=UTF-8"
-        << crlf << crlf << jmeta.dump() << crlf << marker << crlf;
+    writer << marker << crlf << "content-type: application/json; charset=UTF-8" << crlf << crlf << jmeta.dump() << crlf
+           << marker << crlf;
 
     // 5. Format the second part, which includes all the contents and a final
     //    separator.
     if (request.HasOption<ContentType>())
     {
-        writer << "content-type: " << request.GetOption<ContentType>().value()
-            << crlf;
+        writer << "content-type: " << request.GetOption<ContentType>().value() << crlf;
     }
     else
     {
@@ -618,13 +608,12 @@ StatusOrVal<FileMetadata> CurlGoogleDriveClient::InsertFileMultipart(InsertFileR
 }
 
 template <typename RequestType>
-StatusOrVal<std::unique_ptr<ResumableUploadSession>>
-CurlGoogleDriveClient::CreateResumableSessionGeneric(RequestType const& request)
+StatusOrVal<std::unique_ptr<ResumableUploadSession>> CurlGoogleDriveClient::CreateResumableSessionGeneric(
+    RequestType const& request)
 {
     if (request.template HasOption<UseResumableUploadSession>())
     {
-        auto sessionId =
-            request.template GetOption<UseResumableUploadSession>().Value();
+        auto sessionId = request.template GetOption<UseResumableUploadSession>().Value();
         if (!sessionId.empty())
         {
             return RestoreResumableSession(sessionId);
@@ -659,12 +648,12 @@ CurlGoogleDriveClient::CreateResumableSessionGeneric(RequestType const& request)
         {
             fmeta = request.template GetOption<WithFileMetadata>().Value();
         }
-        
-        if(fmeta.GetName().empty())
+
+        if (fmeta.GetName().empty())
         {
             fmeta.SetName(request.GetFileName());
         }
-        if(fmeta.GetParentId().empty())
+        if (fmeta.GetParentId().empty())
         {
             fmeta.SetParentId(request.GetFolderId());
         }
@@ -673,8 +662,7 @@ CurlGoogleDriveClient::CreateResumableSessionGeneric(RequestType const& request)
 
     if (request.template HasOption<ContentEncoding>())
     {
-        resource["contentEncoding"] =
-            request.template GetOption<ContentEncoding>().value();
+        resource["contentEncoding"] = request.template GetOption<ContentEncoding>().value();
     }
     if (request.template HasOption<ContentType>())
     {
@@ -686,8 +674,7 @@ CurlGoogleDriveClient::CreateResumableSessionGeneric(RequestType const& request)
     {
         requestPayload = resource.dump();
     }
-    builder.AddHeader("Content-Length: " +
-        std::to_string(requestPayload.size()));
+    builder.AddHeader("Content-Length: " + std::to_string(requestPayload.size()));
     builder.AddQueryParameter("fields", ObjectMetadataFields);
 
     auto httpResponse = builder.BuildRequest().MakeRequest(requestPayload);
@@ -699,8 +686,7 @@ CurlGoogleDriveClient::CreateResumableSessionGeneric(RequestType const& request)
     {
         return AsStatus(*httpResponse);
     }
-    auto response =
-        GoogleResponseParser::ParseResponse<ResumableUploadResponse>(*std::move(httpResponse));
+    auto response = GoogleResponseParser::ParseResponse<ResumableUploadResponse>(*std::move(httpResponse));
     if (!response.Ok())
     {
         return std::move(response).GetStatus();
@@ -713,8 +699,7 @@ CurlGoogleDriveClient::CreateResumableSessionGeneric(RequestType const& request)
     }
 
     return std::unique_ptr<ResumableUploadSession>(
-        std::make_unique<CurlResumableUploadSession>(
-            shared_from_this(), std::move(response->m_uploadSessionUrl)));
+        std::make_unique<CurlResumableUploadSession>(shared_from_this(), std::move(response->m_uploadSessionUrl)));
 }
 
 StatusOrVal<HttpResponse> CurlGoogleDriveClient::RenameGeneric(RenameRequest const& request)
@@ -741,8 +726,7 @@ StatusOrVal<HttpResponse> CurlGoogleDriveClient::RenameGeneric(RenameRequest con
 template <typename RequestType>
 StatusOrVal<HttpResponse> CurlGoogleDriveClient::PatchMetadataGeneric(RequestType const& request, nl::json const& patch)
 {
-    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(),
-        m_storageFactory);
+    CurlRequestBuilder builder(std::string(FilesEndPoint) + "/" + request.GetObjectId(), m_storageFactory);
     auto status = SetupBuilder(builder, request, "PATCH");
     if (!status.Ok())
     {

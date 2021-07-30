@@ -14,11 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "cloudstorageapi/auth/credentials.h"
-#include "cloudstorageapi/auth/credential_factory.h"
 #include "cloudstorageapi/client_options.h"
+#include "cloudstorageapi/auth/credential_factory.h"
+#include "cloudstorageapi/auth/credentials.h"
 #include "cloudstorageapi/status_or_val.h"
-
 #include <thread>
 
 namespace csa {
@@ -31,9 +30,9 @@ StatusOrVal<std::shared_ptr<auth::Credentials>> StorageDefaultCredentials(EProvi
 
 std::size_t DefaultConnectionPoolSize()
 {
-  std::size_t nthreads = std::thread::hardware_concurrency();
-  constexpr auto singleThreadPoolSize = 4;
-  return (nthreads == 0) ? singleThreadPoolSize : singleThreadPoolSize * nthreads;
+    std::size_t nthreads = std::thread::hardware_concurrency();
+    constexpr auto singleThreadPoolSize = 4;
+    return (nthreads == 0) ? singleThreadPoolSize : singleThreadPoolSize * nthreads;
 }
 
 constexpr auto DefaultUploadBufferSize = 8 * 1024 * 1024;

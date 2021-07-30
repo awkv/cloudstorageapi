@@ -22,19 +22,14 @@
 // that include our headers first (which is what this program tests).
 // We simulate the nlohmann::json include by including nlohmann_json.hpp
 #include "cloudstorageapi/internal/nlohmann_json.hpp"
-
 #include <gtest/gtest.h>
 
 /// @test Verify third-parties can include their own lohmann::json headers.
 TEST(NlJsonUseThirdPartTest, Simple)
 {
-    ::nlohmann::json object = {
-        {"pi", 3.141},
-        {"happy", true},
-        {"nothing", nullptr},
-        {"answer", {{"everything", 42}}},
-        {"list", {1, 0, 2}},
-        {"object", {{"currency", "USD"}, {"value", 42.99}}} };
+    ::nlohmann::json object = {{"pi", 3.141},        {"happy", true},
+                               {"nothing", nullptr}, {"answer", {{"everything", 42}}},
+                               {"list", {1, 0, 2}},  {"object", {{"currency", "USD"}, {"value", 42.99}}}};
     EXPECT_NEAR(3.141, object["pi"], 0.001);
     EXPECT_EQ("USD", object["object"]["currency"]);
     EXPECT_EQ(1, object["list"][0]);

@@ -19,26 +19,19 @@ namespace csa {
 
 bool operator==(CommonMetadata const& lhs, CommonMetadata const& rhs)
 {
-    return lhs.m_cloudId == rhs.m_cloudId &&
-        lhs.m_name == rhs.m_name &&
-        lhs.m_parentId == rhs.m_parentId &&
-        lhs.m_size == rhs.m_size &&
-        lhs.m_ctime == rhs.m_ctime &&
-        lhs.m_mtime == rhs.m_mtime &&
-        lhs.m_atime == rhs.m_atime;
+    return lhs.m_cloudId == rhs.m_cloudId && lhs.m_name == rhs.m_name && lhs.m_parentId == rhs.m_parentId &&
+           lhs.m_size == rhs.m_size && lhs.m_ctime == rhs.m_ctime && lhs.m_mtime == rhs.m_mtime &&
+           lhs.m_atime == rhs.m_atime;
 }
 
 std::ostream& operator<<(std::ostream& os, CommonMetadata const& rhs)
 {
-    os << "cloudId=" << rhs.GetCloudId()
-       << ", name=" << rhs.GetName()
-       << ", parentId=" << rhs.GetParentId()
-       << ", size=" << rhs.GetSize()
-       << ", change time=" << rhs.GetChangeTime().time_since_epoch().count()
+    os << "cloudId=" << rhs.GetCloudId() << ", name=" << rhs.GetName() << ", parentId=" << rhs.GetParentId()
+       << ", size=" << rhs.GetSize() << ", change time=" << rhs.GetChangeTime().time_since_epoch().count()
        << ", modify time=" << rhs.GetModifyTime().time_since_epoch().count()
        << ", access time=" << rhs.GetAccessTime().time_since_epoch().count();
 
     return os;
 }
 
-} // namespace csa
+}  // namespace csa

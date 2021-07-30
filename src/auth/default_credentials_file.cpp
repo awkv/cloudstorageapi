@@ -32,7 +32,7 @@ std::string WellKnownCredentialsFilePathSuffix()
 #endif
 }
 
-} // namespace
+}  // namespace
 
 std::string DefaultCredentialsFilePathFromEnvVarOrEmpty()
 {
@@ -47,8 +47,7 @@ std::string DefaultCredentialsFilePathFromEnvVarOrEmpty()
 std::string DefaultCredentialsFilePathFromWellKnownPathOrEmpty()
 {
     // Allow mocking out this value for testing.
-    auto overridePath =
-        csa::internal::GetEnv(DefaultTestCredentialsEnvVar());
+    auto overridePath = csa::internal::GetEnv(DefaultTestCredentialsEnvVar());
     if (overridePath.has_value())
     {
         return *overridePath;
@@ -63,6 +62,5 @@ std::string DefaultCredentialsFilePathFromWellKnownPathOrEmpty()
     return "";
 }
 
-} // namespace auth
-} // namespace csa
-
+}  // namespace auth
+}  // namespace csa

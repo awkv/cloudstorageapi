@@ -32,8 +32,12 @@
 
 namespace csa {
 
-namespace internal { class RawClient; }
-namespace auth { class Credentials; }
+namespace internal {
+class RawClient;
+}
+namespace auth {
+class Credentials;
+}
 
 /**
  * Cloud storage client.
@@ -46,15 +50,14 @@ namespace auth { class Credentials; }
 class CloudStorageClient
 {
 public:
+    explicit CloudStorageClient(ClientOptions options) : CloudStorageClient(CreateDefaultRawClient(std::move(options)))
+    {
+    }
 
-    explicit CloudStorageClient(ClientOptions options)
-        : CloudStorageClient(CreateDefaultRawClient(std::move(options)))
-    {}
-
-    explicit CloudStorageClient(EProvider provider,
-        std::shared_ptr<auth::Credentials> credentials)
+    explicit CloudStorageClient(EProvider provider, std::shared_ptr<auth::Credentials> credentials)
         : CloudStorageClient(ClientOptions(provider, std::move(credentials)))
-    {}
+    {
+    }
 
     explicit CloudStorageClient(std::shared_ptr<internal::RawClient> client)
     {
@@ -75,13 +78,13 @@ public:
 
     /**
      * @return user info like email address and name if available.
-     * This may not be present in certain contexts 
+     * This may not be present in certain contexts
      * if the user has not made their email address visible to the requester.
      */
     StatusOrVal<UserInfo> GetUserInfo() const { return m_RawClient->GetUserInfo(); }
 
     // TODO: Common operations (folders and files)
-    //StatusOrVal<bool> Exists(const std::string& path) const;
+    // StatusOrVal<bool> Exists(const std::string& path) const;
 
     /**
      * Delete object (file or folder) by given id.
@@ -99,24 +102,21 @@ public:
     // Folder operations
     /**
      * Returns list of objects metadata located in given folder.
-     * 
+     *
      * @param id an id of a object as defined by the provider. Path or name
      *     of the object should not be used as id, except provider explicitly says this.
      *
      * @param options a list of optional query parameters and/or request headers.
      *     Valid types for this operation include `PageSize`.
      */
-    template<typename... Options>
+    template <typename... Options>
     ListFolderReader ListFolder(std::string const& id, Options&&... options) const
     {
         internal::ListFolderRequest request(id);
         request.SetMultipleOptions(std::forward<Options>(options)...);
         auto client = m_RawClient;
         return ListFolderReader(request,
-            [client](internal::ListFolderRequest const& r)
-            {
-                return client->ListFolder(r);
-            });
+                                [client](internal::ListFolderRequest const& r) { return client->ListFolder(r); });
     }
 
     /**
@@ -128,25 +128,22 @@ public:
         return m_RawClient->GetFolderMetadata(request);
     }
 
-
-    template<typename... Options>
+    template <typename... Options>
     StatusOrVal<FolderMetadata> CreateFolder(std::string const& parentId, std::string const& newName)
     {
         internal::CreateFolderRequest request(parentId, newName);
         return m_RawClient->CreateFolder(request);
     }
 
-    StatusOrVal<FolderMetadata> RenameFolder(std::string const& id,
-        std::string const& newName,
-        std::string const& parentId,
-        std::string const& newParentId)
+    StatusOrVal<FolderMetadata> RenameFolder(std::string const& id, std::string const& newName,
+                                             std::string const& parentId, std::string const& newParentId)
     {
         internal::RenameRequest request(id, newName, parentId, newParentId);
         return m_RawClient->RenameFolder(request);
     }
 
-    StatusOrVal<FolderMetadata> PatchFolderMetadata(std::string const& folderId,
-        FolderMetadata original, FolderMetadata updated)
+    StatusOrVal<FolderMetadata> PatchFolderMetadata(std::string const& folderId, FolderMetadata original,
+                                                    FolderMetadata updated)
     {
         internal::PatchFolderMetadataRequest request(folderId, std::move(original), std::move(updated));
         return m_RawClient->PatchFolderMetadata(request);
@@ -175,17 +172,15 @@ public:
      * @param original the initial value of the object metadata.
      * @param updated the updated value for the object metadata.
      */
-    StatusOrVal<FileMetadata> PatchFileMetadata(std::string fileId,
-        FileMetadata original, FileMetadata updated)
+    StatusOrVal<FileMetadata> PatchFileMetadata(std::string fileId, FileMetadata original, FileMetadata updated)
     {
         internal::PatchFileMetadataRequest request(fileId, std::move(original), std::move(updated));
         return m_RawClient->PatchFileMetadata(request);
     }
 
-    StatusOrVal<FileMetadata> RenameFile(std::string const& id,
-                                         std::string const& newName,
+    StatusOrVal<FileMetadata> RenameFile(std::string const& id, std::string const& newName,
                                          std::string const& parentId = "",
-                                         std::string const& newParentId = "") // includes move
+                                         std::string const& newParentId = "")  // includes move
     {
         internal::RenameRequest request(id, newName, parentId, newParentId);
         return m_RawClient->RenameFile(request);
@@ -195,9 +190,7 @@ public:
      * Creates an object given its name and contents.
      */
     template <typename... Options>
-    StatusOrVal<FileMetadata> InsertFile(std::string const& folderId,
-                                         std::string const& name,
-                                         std::string content,
+    StatusOrVal<FileMetadata> InsertFile(std::string const& folderId, std::string const& name, std::string content,
                                          Options&&... options)
     {
         internal::InsertFileRequest request(folderId, name, std::move(content));
@@ -214,19 +207,17 @@ public:
      * that is **not** a regular file then `WriteObject()` is probably a better
      * alternative.
      */
-    template<typename... Options>
-    StatusOrVal<FileMetadata> UploadFile(std::string const& srcFileName,
-                                         std::string const& parentId,
+    template <typename... Options>
+    StatusOrVal<FileMetadata> UploadFile(std::string const& srcFileName, std::string const& parentId,
                                          std::string const& name,
-                                         //bool overwrite,
-                                         Options&&... options)// Use multipart upload if size > 100MB
+                                         // bool overwrite,
+                                         Options&&... options)  // Use multipart upload if size > 100MB
     {
         // Determine, at compile time, which version of UploadFileImpl we should
         // call. This needs to be done at compile time because InsertFile
         // does not support (nor should it support) the UseResumableUploadSession
         // option.
-        using HasUseResumableUpload = std::disjunction<
-            std::is_same<UseResumableUploadSession, Options>...>;
+        using HasUseResumableUpload = std::disjunction<std::is_same<UseResumableUploadSession, Options>...>;
         return UploadFileImpl(srcFileName, parentId, name, HasUseResumableUpload{}, std::forward<Options>(options)...);
     }
 
@@ -264,10 +255,8 @@ public:
      *   Valid types for this operation include `ContentEncoding`, `ContentType`,
      *   `UseResumableUploadSession`, and `WithObjectMetadata`.
      */
-    template<typename... Options>
-    FileWriteStream WriteFile(std::string const& parentId,
-                              std::string const& name,
-                              Options&&... options)
+    template <typename... Options>
+    FileWriteStream WriteFile(std::string const& parentId, std::string const& name, Options&&... options)
     {
         internal::ResumableUploadRequest request(parentId, name);
         request.SetMultipleOptions(std::forward<Options>(options)...);
@@ -286,11 +275,10 @@ public:
      *     and `ReadLast`.
      *
      */
-    template<typename... Options>
-    Status DownloadFile(std::string const& fileId,
-        std::string const& dstFileName,
-        Options&&... options) // TODO: figure out if content type param is needed.
-                                        // Maybe for downloading google docs.
+    template <typename... Options>
+    Status DownloadFile(std::string const& fileId, std::string const& dstFileName,
+                        Options&&... options)  // TODO: figure out if content type param is needed.
+                                               // Maybe for downloading google docs.
     {
         internal::ReadFileRangeRequest request(fileId);
         request.SetMultipleOptions(std::forward<Options>(options)...);
@@ -314,35 +302,36 @@ public:
      *     and `ReadLast`.
      */
     template <typename... Options>
-    FileReadStream ReadFile(std::string const& fileId,
-        Options&&... options)
+    FileReadStream ReadFile(std::string const& fileId, Options&&... options)
     {
-        struct HasReadRange : public std::disjunction<
-            std::is_same<ReadRange, Options>...> {};
-        struct HasReadFromOffset : public std::disjunction<
-            std::is_same<ReadFromOffset, Options>...> {};
-        struct HasReadLast : public std::disjunction<
-            std::is_same<ReadLast, Options>...> {};
+        struct HasReadRange : public std::disjunction<std::is_same<ReadRange, Options>...>
+        {
+        };
+        struct HasReadFromOffset : public std::disjunction<std::is_same<ReadFromOffset, Options>...>
+        {
+        };
+        struct HasReadLast : public std::disjunction<std::is_same<ReadLast, Options>...>
+        {
+        };
 
         struct HasIncompatibleRangeOptions
-            : public std::integral_constant<bool, HasReadLast::value &&
-            (HasReadFromOffset::value ||
-                HasReadRange::value)> {};
+            : public std::integral_constant<bool,
+                                            HasReadLast::value && (HasReadFromOffset::value || HasReadRange::value)>
+        {
+        };
 
         static_assert(!HasIncompatibleRangeOptions::value,
-            "Cannot set ReadLast option with either ReadFromOffset or "
-            "ReadRange.");
+                      "Cannot set ReadLast option with either ReadFromOffset or "
+                      "ReadRange.");
 
         internal::ReadFileRangeRequest request(fileId);
         request.SetMultipleOptions(std::forward<Options>(options)...);
         return ReadObjectImpl(request);
     }
-    
-    template<typename... Options>
-    StatusOrVal<FileMetadata> CopyFile(std::string const& id,
-        std::string const& newParentId,
-        std::string const& newName,
-        Options&&... options)
+
+    template <typename... Options>
+    StatusOrVal<FileMetadata> CopyFile(std::string const& id, std::string const& newParentId,
+                                       std::string const& newName, Options&&... options)
     {
         internal::CopyFileRequest request(id, newParentId, newName);
         request.SetMultipleOptions(std::forward<Options>(options)...);
@@ -350,47 +339,40 @@ public:
     }
 
     // Quota operations
-    StatusOrVal<StorageQuota> GetQuota()
-    {
-        return m_RawClient->GetQuota();
-    }
+    StatusOrVal<StorageQuota> GetQuota() { return m_RawClient->GetQuota(); }
 
     // TODO: to be implemented.
-    //Status DownloadFileThumbnail(std::string const& id, std::string const& dstFileName, uint16_t size = 256, std::string const& imgFormat = "png") const; // Only for box, dropbox and gdrive
+    // Status DownloadFileThumbnail(std::string const& id, std::string const& dstFileName, uint16_t size = 256,
+    // std::string const& imgFormat = "png") const; // Only for box, dropbox and gdrive
 
     // TODO: to be implemented.
     //// Multipart uploading operations
-    //MultipartID InitializeMultipartUploadSession(new_name, parent_id, size, overwrite: bool, parallel : bool);
-    //MultipartInfo<id, part_size, parallel> GetMultipartSessionInfo(MultipartID);
-    //void MultipartUploadPart(MultipartID, part_number);
-    //File CompleteMultipartSession(MultipartID);
-    //void DeleteMultipartSession(MultipartID);
+    // MultipartID InitializeMultipartUploadSession(new_name, parent_id, size, overwrite: bool, parallel : bool);
+    // MultipartInfo<id, part_size, parallel> GetMultipartSessionInfo(MultipartID);
+    // void MultipartUploadPart(MultipartID, part_number);
+    // File CompleteMultipartSession(MultipartID);
+    // void DeleteMultipartSession(MultipartID);
 
     // TODO: decide if links operations are needed.
     // Links operations
-    //Array<Link> List(active: bool, page_size, page);
-    //Link Create(file_cloud_id, password_opt, expiration_opt, direct_opt);
-    //Link Get(id, active);
-    //Link Update(id, active, expiration, password);
-    //void Delete(id);
+    // Array<Link> List(active: bool, page_size, page);
+    // Link Create(file_cloud_id, password_opt, expiration_opt, direct_opt);
+    // Link Get(id, active);
+    // Link Update(id, active, expiration, password);
+    // void Delete(id);
 
 private:
-
     std::shared_ptr<internal::RawClient> m_RawClient;
 
     CloudStorageClient() = default;
 
-    static std::shared_ptr<internal::RawClient> CreateDefaultRawClient(
-        ClientOptions options);
+    static std::shared_ptr<internal::RawClient> CreateDefaultRawClient(ClientOptions options);
 
     // The version of UploadFile() where UseResumableUploadSession is one of the
     // options. Note how this does not use InsertFile at all.
     template <typename... Options>
-    StatusOrVal<FileMetadata> UploadFileImpl(std::string const& srcFileName,
-        std::string const& parentId,
-        std::string const& name,
-        std::true_type,
-        Options&&... options)
+    StatusOrVal<FileMetadata> UploadFileImpl(std::string const& srcFileName, std::string const& parentId,
+                                             std::string const& name, std::true_type, Options&&... options)
     {
         internal::ResumableUploadRequest request(parentId, name);
         request.SetMultipleOptions(std::forward<Options>(options)...);
@@ -401,16 +383,12 @@ private:
     // the options. In this case we can use InsertFileRequest because it
     // is safe.
     template <typename... Options>
-    StatusOrVal<FileMetadata> UploadFileImpl(std::string const& srcFileName,
-        std::string const& parentId,
-        std::string const& name,
-        std::false_type,
-        Options&&... options)
+    StatusOrVal<FileMetadata> UploadFileImpl(std::string const& srcFileName, std::string const& parentId,
+                                             std::string const& name, std::false_type, Options&&... options)
     {
         if (UseSimpleUpload(srcFileName))
         {
-            internal::InsertFileRequest request(parentId, name,
-                std::string{});
+            internal::InsertFileRequest request(parentId, name, std::string{});
             request.SetMultipleOptions(std::forward<Options>(options)...);
             return UploadFileSimple(srcFileName, request);
         }
@@ -421,24 +399,19 @@ private:
 
     bool UseSimpleUpload(std::string const& fileName) const;
 
-    StatusOrVal<FileMetadata> UploadFileSimple(
-        std::string const& fileName, internal::InsertFileRequest request);
+    StatusOrVal<FileMetadata> UploadFileSimple(std::string const& fileName, internal::InsertFileRequest request);
 
-    StatusOrVal<FileMetadata> UploadFileResumable(
-        std::string const& fileName,
-        internal::ResumableUploadRequest const& request);
+    StatusOrVal<FileMetadata> UploadFileResumable(std::string const& fileName,
+                                                  internal::ResumableUploadRequest const& request);
 
-    StatusOrVal<FileMetadata> UploadStreamResumable(
-        std::istream& source, internal::ResumableUploadRequest const& request);
+    StatusOrVal<FileMetadata> UploadStreamResumable(std::istream& source,
+                                                    internal::ResumableUploadRequest const& request);
 
-    FileWriteStream WriteObjectImpl(
-        internal::ResumableUploadRequest const& request);
+    FileWriteStream WriteObjectImpl(internal::ResumableUploadRequest const& request);
 
-    FileReadStream ReadObjectImpl(
-        internal::ReadFileRangeRequest const& request);
+    FileReadStream ReadObjectImpl(internal::ReadFileRangeRequest const& request);
 
-    Status DownloadFileImpl(internal::ReadFileRangeRequest const& request,
-        std::string const& dstFileName);
+    Status DownloadFileImpl(internal::ReadFileRangeRequest const& request, std::string const& dstFileName);
 };
 
-} // namespace csa
+}  // namespace csa

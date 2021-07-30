@@ -31,18 +31,19 @@ namespace internal {
  * meta-functions defined here.
  */
 
-
- /**
-  * Metafunction to determine if @p F is a pointer to member function with the
-  * expected signature for a `RawClient` member function.
-  *
-  * This is the generic case, where the type does not match the expected
-  * signature and so member type aliases do not exist.
-  *
-  * @tparam F the type to check against the expected signature.
-  */
+/**
+ * Metafunction to determine if @p F is a pointer to member function with the
+ * expected signature for a `RawClient` member function.
+ *
+ * This is the generic case, where the type does not match the expected
+ * signature and so member type aliases do not exist.
+ *
+ * @tparam F the type to check against the expected signature.
+ */
 template <typename F>
-struct Signature {};
+struct Signature
+{
+};
 
 /**
  * Partial specialization for the above `Signature` metafunction.
@@ -55,19 +56,17 @@ struct Signature {};
  * @tparam Response the RPC response type.
  */
 template <typename Request, typename Response>
-struct Signature<StatusOrVal<Response>(
-    csa::internal::RawClient::*)(Request const&)>
+struct Signature<StatusOrVal<Response> (csa::internal::RawClient::*)(Request const&)>
 {
     using RequestType = Request;
     using ReturnType = StatusOrVal<Response>;
 };
 
 template <typename Response>
-struct Signature < StatusOrVal<Response>(
-    csa::internal::RawClient::*)()>
+struct Signature<StatusOrVal<Response> (csa::internal::RawClient::*)()>
 {
     using ReturnType = StatusOrVal<Response>;
 };
 
-} // namespace internal
-} // namespace csa
+}  // namespace internal
+}  // namespace csa

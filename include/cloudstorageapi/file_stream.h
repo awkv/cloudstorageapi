@@ -34,8 +34,7 @@ public:
      *
      * Attempts to use this stream will result in failures.
      */
-    FileReadStream() : std::basic_istream<char>(nullptr), m_buf()
-    {}
+    FileReadStream() : std::basic_istream<char>(nullptr), m_buf() {}
 
     /**
      * Creates a stream associated with the given `streambuf`.
@@ -47,8 +46,7 @@ public:
         init(m_buf.get());
     }
 
-    FileReadStream(FileReadStream&& rhs) noexcept
-        : FileReadStream(std::move(rhs.m_buf))
+    FileReadStream(FileReadStream&& rhs) noexcept : FileReadStream(std::move(rhs.m_buf))
     {
         // We cannot use set_rdbuf() because older versions of libstdc++ do not
         // implement this function. Unfortunately `move()` resets `rdbuf()`, and
@@ -95,16 +93,13 @@ public:
     Status const& GetStatus() const& { return m_buf->GetStatus(); }
 
     /// The headers returned by the service, for debugging only.
-    std::multimap<std::string, std::string> const& GetHeaders() const
-    {
-        return m_buf->GetHeaders();
-    }
+    std::multimap<std::string, std::string> const& GetHeaders() const { return m_buf->GetHeaders(); }
     //@}
 
 private:
     std::unique_ptr<internal::FileReadStreambuf> m_buf;
 };
-    
+
 /**
  * Defines a `std::basic_ostream<char>` to write to a cloud file.
  */
@@ -126,11 +121,9 @@ public:
      *
      * @param buf an initialized FileWriteStreambuf to upload the data.
      */
-    explicit FileWriteStream(
-        std::unique_ptr<internal::FileWriteStreambuf> buf);
+    explicit FileWriteStream(std::unique_ptr<internal::FileWriteStreambuf> buf);
 
-    FileWriteStream(FileWriteStream&& rhs) noexcept
-        : FileWriteStream(std::move(rhs.m_buf))
+    FileWriteStream(FileWriteStream&& rhs) noexcept : FileWriteStream(std::move(rhs.m_buf))
     {
         m_metadata = std::move(rhs.m_metadata);
         m_headers = std::move(rhs.m_headers);
@@ -210,13 +203,10 @@ public:
      * behavior.
      */
     StatusOrVal<FileMetadata> const& GetMetadata() const& { return m_metadata; }
-    StatusOrVal<FileMetadata>&& GetMetadata()&& { return std::move(m_metadata); }
+    StatusOrVal<FileMetadata>&& GetMetadata() && { return std::move(m_metadata); }
 
     /// The headers returned by the service, for debugging only.
-    std::multimap<std::string, std::string> const& GetHeaders() const
-    {
-        return m_headers;
-    }
+    std::multimap<std::string, std::string> const& GetHeaders() const { return m_headers; }
 
     /// The returned payload as a raw string, for debugging only.
     std::string const& GetPayload() const { return m_payload; }
@@ -231,10 +221,7 @@ public:
      *
      * Furthermore, this value might change during an upload.
      */
-    std::string const& GetResumableSessionId() const
-    {
-        return m_buf->GetResumableSessionId();
-    }
+    std::string const& GetResumableSessionId() const { return m_buf->GetResumableSessionId(); }
 
     /**
      * Returns the next expected byte.
@@ -243,10 +230,7 @@ public:
      * resumable uploads can use this value to resend any data not committed in
      * the cloud.
      */
-    std::uint64_t GetNextExpectedByte() const
-    {
-        return m_buf->GetNextExpectedByte();
-    }
+    std::uint64_t GetNextExpectedByte() const { return m_buf->GetNextExpectedByte(); }
 
     /**
      * Suspends an upload.
@@ -256,7 +240,7 @@ public:
      * necessary state (such as the value `resumable_session_id()`) before calling
      * this function.
      */
-    void Suspend()&&;
+    void Suspend() &&;
 
     /**
      * Returns the status of partial errors.
@@ -282,4 +266,4 @@ private:
     std::string m_payload;
 };
 
-} // namespace csa
+}  // namespace csa

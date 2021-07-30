@@ -21,11 +21,10 @@
 namespace csa {
 namespace {
 
-class TerminateFunction {
+class TerminateFunction
+{
 public:
-    explicit TerminateFunction(TerminateHandler handler)
-        : m_handler(std::move(handler))
-    {}
+    explicit TerminateFunction(TerminateHandler handler) : m_handler(std::move(handler)) {}
 
     TerminateHandler Get()
     {
@@ -33,7 +32,8 @@ public:
         return m_handler;
     }
 
-    TerminateHandler Set(TerminateHandler handler) {
+    TerminateHandler Set(TerminateHandler handler)
+    {
         std::lock_guard<std::mutex> l(m_mu);
         handler.swap(m_handler);
         return handler;
@@ -49,29 +49,23 @@ TerminateFunction& GetTerminateHolder()
     static TerminateFunction f([](const char* msg) {
         std::cerr << "Aborting: " << msg << "\n";
         std::abort();
-        });
+    });
     return f;
 }
 
 }  // anonymous namespace
 
-TerminateHandler SetTerminateHandler(TerminateHandler handler)
-{
-    return GetTerminateHolder().Set(std::move(handler));
-}
+TerminateHandler SetTerminateHandler(TerminateHandler handler) { return GetTerminateHolder().Set(std::move(handler)); }
 
-TerminateHandler GetTerminateHandler()
-{
-    return GetTerminateHolder().Get();
-}
+TerminateHandler GetTerminateHandler() { return GetTerminateHolder().Get(); }
 
 [[noreturn]] void Terminate(const char* msg)
 {
-  GetTerminateHolder().Get()(msg);
-  std::cerr << "Aborting because the installed terminate handler returned. "
-               "Error details: "
-            << msg << "\n";
-  std::abort();
+    GetTerminateHolder().Get()(msg);
+    std::cerr << "Aborting because the installed terminate handler returned. "
+                 "Error details: "
+              << msg << "\n";
+    std::abort();
 }
 
 }  // namespace csa

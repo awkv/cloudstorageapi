@@ -29,24 +29,19 @@ namespace csa {
  * previous upload sesion, the client library will restore that session in
  * this case.
  */
-struct UseResumableUploadSession
-    : public internal::ComplexOption<UseResumableUploadSession, std::string>
+struct UseResumableUploadSession : public internal::ComplexOption<UseResumableUploadSession, std::string>
 {
     using internal::ComplexOption<UseResumableUploadSession, std::string>::ComplexOption;
     static char const* name() { return "resumable-upload"; }
 };
 
 // Create a UseResumableUploadSession option that restores previous sessions.
-inline UseResumableUploadSession RestoreResumableUploadSession(
-    std::string session_id)
+inline UseResumableUploadSession RestoreResumableUploadSession(std::string session_id)
 {
     return UseResumableUploadSession(std::move(session_id));
 }
 
 // Create a UseResumableUploadSession option that requests new sessions.
-inline UseResumableUploadSession NewResumableUploadSession()
-{
-    return UseResumableUploadSession("");
-}
+inline UseResumableUploadSession NewResumableUploadSession() { return UseResumableUploadSession(""); }
 
 }  // namespace csa

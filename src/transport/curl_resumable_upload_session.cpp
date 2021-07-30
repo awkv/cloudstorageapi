@@ -19,8 +19,7 @@
 namespace csa {
 namespace internal {
 
-StatusOrVal<ResumableUploadResponse> CurlResumableUploadSession::UploadChunk(
-    std::string const& buffer)
+StatusOrVal<ResumableUploadResponse> CurlResumableUploadSession::UploadChunk(std::string const& buffer)
 {
     UploadChunkRequest request(m_sessionId, m_nextExpected, buffer);
     auto result = m_client->UploadChunk(request);
@@ -28,8 +27,8 @@ StatusOrVal<ResumableUploadResponse> CurlResumableUploadSession::UploadChunk(
     return result;
 }
 
-StatusOrVal<ResumableUploadResponse> CurlResumableUploadSession::UploadFinalChunk(
-    std::string const& buffer, std::uint64_t upload_size)
+StatusOrVal<ResumableUploadResponse> CurlResumableUploadSession::UploadFinalChunk(std::string const& buffer,
+                                                                                  std::uint64_t upload_size)
 {
     UploadChunkRequest request(m_sessionId, m_nextExpected, buffer, upload_size);
     auto result = m_client->UploadChunk(request);
@@ -45,13 +44,9 @@ StatusOrVal<ResumableUploadResponse> CurlResumableUploadSession::ResetSession()
     return result;
 }
 
-std::uint64_t CurlResumableUploadSession::GetNextExpectedByte() const
-{
-    return m_nextExpected;
-}
+std::uint64_t CurlResumableUploadSession::GetNextExpectedByte() const { return m_nextExpected; }
 
-void CurlResumableUploadSession::Update(
-    StatusOrVal<ResumableUploadResponse> const& result, std::size_t chunkSize)
+void CurlResumableUploadSession::Update(StatusOrVal<ResumableUploadResponse> const& result, std::size_t chunkSize)
 {
     m_lastResponse = result;
     if (!result.Ok())
