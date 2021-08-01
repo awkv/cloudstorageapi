@@ -15,25 +15,14 @@
 cmake_minimum_required(VERSION 3.17)
 
 set(PROJECT_NAME cloudstorageapi)
-project(${PROJECT_NAME} LANGUAGES CXX C)
+project(${PROJECT_NAME} VERSION 0.0.1 LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CSA_VERSION_MAJOR 0)
-set(CSA_VERSION_MINOR 0)
-set(CSA_VERSION_PATCH 1)
-
-string(CONCAT CSA_VERSION
-              "${CSA_VERSION_MAJOR}"
-              "."
-              "${CSA_VERSION_MINOR}"
-              "."
-              "${CSA_VERSION_PATCH}")
-
 # Generate the version information from the CMake values.
 configure_file(include/cloudstorageapi/version_info.h.in
-               include/cloudstorageapi/version_info.h)
+               ${CMAKE_CURRENT_SOURCE_DIR}/include/cloudstorageapi/version_info.h)
 
 # Reconfigure final output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/binaries/${ARCH})

@@ -13,8 +13,9 @@
 // limitations under the License.
 
 namespace csa {
-
-constexpr auto CSA_VERSION_MAJOR @CSA_VERSION_MAJOR @ constexpr auto CSA_VERSION_MINOR @CSA_VERSION_MINOR
-    @ constexpr auto CSA_VERSION_PATCH @CSA_VERSION_PATCH @
-
+// clang-format off
+constexpr auto CSA_VERSION_MAJOR = @PROJECT_VERSION_MAJOR@;
+constexpr auto CSA_VERSION_MINOR = @PROJECT_VERSION_MINOR@;
+constexpr auto CSA_VERSION_PATCH = @PROJECT_VERSION_PATCH@;
+// clang-format on
 }  // namespace csa
