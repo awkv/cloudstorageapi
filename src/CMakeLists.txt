@@ -71,6 +71,6 @@ set_target_properties(
     cloudstorageapi
     PROPERTIES
         VERSION
-        ${CSA_VERSION_MAJOR}.${CSA_VERSION_MINOR}.${CSA_VERSION_PATCH}
+        ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         SOVERSION
-        ${CSA_VERSION_MAJOR})
+        ${PROJECT_VERSION_MAJOR})
