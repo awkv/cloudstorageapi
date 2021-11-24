@@ -26,9 +26,9 @@ class CurlClientFactory
 public:
     CurlClientFactory() = delete;
 
-    static std::shared_ptr<CurlClientBase> CreateClient(ClientOptions options)
+    static std::shared_ptr<CurlClientBase> CreateClient(Options options)
     {
-        switch (options.GetProvider())
+        switch (options.Get<ProviderOption>())
         {
         case EProvider::GoogleDrive:
             return CurlGoogleDriveClient::Create(std::move(options));

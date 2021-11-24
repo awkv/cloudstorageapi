@@ -29,8 +29,10 @@ TEST(CurlWrappers, LockingDisabledTest)
         // The test cannot execute in this case.
         return;
     }
-    CurlInitializeOnce(
-        ClientOptions(EProvider::GoogleDrive, std::make_shared<NullCredentials>()).SetEnableSslLockingCallbacks(false));
+    CurlInitializeOnce(Options{}
+                           .Set<ProviderOption>(EProvider::GoogleDrive)
+                           .Set<Oauth2CredentialsOption>(std::make_shared<NullCredentials>())
+                           .Set<EnableCurlSslLockingOption>(false));
     EXPECT_FALSE(SslLockingCallbacksInstalled());
 }
 }  // namespace

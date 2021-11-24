@@ -108,5 +108,8 @@ std::string GenerateMessageBoundary(std::string const& message, RandomStringGene
  */
 std::size_t RoundUpToQuantum(std::size_t maxChunkSize, std::size_t quantumSize);
 
+/// A portable and thread-safe version of std::strerror()
+std::string strerror(int errnum);
+
 }  // namespace internal
 }  // namespace csa

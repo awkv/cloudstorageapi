@@ -16,7 +16,7 @@
 
 #include "cloudstorageapi/file_metadata.h"
 #include "cloudstorageapi/internal/curl_client_base.h"
-#include "cloudstorageapi/internal/nljson.h"
+#include <nlohmann/json.hpp>
 
 namespace csa {
 namespace internal {
@@ -32,7 +32,7 @@ class ObjectReadSource;
 class CurlGoogleDriveClient final : public CurlClientBase, public std::enable_shared_from_this<CurlGoogleDriveClient>
 {
 public:
-    static std::shared_ptr<CurlGoogleDriveClient> Create(ClientOptions options)
+    static std::shared_ptr<CurlGoogleDriveClient> Create(Options options)
     {
         // Cannot use std::make_shared because the constructor is private.
         return std::shared_ptr<CurlGoogleDriveClient>(new CurlGoogleDriveClient(std::move(options)));
@@ -40,7 +40,8 @@ public:
 
     static std::shared_ptr<CurlGoogleDriveClient> Create(std::shared_ptr<auth::Credentials> credentials)
     {
-        return Create(ClientOptions(EProvider::GoogleDrive, std::move(credentials)));
+        return Create(
+            Options{}.Set<ProviderOption>(EProvider::GoogleDrive).Set<Oauth2CredentialsOption>(std::move(credentials)));
     }
 
     CurlGoogleDriveClient(CurlGoogleDriveClient const& rhs) = delete;
@@ -73,6 +74,7 @@ public:
         ResumableUploadRequest const& request) override;
     StatusOrVal<std::unique_ptr<ResumableUploadSession>> RestoreResumableSession(
         std::string const& session_id) override;
+    StatusOrVal<EmptyResponse> DeleteResumableUpload(DeleteResumableUploadRequest const& request) override;
     StatusOrVal<FileMetadata> CopyFileObject(CopyFileRequest const& request) override;
 
     StatusOrVal<StorageQuota> GetQuota() override;
@@ -80,7 +82,7 @@ public:
 private:
     // The constructor is protected because the class must always be created
     // as a shared_ptr<>.
-    explicit CurlGoogleDriveClient(ClientOptions options);
+    explicit CurlGoogleDriveClient(Options options);
 
     std::string PickBoundary(std::string const& textToAvoid);
     StatusOrVal<FileMetadata> InsertFileSimple(InsertFileRequest const& request);
@@ -91,7 +93,7 @@ private:
 
     StatusOrVal<HttpResponse> RenameGeneric(RenameRequest const& request);
     template <typename RequestType>
-    StatusOrVal<HttpResponse> PatchMetadataGeneric(RequestType const& request, nl::json const& patch);
+    StatusOrVal<HttpResponse> PatchMetadataGeneric(RequestType const& request, nlohmann::json const& patch);
 };
 
 }  // namespace internal

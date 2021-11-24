@@ -43,7 +43,7 @@ template <typename Derived, typename Option>
 class GenericRequestBase<Derived, Option>
 {
 public:
-    Derived& SetOption(Option&& p)
+    Derived& SetOption(Option p)
     {
         m_option = std::move(p);
         return *static_cast<Derived*>(this);
@@ -95,7 +95,7 @@ class GenericRequestBase : public GenericRequestBase<Derived, Options...>
 public:
     using GenericRequestBase<Derived, Options...>::SetOption;
 
-    Derived& SetOption(Option&& p)
+    Derived& SetOption(Option p)
     {
         m_option = std::move(p);
         return *static_cast<Derived*>(this);

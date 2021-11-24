@@ -34,13 +34,19 @@ template <typename P, typename T>
 class WellKnownParameter
 {
 public:
-    WellKnownParameter() : m_value{} {}
+    WellKnownParameter() = default;
     explicit WellKnownParameter(T&& value) : m_value(std::forward<T>(value)) {}
     explicit WellKnownParameter(T const& value) : m_value(value) {}
 
     char const* ParameterName() const { return P::WellKnownParameterName(); }
     bool HasValue() const { return m_value.has_value(); }
     T const& value() const { return m_value.value(); }
+
+    template <typename U>
+    T ValueOr(U&& default_val)
+    {
+        return m_value.value_or(std::forward<U>(default_val));
+    }
 
 private:
     std::optional<T> m_value;
@@ -107,31 +113,15 @@ struct Fields : public internal::WellKnownParameter<Fields, std::string>
 };
 
 /**
- * Set the version of an object to operate on.
- *
- * For objects in Buckets with `versioning` enabled, the application sometimes
- * needs to specify which version of the object should the request target. This
- * is an optional query parameter to control the version.
- *
- * @see https://cloud.google.com/storage/docs/object-versioning for more
- *     information on GCS Object versioning.
- */
-struct Generation : public internal::WellKnownParameter<Generation, std::int64_t>
-{
-    using WellKnownParameter<Generation, std::int64_t>::WellKnownParameter;
-    static char const* WellKnownParameterName() { return "generation"; }
-};
-
-/**
  * Limit the number of results per page when listing Folders and Files.
  *
  * Applications may reduce the memory requirements of the Folder and File
  * iterators by using smaller page sizes. The downside is that more requests
  * may be needed to iterate over the full range of Folders and/or Files.
  */
-struct PageSize : public internal::WellKnownParameter<PageSize, std::int64_t>
+struct MaxResults : public internal::WellKnownParameter<MaxResults, std::int64_t>
 {
-    using WellKnownParameter<PageSize, std::int64_t>::WellKnownParameter;
+    using WellKnownParameter<MaxResults, std::int64_t>::WellKnownParameter;
     static char const* WellKnownParameterName() { return "pageSize"; }
 };
 

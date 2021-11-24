@@ -24,7 +24,10 @@
 #include "cloudstorageapi/internal/folder_requests.h"
 #include "cloudstorageapi/internal/logging_client.h"
 #include "cloudstorageapi/internal/raw_client.h"
+#include "cloudstorageapi/internal/retry_client.h"
 #include "cloudstorageapi/list_folder_reader.h"
+#include "cloudstorageapi/options.h"
+#include "cloudstorageapi/retry_policy.h"
 #include "cloudstorageapi/status_or_val.h"
 #include "cloudstorageapi/storage_quota.h"
 #include "cloudstorageapi/upload_options.h"
@@ -43,31 +46,71 @@ class Credentials;
  * Cloud storage client.
  *
  * This is a main class to interact with cloud storage. It is generalization of different cloud storages APIs.
- * It provides member functions to work with cloud storages independently. Some functionality might not be supported
- * by all cloud storages. In this case those functions return empty or default result. See documentation for each
- * function for details.
+ * It provides member functions to invoke the APIs in the cloud storages service. Some functionality
+ * might not be supported by all cloud storages. In this case those functions return empty or default result. See
+ * documentation for each function for details.
+ *
+ * @par Performance
+ * Creating an object of this type is a relatively low-cost operation.
+ * Connections to the service are created on demand. Copy-assignment and
+ * copy-construction are also relatively low-cost operations, they should be
+ * comparable to copying a few shared pointers. The first request (or any
+ * request that requires a new connection) incurs the cost of creating the
+ * connection and authenticating with the service. Note that the library may
+ * need to perform other bookkeeping operations that may impact performance.
+ * For example, access tokens need to be refreshed from time to time, and this
+ * may impact the performance of some operations.
+ *
+ * @par Thread-safety
+ * Instances of this class created via copy-construction or copy-assignment
+ * share the underlying pool of connections. Access to these copies via multiple
+ * threads is guaranteed to work. Two threads operating on the same instance of
+ * this class is not guaranteed to work.
+ *
+ * @par Credentials
+ * TODO
+ *
+ * @par Error Handling
+ * This class uses `StatusOrVal<T>` to report errors. When an operation fails to
+ * perform its work the returned `StatusOrVal<T>` contains the error details. If
+ * the `Ok()` member function in the `StatusOrVal<T>` returns `true` then it
+ * contains the expected result.
+ *
+ * @par Optional Parameters
+ * Most of the member functions in this class can receive optional parameters
+ * to modify their behavior.
+ * Each function documents the types accepted as optional parameters. These
+ * options can be specified in any order. Specifying an option that is not
+ * applicable to a member function results in a compile-time error.
+ *
+ * @par Retry and Backoff
+ *
+ * The library automatically retries requests that fail with transient errors,
+ * and follows the recommended practice (e.g. for google drive
+ * https://developers.google.com/drive/api/v3/handle-errors#exponential-backoff)
+ * to backoff between retries.
+ *
+ * The default policies are to continue retrying for up to 15 minutes, and to
+ * use truncated (at 5 minutes) exponential backoff, doubling the maximum
+ * backoff period between retries.
+ *
+ * The application can override these policies when constructing objects of this
+ * class.
+ *
+ *
  */
 class CloudStorageClient
 {
 public:
-    explicit CloudStorageClient(ClientOptions options) : CloudStorageClient(CreateDefaultRawClient(std::move(options)))
-    {
-    }
-
-    explicit CloudStorageClient(EProvider provider, std::shared_ptr<auth::Credentials> credentials)
-        : CloudStorageClient(ClientOptions(provider, std::move(credentials)))
-    {
-    }
-
-    explicit CloudStorageClient(std::shared_ptr<internal::RawClient> client)
-    {
-        if (client->GetClientOptions().GetEnableRawClientTracing())
-            m_RawClient = std::make_shared<internal::LoggingClient>(std::move(client));
-        else
-            m_RawClient = std::move(client);
-    }
-
-    static StatusOrVal<CloudStorageClient> CreateDefaultClient(EProvider provider);
+    /**
+     * Build a new client.
+     *
+     * @param opts the configuration parameters for the `CloudStorageClient`.
+     *
+     * @see #CloudStorageClientOptionList for a list of useful options.
+     *
+     */
+    explicit CloudStorageClient(Options opts = {});
 
     /**
      * \brief Get the provider name.
@@ -83,8 +126,9 @@ public:
      */
     StatusOrVal<UserInfo> GetUserInfo() const { return m_RawClient->GetUserInfo(); }
 
-    // TODO: Common operations (folders and files)
-    // StatusOrVal<bool> Exists(const std::string& path) const;
+    // Common operations (folders and files)
+
+    // TODO(if needed): StatusOrVal<bool> Exists(const std::string& path) const;
 
     /**
      * Delete object (file or folder) by given id.
@@ -100,6 +144,7 @@ public:
     }
 
     // Folder operations
+
     /**
      * Returns list of objects metadata located in given folder.
      *
@@ -107,7 +152,7 @@ public:
      *     of the object should not be used as id, except provider explicitly says this.
      *
      * @param options a list of optional query parameters and/or request headers.
-     *     Valid types for this operation include `PageSize`.
+     *     Valid types for this operation include `MaxResults`.
      */
     template <typename... Options>
     ListFolderReader ListFolder(std::string const& id, Options&&... options) const
@@ -115,12 +160,16 @@ public:
         internal::ListFolderRequest request(id);
         request.SetMultipleOptions(std::forward<Options>(options)...);
         auto client = m_RawClient;
-        return ListFolderReader(request,
-                                [client](internal::ListFolderRequest const& r) { return client->ListFolder(r); });
+        return internal::MakePaginationRange<ListFolderReader>(
+            request, [client](internal::ListFolderRequest const& r) { return client->ListFolder(r); },
+            [](internal::ListFolderResponse r) { return std::move(r.m_items); });
     }
 
     /**
-     * Returns object's metadata.
+     * Returns folder's metadata.
+     *
+     * @param folderId an id of a folder as defined by the provider. Path or name
+     *  of the folder should not be used as id, except provider explicitly says this.
      */
     StatusOrVal<FolderMetadata> GetFolderMetadata(std::string const& folderId) const
     {
@@ -128,6 +177,13 @@ public:
         return m_RawClient->GetFolderMetadata(request);
     }
 
+    /**
+     * Creates a new folder.
+     *
+     * @param parentId the id of the parent folder that will contain the new folder. Path or name
+     *  of the folder should not be used as id, except provider explicitly says this.
+     * @param newName the name of the new folder.
+     */
     template <typename... Options>
     StatusOrVal<FolderMetadata> CreateFolder(std::string const& parentId, std::string const& newName)
     {
@@ -135,6 +191,15 @@ public:
         return m_RawClient->CreateFolder(request);
     }
 
+    /**
+     * Renames a folder and returns the resuting folder's metadata. It includes moving under the new parent.
+     *
+     * @param id an id of a folder as defined by the provider. Path or name
+     *     of the object should not be used as id, except provider explicitly says this.
+     * @param newName new folder's name
+     * @param parentId current parent folder id
+     * @param newParentId new parent folder id
+     */
     StatusOrVal<FolderMetadata> RenameFolder(std::string const& id, std::string const& newName,
                                              std::string const& parentId, std::string const& newParentId)
     {
@@ -142,6 +207,23 @@ public:
         return m_RawClient->RenameFolder(request);
     }
 
+    /**
+     * Computes the difference between two FolderMetadata objects and patches a
+     * folder based on that difference. This request only changes the subset of
+     * the attributes included in the request.
+     *
+     * This function creates a patch request to change the writeable attributes in
+     * @p original to the values in @p updated.  Non-writeable attributes are
+     * ignored, and attributes not present in @p updated are removed. Typically
+     * this function is used after the application obtained a value with
+     * `GetFolderMetadata` and has modified these parameters.
+     *
+     * @param folderId an id of a folder as defined by the provider. Path or name
+     *     of the object should not be used as id, except provider explicitly says this.
+     * @param original the initial value of the folder metadata
+     * @param updated the updated value for the folder metadata
+     *
+     */
     StatusOrVal<FolderMetadata> PatchFolderMetadata(std::string const& folderId, FolderMetadata original,
                                                     FolderMetadata updated)
     {
@@ -150,8 +232,12 @@ public:
     }
 
     // File operations
+
     /**
      * Return file metadata.
+     *
+     * @param id an id of a file as defined by the provider. Path or name
+     *     of the object should not be used as id, except provider explicitly says this.
      */
     StatusOrVal<FileMetadata> GetFileMetadata(std::string const& id) const
     {
@@ -160,7 +246,7 @@ public:
     }
 
     /**
-     * Patches the metadata in a cloud storage.
+     * Patches the file metadata in a cloud storage.
      *
      * This function creates a patch request to change the writeable attributes in
      * @p original to the values in @p updated. Non-writeable attributes are
@@ -168,7 +254,8 @@ public:
      * this function is used after the application obtained a value with
      * `GetObjectMetadata` and has modified these parameters.
      *
-     * @param fileId file's cloud id.
+     * @param fileId an id of a file as defined by the provider. Path or name
+     *     of the object should not be used as id, except provider explicitly says this.
      * @param original the initial value of the object metadata.
      * @param updated the updated value for the object metadata.
      */
@@ -178,9 +265,18 @@ public:
         return m_RawClient->PatchFileMetadata(request);
     }
 
+    /**
+     * Renames a file. It includes moveing file to another folder.
+     *
+     * @param id an id of a file as defined by the provider. Path or name
+     *     of the object should not be used as id, except provider explicitly says this.
+     * @param newName new file's name
+     * @param parentId current parent folder id
+     * @param newParentId new parent folder id
+     *
+     */
     StatusOrVal<FileMetadata> RenameFile(std::string const& id, std::string const& newName,
-                                         std::string const& parentId = "",
-                                         std::string const& newParentId = "")  // includes move
+                                         std::string const& parentId = "", std::string const& newParentId = "")
     {
         internal::RenameRequest request(id, newName, parentId, newParentId);
         return m_RawClient->RenameFile(request);
@@ -188,6 +284,13 @@ public:
 
     /**
      * Creates an object given its name and contents.
+     *
+     * @param folderId parent folder id
+     * @param name the name of the file to be created
+     * @param content the contents (media) for the new object
+     * @param options a list of optinal query parameters and/or request header.
+     *      Valid tpes for thei operation include `ContentEncoding`,
+     *     `ContentType`, and `WithObjectMetadata`
      */
     template <typename... Options>
     StatusOrVal<FileMetadata> InsertFile(std::string const& folderId, std::string const& name, std::string content,
@@ -206,6 +309,13 @@ public:
      * reading a device, Named Pipe, FIFO, or other type of file system object
      * that is **not** a regular file then `WriteObject()` is probably a better
      * alternative.
+     *
+     * @param srcFileName the name of the file to be uploaded
+     * @param parentId parent folder id
+     * @param name the name of the new file in the cloud storage
+     * @param options a list of optional query parameters and/or request headers.
+     *      Valid types for this operation include `ContentEncoding`, `ContentType`,
+     *      `UploadFromOffset`, `UploadLimit` and `WithObjectMetadata`.
      */
     template <typename... Options>
     StatusOrVal<FileMetadata> UploadFile(std::string const& srcFileName, std::string const& parentId,
@@ -222,38 +332,54 @@ public:
     }
 
     /**
-     * Writes contents into an object.
+     * Cancel a resumable upload.
+     *
+     * @param uploadSessionUrl the url of the upload session. Returned by
+     * `ObjectWriteStream::resumable_session_id`.
+     * @param options a list of optional query parameters and/or request headers.
+     *   Valid types for this operation include `UserProject`.
+     *
+     * @par Idempotency
+     * This operation is always idempotent because it only acts on a specific
+     * `upload_session_url`.
+     */
+    template <typename... Options>
+    Status DeleteResumableUpload(std::string const& uploadSessionUrl, Options&&... options)
+    {
+        internal::DeleteResumableUploadRequest request(uploadSessionUrl);
+        request.SetMultipleOptions(std::forward<Options>(options)...);
+        return m_RawClient->DeleteResumableUpload(request).GetStatus();
+    }
+
+    /**
+     * Writes contents into a file.
      *
      * This creates a `std::ostream` object to upload contents. The application
      * can use either the regular `operator<<()`, or `std::ostream::write()` to
      * upload data.
      *
-     * The application can explicitly request a new resumable upload using the
-     * result of `#NewResumableUploadSession()`. To restore a previously created
-     * resumable session use `#RestoreResumableUploadSession()`.
+     * This function always uses resumable uploads. The
+     * application can provide a `#RestoreResumableUploadSession()` option to
+     * resume a previously created upload. The returned object has accessors to
+     * query the session id and the next byte expected by GCS.
      *
-     * @note It is the application's responsibility to query the stream to find
-     *     the latest committed byte and to upload data starting from the next
-     *     byte expected by the upload session.
-     *
-     * @note Using the `WithObjectMetadata` option implicitly creates a resumable
-     *     upload.
-     *
-     * Without resumable uploads an interrupted upload has to be restarted from
-     * the beginning. Therefore, applications streaming large objects should try
-     * to use resumable uploads, and save the session id to restore them if
-     * needed.
-     *
-     * Non-resumable uploads may be more efficient for small and medium sized
-     * uploads, as they require fewer roundtrips to the service.
+     * @note When resuming uploads it is the application's responsibility to save
+     *     the session id to restart the upload later. Likewise, it is the
+     *     application's responsibility to query the next expected byte and send
+     *     the remaining data without gaps or duplications.
      *
      * For small uploads `InsertFile` is recommended.
+     *
+     * If the application does not provide a `#RestoreResumableUploadSession()`
+     * option, or it provides the `#NewResumableUploadSession()` option then a new
+     * resumable upload session is created.
      *
      * @param parentId the id of the parent folder that contains the object.
      * @param name the name of the object to be written.
      * @param options a list of optional query parameters and/or request headers.
      *   Valid types for this operation include `ContentEncoding`, `ContentType`,
-     *   `UseResumableUploadSession`, and `WithObjectMetadata`.
+     *   `UseResumableUploadSession`, and `WithObjectMetadata`,
+     *   `UploadContentLength`, and `AutoFinalize`.
      */
     template <typename... Options>
     FileWriteStream WriteFile(std::string const& parentId, std::string const& name, Options&&... options)
@@ -329,44 +455,39 @@ public:
         return ReadObjectImpl(request);
     }
 
+    /**
+     * Copy an existing file.
+     *
+     * Use `CopyFile` to copy between files in the same location and storage.
+     *
+     * @param sourceFileId an id of a file to copy.
+     * @param destinationParentFolderId an id of the folder that will contain the new file.
+     * @param destinationFileName the name of the new file.
+     * @param options a list of optional query parameters and/or request headers.
+     *      Valid types for this operation include `WithObjectMetadata`
+     */
     template <typename... Options>
-    StatusOrVal<FileMetadata> CopyFile(std::string const& id, std::string const& newParentId,
-                                       std::string const& newName, Options&&... options)
+    StatusOrVal<FileMetadata> CopyFile(std::string const& sourceFileId, std::string const& destinationParentFolderId,
+                                       std::string const& destinationFileName, Options&&... options)
     {
-        internal::CopyFileRequest request(id, newParentId, newName);
+        internal::CopyFileRequest request(sourceFileId, destinationParentFolderId, destinationFileName);
         request.SetMultipleOptions(std::forward<Options>(options)...);
         return m_RawClient->CopyFileObject(request);
     }
 
-    // Quota operations
+    /**
+     *  Returns storage quota.
+     */
     StatusOrVal<StorageQuota> GetQuota() { return m_RawClient->GetQuota(); }
-
-    // TODO: to be implemented.
-    // Status DownloadFileThumbnail(std::string const& id, std::string const& dstFileName, uint16_t size = 256,
-    // std::string const& imgFormat = "png") const; // Only for box, dropbox and gdrive
-
-    // TODO: to be implemented.
-    //// Multipart uploading operations
-    // MultipartID InitializeMultipartUploadSession(new_name, parent_id, size, overwrite: bool, parallel : bool);
-    // MultipartInfo<id, part_size, parallel> GetMultipartSessionInfo(MultipartID);
-    // void MultipartUploadPart(MultipartID, part_number);
-    // File CompleteMultipartSession(MultipartID);
-    // void DeleteMultipartSession(MultipartID);
-
-    // TODO: decide if links operations are needed.
-    // Links operations
-    // Array<Link> List(active: bool, page_size, page);
-    // Link Create(file_cloud_id, password_opt, expiration_opt, direct_opt);
-    // Link Get(id, active);
-    // Link Update(id, active, expiration, password);
-    // void Delete(id);
 
 private:
     std::shared_ptr<internal::RawClient> m_RawClient;
 
-    CloudStorageClient() = default;
+    CloudStorageClient(std::shared_ptr<internal::RawClient> rawClient) : m_RawClient(std::move(rawClient)) {}
 
-    static std::shared_ptr<internal::RawClient> CreateDefaultRawClient(ClientOptions options);
+    static std::shared_ptr<internal::RawClient> CreateDefaultRawClient(Options options);
+    static std::shared_ptr<internal::RawClient> CreateDefaultRawClient(Options const& options,
+                                                                       std::shared_ptr<internal::RawClient> client);
 
     // The version of UploadFile() where UseResumableUploadSession is one of the
     // options. Note how this does not use InsertFile at all.
@@ -376,7 +497,7 @@ private:
     {
         internal::ResumableUploadRequest request(parentId, name);
         request.SetMultipleOptions(std::forward<Options>(options)...);
-        return UploadFileResumable(srcFileName, request);
+        return UploadFileResumable(srcFileName, std::move(request));
     }
 
     // The version of UploadFile() where UseResumableUploadSession is *not* one of
@@ -386,23 +507,25 @@ private:
     StatusOrVal<FileMetadata> UploadFileImpl(std::string const& srcFileName, std::string const& parentId,
                                              std::string const& name, std::false_type, Options&&... options)
     {
-        if (UseSimpleUpload(srcFileName))
+        std::size_t fileSize{0};
+        if (UseSimpleUpload(srcFileName, fileSize))
         {
             internal::InsertFileRequest request(parentId, name, std::string{});
             request.SetMultipleOptions(std::forward<Options>(options)...);
-            return UploadFileSimple(srcFileName, request);
+            return UploadFileSimple(srcFileName, fileSize, request);
         }
         internal::ResumableUploadRequest request(parentId, name);
         request.SetMultipleOptions(std::forward<Options>(options)...);
-        return UploadFileResumable(srcFileName, request);
+        return UploadFileResumable(srcFileName, std::move(request));
     }
 
-    bool UseSimpleUpload(std::string const& fileName) const;
+    bool UseSimpleUpload(std::string const& fileName, std::size_t& size) const;
 
-    StatusOrVal<FileMetadata> UploadFileSimple(std::string const& fileName, internal::InsertFileRequest request);
+    StatusOrVal<FileMetadata> UploadFileSimple(std::string const& fileName, std::size_t file_size,
+                                               internal::InsertFileRequest request);
 
     StatusOrVal<FileMetadata> UploadFileResumable(std::string const& fileName,
-                                                  internal::ResumableUploadRequest const& request);
+                                                  internal::ResumableUploadRequest request);
 
     StatusOrVal<FileMetadata> UploadStreamResumable(std::istream& source,
                                                     internal::ResumableUploadRequest const& request);

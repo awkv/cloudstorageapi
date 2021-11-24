@@ -28,7 +28,7 @@ namespace internal {
 /**
  * Requests the list of folders.
  */
-class ListFolderRequest : public GenericObjectRequest<ListFolderRequest, PageSize>
+class ListFolderRequest : public GenericObjectRequest<ListFolderRequest, MaxResults>
 {
 public:
     using GenericObjectRequest::GenericObjectRequest;

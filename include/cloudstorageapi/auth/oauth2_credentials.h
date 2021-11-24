@@ -18,7 +18,6 @@
 
 #include "cloudstorageapi/auth/credentials.h"
 #include "cloudstorageapi/auth/refreshing_credentials_wrapper.h"
-#include "cloudstorageapi/internal/curl_handle_factory.h"
 #include "cloudstorageapi/internal/curl_request_builder.h"
 #include <chrono>
 #include <mutex>
@@ -57,9 +56,9 @@ template <typename AuthHandler, typename HttpRequestBuilderType = internal::Curl
 class OAuth2Credentials : public Credentials
 {
 public:
-    explicit OAuth2Credentials(OAuth2CredentialsInfo const& info) : m_clock()
+    explicit OAuth2Credentials(OAuth2CredentialsInfo const& info, Options const& options = Options{}) : m_clock()
     {
-        HttpRequestBuilderType requestBuilder(info.m_tokenUri, internal::GetDefaultCurlHandleFactory());
+        HttpRequestBuilderType requestBuilder(info.m_tokenUri, internal::GetDefaultCurlHandleFactory(options));
         m_payload = AuthHandler::BuildRequestPayload(info);
         m_request = requestBuilder.BuildRequest();
     }

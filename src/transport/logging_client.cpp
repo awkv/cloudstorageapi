@@ -39,16 +39,16 @@ static typename Signature<MemberFunction>::ReturnType MakeCall(
     RawClient& client, MemberFunction function, typename Signature<MemberFunction>::RequestType const& request,
     char const* context)
 {
-    CSA_LOG_INFO("{}() {}", context, request);
+    CSA_LOG_INFO("{}() << {}", context, request);
 
     auto response = (client.*function)(request);
     if (response.Ok())
     {
-        CSA_LOG_INFO("{}() payload={{{}}}", context, response.Value());
+        CSA_LOG_INFO("{}() >> payload={{{}}}", context, response.Value());
     }
     else
     {
-        CSA_LOG_INFO("{}() status={{{}}}", context, response.GetStatus());
+        CSA_LOG_INFO("{}() >> status={{{}}}", context, response.GetStatus());
     }
     return response;
 }
@@ -71,7 +71,7 @@ static typename Signature<MemberFunction>::ReturnType MakeCallNoResponseLogging(
     csa::internal::RawClient& client, MemberFunction function,
     typename Signature<MemberFunction>::RequestType const& request, char const* context)
 {
-    CSA_LOG_INFO("{}() {}", context, request);
+    CSA_LOG_INFO("{}() << {}", context, request);
     return (client.*function)(request);
 }
 
@@ -84,7 +84,7 @@ static typename Signature<MemberFunction>::ReturnType MakeCallNoRequest(csa::int
     auto response = (client.*function)();
     if (response.Ok())
     {
-        CSA_LOG_INFO("{}() payload={{{}}}", context, response.Value());
+        CSA_LOG_INFO("{}() >> payload={{{}}}", context, response.Value());
     }
     else
     {
@@ -97,7 +97,7 @@ static typename Signature<MemberFunction>::ReturnType MakeCallNoRequest(csa::int
 
 LoggingClient::LoggingClient(std::shared_ptr<RawClient> client) : m_client(std::move(client)) {}
 
-ClientOptions const& LoggingClient::GetClientOptions() const { return m_client->GetClientOptions(); }
+Options const& LoggingClient::GetOptions() const { return m_client->GetOptions(); }
 
 std::string LoggingClient::GetProviderName() const { return m_client->GetProviderName(); }
 
@@ -181,6 +181,11 @@ StatusOrVal<std::unique_ptr<ResumableUploadSession>> LoggingClient::RestoreResum
     std::string const& sessionId)
 {
     return MakeCallNoResponseLogging(*m_client, &RawClient::RestoreResumableSession, sessionId, __func__);
+}
+
+StatusOrVal<EmptyResponse> LoggingClient::DeleteResumableUpload(DeleteResumableUploadRequest const& request)
+{
+    return MakeCall(*m_client, &RawClient::DeleteResumableUpload, request, __func__);
 }
 
 StatusOrVal<FileMetadata> LoggingClient::CopyFileObject(CopyFileRequest const& request)

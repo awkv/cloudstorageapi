@@ -33,6 +33,8 @@ TEST(CurlHandleTest, AsStatus)
         {CURLE_OK, StatusCode::Ok},
         {CURLE_RECV_ERROR, StatusCode::Unavailable},
         {CURLE_SEND_ERROR, StatusCode::Unavailable},
+        {CURLE_PARTIAL_FILE, StatusCode::Unavailable},
+        {CURLE_SSL_CONNECT_ERROR, StatusCode::Unavailable},
         {CURLE_COULDNT_RESOLVE_HOST, StatusCode::Unavailable},
         {CURLE_COULDNT_RESOLVE_PROXY, StatusCode::Unavailable},
         {CURLE_COULDNT_CONNECT, StatusCode::Unavailable},
@@ -44,20 +46,77 @@ TEST(CurlHandleTest, AsStatus)
         {CURLE_REMOTE_FILE_NOT_FOUND, StatusCode::NotFound},
         {CURLE_FAILED_INIT, StatusCode::Unknown},
         {CURLE_FTP_PORT_FAILED, StatusCode::Unknown},
+        {CURLE_GOT_NOTHING, StatusCode::Unavailable},
         {CURLE_AGAIN, StatusCode::Unknown},
+        {CURLE_HTTP2, StatusCode::Unavailable},
     };
 
     for (auto const& codes : expected_codes)
     {
         auto const expected = Status(codes.expected, "ignored");
         auto const actual = CurlHandle::AsStatus(codes.curl, "in-test");
-        EXPECT_EQ(expected.Code(), actual.Code());
+        EXPECT_EQ(expected.Code(), actual.Code()) << "CURL code=" << codes.curl;
         if (!actual.Ok())
         {
             EXPECT_THAT(actual.Message(), HasSubstr("in-test"));
             EXPECT_THAT(actual.Message(), HasSubstr(curl_easy_strerror(codes.curl)));
         }
     }
+}
+
+TEST(AssertOptionSuccess, StringWithError)
+{
+    EXPECT_THROW(
+        try {
+            AssertOptionSuccess(CURLE_NOT_BUILT_IN, CURLOPT_CAINFO, "test-function", "some-path");
+        } catch (std::exception const& ex) {
+            EXPECT_THAT(ex.what(), HasSubstr("test-function"));
+            EXPECT_THAT(ex.what(), HasSubstr("some-path"));
+            throw;
+        },
+        std::logic_error);
+}
+
+TEST(AssertOptionSuccess, IntWithError)
+{
+    EXPECT_THROW(
+        try {
+            AssertOptionSuccess(CURLE_NOT_BUILT_IN, CURLOPT_CAINFO, "test-function", 1234);
+        } catch (std::exception const& ex) {
+            EXPECT_THAT(ex.what(), HasSubstr("test-function"));
+            EXPECT_THAT(ex.what(), HasSubstr("1234"));
+            throw;
+        },
+        std::logic_error);
+}
+
+TEST(AssertOptionSuccess, NullptrWithError)
+{
+    EXPECT_THROW(
+        try {
+            AssertOptionSuccess(CURLE_NOT_BUILT_IN, CURLOPT_CAINFO, "test-function", nullptr);
+        } catch (std::exception const& ex) {
+            EXPECT_THAT(ex.what(), HasSubstr("test-function"));
+            EXPECT_THAT(ex.what(), HasSubstr("nullptr"));
+            throw;
+        },
+        std::logic_error);
+}
+
+int TestFunction() { return 42; }
+
+TEST(AssertOptionSuccess, FunctionPtrWithError)
+{
+    EXPECT_EQ(42, TestFunction());
+    EXPECT_THROW(
+        try {
+            AssertOptionSuccess(CURLE_NOT_BUILT_IN, CURLOPT_CAINFO, "test-function", &TestFunction);
+        } catch (std::exception const& ex) {
+            EXPECT_THAT(ex.what(), HasSubstr("test-function"));
+            EXPECT_THAT(ex.what(), HasSubstr("a value of type="));
+            throw;
+        },
+        std::logic_error);
 }
 
 }  // namespace

@@ -17,6 +17,7 @@
 #pragma once
 
 #include "cloudstorageapi/file_metadata.h"
+#include "cloudstorageapi/internal/const_buffer.h"
 #include "cloudstorageapi/internal/http_response.h"
 #include "cloudstorageapi/status_or_val.h"
 #include <cstdint>
@@ -43,7 +44,7 @@ public:
      * @param buffer the chunk to upload.
      * @return The result of uploading the chunk.
      */
-    virtual StatusOrVal<ResumableUploadResponse> UploadChunk(std::string const& buffer) = 0;
+    virtual StatusOrVal<ResumableUploadResponse> UploadChunk(ConstBufferSequence const& buffers) = 0;
 
     /**
      * Uploads the final chunk in a stream, committing all previous data.
@@ -53,7 +54,7 @@ public:
      *   known.
      * @return The final result of the upload, including the object metadata.
      */
-    virtual StatusOrVal<ResumableUploadResponse> UploadFinalChunk(std::string const& buffer,
+    virtual StatusOrVal<ResumableUploadResponse> UploadFinalChunk(ConstBufferSequence const& buffers,
                                                                   std::uint64_t uploadSize) = 0;
 
     /// Resets the session by querying its current state.
@@ -127,9 +128,9 @@ public:
 
     ~ResumableUploadSessionError() override = default;
 
-    StatusOrVal<ResumableUploadResponse> UploadChunk(std::string const&) override { return m_lastResponse; }
+    StatusOrVal<ResumableUploadResponse> UploadChunk(ConstBufferSequence const&) override { return m_lastResponse; }
 
-    StatusOrVal<ResumableUploadResponse> UploadFinalChunk(std::string const&, std::uint64_t) override
+    StatusOrVal<ResumableUploadResponse> UploadFinalChunk(ConstBufferSequence const&, std::uint64_t) override
     {
         return m_lastResponse;
     }
@@ -140,7 +141,7 @@ public:
 
     std::string const& GetSessionId() const override { return m_id; }
 
-    std::size_t GetFileChunkSizeQuantum() const override { return 0; }
+    std::size_t GetFileChunkSizeQuantum() const override { return 1; }
 
     bool Done() const override { return true; }
 

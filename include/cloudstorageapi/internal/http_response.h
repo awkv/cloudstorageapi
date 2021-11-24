@@ -24,6 +24,49 @@
 namespace csa {
 namespace internal {
 
+enum HttpStatusCode
+{
+    MinContinue = 100,
+    MinSuccess = 200,
+    MinRedirects = 300,
+    MinRequestErrors = 400,
+    MinInternalErrors = 500,
+    MinInvalidCode = 600,
+
+    Continue = 100,
+
+    Ok = 200,
+    Created = 201,
+
+    // Google's resumable upload protocol abuses 308 (Permanent Redirect) as
+    // "Resume Incomplete".
+    ResumeIncomplete = 308,
+
+    // The libcurl library handles (most) redirects, so anything above 300 is
+    // actually an error.
+    MinNotSuccess = 300,
+    // This is returned in some download requests instead of 412.
+    NotModified = 304,
+
+    BadRequest = 400,
+    Unauthorized = 401,
+    Forbidden = 403,
+    NotFound = 404,
+    MethodNotAllowed = 405,
+    RequestTimeout = 408,
+    Conflict = 409,
+    Gone = 410,
+    LengthRequired = 411,
+    PreconditionFailed = 412,
+    PayloadTooLarge = 413,
+    RequestRangeNotSatisfiable = 416,
+    TooManyRequests = 429,
+
+    InternalServerError = 500,
+    BadGateway = 502,
+    ServiceUnavailable = 503,
+};
+
 /**
  * Contains the results of a HTTP request.
  */
@@ -47,12 +90,12 @@ struct HttpResponse
  * - Codes that are not specifically documented in
  *     https://cloud.google.com/storage/docs/json_api/v1/status-codes
  *   are mapped by these rules:
- *     [100,300) -> kOk because they are all success status codes.
- *     [300,400) -> kUnknown because libcurl should handle the redirects, so
+ *     [100,300) -> Ok because they are all success status codes.
+ *     [300,400) -> Unknown because libcurl should handle the redirects, so
  *                  getting one is fairly strange.
- *     [400,500) -> kInvalidArgument because these are generally "the client
+ *     [400,500) -> InvalidArgument because these are generally "the client
  *                  sent an invalid request" errors.
- *     [500,600) -> kInternal because these are "server errors".
+ *     [500,600) -> Internal because these are "server errors".
  *
  * @return A status with the code corresponding to @p http_response.status_code,
  *     the error message in the status is initialized with

@@ -16,8 +16,10 @@
 
 #pragma once
 
+#include "cloudstorageapi/internal/curl_handle.h"
 #include "cloudstorageapi/internal/curl_wrappers.h"
 #include <mutex>
+#include <optional>
 #include <vector>
 
 namespace csa {
@@ -31,14 +33,23 @@ public:
     virtual ~CurlHandleFactory() = default;
 
     virtual CurlPtr CreateHandle() = 0;
-    virtual void CleanupHandle(CurlPtr&&) = 0;
+    virtual void CleanupHandle(CurlHandle&&) = 0;
 
     virtual CurlMulti CreateMultiHandle() = 0;
     virtual void CleanupMultiHandle(CurlMulti&&) = 0;
 
     virtual std::string LastClientIpAddress() const = 0;
+
+protected:
+    // Only virtual for testing purposes.
+    virtual void SetCurlStringOption(CURL* handle, CURLoption option_tag, char const* value);
+
+    static CURL* GetHandle(CurlHandle& h) { return h.m_handle.get(); }
+    static void ResetHandle(CurlHandle& h) { h.m_handle.reset(); }
+    static void ReleaseHandle(CurlHandle& h) { (void)h.m_handle.release(); }
 };
 
+std::shared_ptr<CurlHandleFactory> GetDefaultCurlHandleFactory(Options const& options);
 std::shared_ptr<CurlHandleFactory> GetDefaultCurlHandleFactory();
 
 /**
@@ -52,9 +63,10 @@ class DefaultCurlHandleFactory : public CurlHandleFactory
 {
 public:
     DefaultCurlHandleFactory() = default;
+    explicit DefaultCurlHandleFactory(Options const& o);
 
     CurlPtr CreateHandle() override;
-    void CleanupHandle(CurlPtr&&) override;
+    void CleanupHandle(CurlHandle&&) override;
 
     CurlMulti CreateMultiHandle() override;
     void CleanupMultiHandle(CurlMulti&&) override;
@@ -66,8 +78,12 @@ public:
     }
 
 private:
+    void SetCurlOptions(CURL* handle);
+
     mutable std::mutex m_mutex;
     std::string m_lastClientIpAddress;
+    std::optional<std::string> m_cainfo;
+    std::optional<std::string> m_capath;
 };
 
 /**
@@ -79,11 +95,13 @@ private:
 class PooledCurlHandleFactory : public CurlHandleFactory
 {
 public:
-    explicit PooledCurlHandleFactory(std::size_t maximum_size);
+    explicit PooledCurlHandleFactory(std::size_t maximum_size, Options const& o);
+    explicit PooledCurlHandleFactory(std::size_t maximum_size) : PooledCurlHandleFactory(maximum_size, {}) {}
+
     ~PooledCurlHandleFactory() override;
 
     CurlPtr CreateHandle() override;
-    void CleanupHandle(CurlPtr&&) override;
+    void CleanupHandle(CurlHandle&&) override;
 
     CurlMulti CreateMultiHandle() override;
     void CleanupMultiHandle(CurlMulti&&) override;
@@ -94,12 +112,29 @@ public:
         return m_lastClientIpAddress;
     }
 
+    // Test only
+    std::size_t CurrentHandleCount() const
+    {
+        std::lock_guard<std::mutex> lk(m_mutex);
+        return m_handles.size();
+    }
+    // Test only
+    std::size_t CurrentMultiHandleCount() const
+    {
+        std::lock_guard<std::mutex> lk(m_mutex);
+        return m_multiHandles.size();
+    }
+
 private:
+    void SetCurlOptions(CURL* handle);
+
     std::size_t m_maximumSize;
     mutable std::mutex m_mutex;
     std::vector<CURL*> m_handles;
     std::vector<CURLM*> m_multiHandles;
     std::string m_lastClientIpAddress;
+    std::optional<std::string> m_cainfo;
+    std::optional<std::string> m_capath;
 };
 
 }  // namespace internal

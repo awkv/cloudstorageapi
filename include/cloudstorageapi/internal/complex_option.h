@@ -39,12 +39,17 @@ template <typename Derived, typename T>
 class ComplexOption
 {
 public:
-    ComplexOption() : m_value{} {}
+    ComplexOption() = default;
     explicit ComplexOption(T value) : m_value(std::move(value)) {}
 
     char const* OptionName() const { return Derived::name(); }
     bool HasValue() const { return m_value.has_value(); }
     T const& Value() const { return m_value.value(); }
+    template <typename U>
+    T ValueOr(U&& defaultVal)
+    {
+        return m_value.value_or(std::forward<U>(defaultVal));
+    }
 
 private:
     std::optional<T> m_value;

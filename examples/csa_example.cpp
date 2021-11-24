@@ -93,7 +93,7 @@ void ListFolderWithPageSize(csa::CloudStorageClient* client, int& argc, char* ar
 
     auto folderName = ConsumeArg(argc, argv);
     int pageSize = std::stoi(ConsumeArg(argc, argv));
-    for (auto&& metadata : client->ListFolder(folderName, csa::PageSize(pageSize)))
+    for (auto&& metadata : client->ListFolder(folderName, csa::MaxResults(pageSize)))
     {
         if (!metadata)
             throw std::runtime_error(metadata.GetStatus().Message());
@@ -586,7 +586,7 @@ try
     }
     // Create a cloud storage client.
     csa::StatusOrVal<csa::CloudStorageClient> client =
-        csa::CloudStorageClient::CreateDefaultClient(csa::EProvider::GoogleDrive);
+        csa::CloudStorageClient(csa::Options{}.Set<csa::ProviderOption>(csa::EProvider::GoogleDrive));
     if (!client)
     {
         std::cerr << "Failed to create cloud storage client, status=" << client.GetStatus() << std::endl;

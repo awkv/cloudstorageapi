@@ -26,7 +26,7 @@ namespace csa {
  *
  * If the value passed to this option is the empty string, then the library will
  * create a new resumable session. Otherwise the value should be the id of a
- * previous upload sesion, the client library will restore that session in
+ * previous upload session, the client library will restore that session in
  * this case.
  */
 struct UseResumableUploadSession : public internal::ComplexOption<UseResumableUploadSession, std::string>
@@ -43,5 +43,36 @@ inline UseResumableUploadSession RestoreResumableUploadSession(std::string sessi
 
 // Create a UseResumableUploadSession option that requests new sessions.
 inline UseResumableUploadSession NewResumableUploadSession() { return UseResumableUploadSession(""); }
+
+/**
+ * Provide an expected final length of an uploaded object.
+ *
+ * Resumable uploads allow or an additional integrity check - make GCS check
+ * if the uploaded content matches the declared length. If it doesn't the upload
+ * will fail.
+ */
+struct UploadContentLength : public internal::WellKnownHeader<UploadContentLength, std::uintmax_t>
+{
+    using internal::WellKnownHeader<UploadContentLength, std::uintmax_t>::WellKnownHeader;
+    static char const* HeaderName() { return "X-Upload-Content-Length"; }
+};
+
+/**
+ * Upload the local file to GCS server starting at the given offset.
+ */
+struct UploadFromOffset : public internal::ComplexOption<UploadFromOffset, std::uint64_t>
+{
+    using ComplexOption::ComplexOption;
+    static char const* name() { return "upload-offset"; }
+};
+
+/**
+ * The maximum length of the local file to upload to GCS server.
+ */
+struct UploadLimit : public internal::ComplexOption<UploadLimit, std::uint64_t>
+{
+    using ComplexOption::ComplexOption;
+    static char const* name() { return "upload-limit"; }
+};
 
 }  // namespace csa

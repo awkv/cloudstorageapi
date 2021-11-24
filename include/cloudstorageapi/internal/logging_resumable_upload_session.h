@@ -32,8 +32,9 @@ public:
     {
     }
 
-    StatusOrVal<ResumableUploadResponse> UploadChunk(std::string const& buffer) override;
-    StatusOrVal<ResumableUploadResponse> UploadFinalChunk(std::string const& buffer, std::uint64_t uploadSize) override;
+    StatusOrVal<ResumableUploadResponse> UploadChunk(ConstBufferSequence const& buffers) override;
+    StatusOrVal<ResumableUploadResponse> UploadFinalChunk(ConstBufferSequence const& buffers,
+                                                          std::uint64_t uploadSize) override;
     StatusOrVal<ResumableUploadResponse> ResetSession() override;
     std::uint64_t GetNextExpectedByte() const override;
     std::string const& GetSessionId() const override;

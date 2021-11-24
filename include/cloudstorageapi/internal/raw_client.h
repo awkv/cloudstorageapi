@@ -16,12 +16,12 @@
 
 #pragma once
 
-#include "cloudstorageapi/client_options.h"
 #include "cloudstorageapi/internal/empty_response.h"
 #include "cloudstorageapi/internal/file_requests.h"
 #include "cloudstorageapi/internal/folder_requests.h"
 #include "cloudstorageapi/internal/object_read_source.h"
 #include "cloudstorageapi/internal/resumable_upload_session.h"
+#include "cloudstorageapi/options.h"
 #include "cloudstorageapi/status.h"
 #include "cloudstorageapi/status_or_val.h"
 #include "cloudstorageapi/storage_quota.h"
@@ -37,7 +37,7 @@ class RawClient
 public:
     virtual ~RawClient() = default;
 
-    virtual ClientOptions const& GetClientOptions() const = 0;
+    virtual Options const& GetOptions() const = 0;
     virtual std::string GetProviderName() const = 0;
     virtual StatusOrVal<UserInfo> GetUserInfo() = 0;
     virtual std::size_t GetFileChunkQuantum() const = 0;
@@ -67,6 +67,7 @@ public:
         ResumableUploadRequest const& request) = 0;
     virtual StatusOrVal<std::unique_ptr<ResumableUploadSession>> RestoreResumableSession(
         std::string const& session_id) = 0;
+    virtual StatusOrVal<EmptyResponse> DeleteResumableUpload(DeleteResumableUploadRequest const& request) = 0;
     // TODO: The name is expected to be `CopyFile`. But there is a macro in windows.h with this name.
     virtual StatusOrVal<FileMetadata> CopyFileObject(CopyFileRequest const& request) = 0;
     //@}

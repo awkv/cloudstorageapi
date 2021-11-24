@@ -21,10 +21,10 @@
 namespace csa {
 namespace internal {
 
-StatusOrVal<ResumableUploadResponse> LoggingResumableUploadSession::UploadChunk(std::string const& buffer)
+StatusOrVal<ResumableUploadResponse> LoggingResumableUploadSession::UploadChunk(ConstBufferSequence const& buffers)
 {
-    CSA_LOG_INFO("{}() << {{buffer.size={{{}}}", __func__, buffer.size());
-    auto response = m_session->UploadChunk(buffer);
+    CSA_LOG_INFO("{}() << {{buffer.size={{{}}}", __func__, TotalBytes(buffers));
+    auto response = m_session->UploadChunk(buffers);
     if (response.Ok())
     {
         CSA_LOG_INFO("{}() >> payload={{{}}}", __func__, response.Value());
@@ -36,11 +36,11 @@ StatusOrVal<ResumableUploadResponse> LoggingResumableUploadSession::UploadChunk(
     return response;
 }
 
-StatusOrVal<ResumableUploadResponse> LoggingResumableUploadSession::UploadFinalChunk(std::string const& buffer,
+StatusOrVal<ResumableUploadResponse> LoggingResumableUploadSession::UploadFinalChunk(ConstBufferSequence const& buffers,
                                                                                      std::uint64_t uploadSize)
 {
-    CSA_LOG_INFO("{}() << upload_size={}, buffer.size={}", __func__, uploadSize, buffer.size());
-    auto response = m_session->UploadFinalChunk(buffer, uploadSize);
+    CSA_LOG_INFO("{}() << upload_size={}, buffer.size={}", __func__, uploadSize, TotalBytes(buffers));
+    auto response = m_session->UploadFinalChunk(buffers, uploadSize);
     if (response.Ok())
     {
         CSA_LOG_INFO("{}() >> payload={{{}}}", __func__, response.Value());

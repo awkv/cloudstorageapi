@@ -46,8 +46,10 @@ TEST(CurlWrappers, SigpipeHandlerDisabledTest)
     // the tests here fails. We simply skip the test with this ancient library.
     auto initialHandler = std::signal(SIGPIPE, &test_handler);
     EProvider provider = EProvider::GoogleDrive;
-    CurlInitializeOnce(ClientOptions(provider, auth::CredentialFactory::CreateAnonymousCredentials(provider))
-                           .SetEnableSigpipeHandler(false));
+    CurlInitializeOnce(Options{}
+                           .Set<ProviderOption>(provider)
+                           .Set<Oauth2CredentialsOption>(auth::CredentialFactory::CreateAnonymousCredentials(provider))
+                           .Set<EnableCurlSigpipeHandlerOption>(false));
     auto actual = std::signal(SIGPIPE, initialHandler);
     EXPECT_EQ(actual, &test_handler);
 #endif  // defined(SIGPIPE)

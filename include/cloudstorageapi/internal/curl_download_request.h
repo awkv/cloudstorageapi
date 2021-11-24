@@ -22,6 +22,10 @@
 
 namespace csa {
 namespace internal {
+
+extern "C" std::size_t CurlDownloadRequestWrite(char* ptr, size_t size, size_t nmemb, void* userdata);
+extern "C" std::size_t CurlDownloadRequestHeader(char* contents, std::size_t size, std::size_t nitems, void* userdata);
+
 /**
  * Makes streaming download requests using libcurl.
  *
@@ -35,64 +39,14 @@ namespace internal {
 class CurlDownloadRequest : public ObjectReadSource
 {
 public:
-    explicit CurlDownloadRequest();
+    explicit CurlDownloadRequest(CurlHeaders headers, CurlHandle handle, CurlMulti multi);
 
-    ~CurlDownloadRequest() override
-    {
-        if (!m_factory)
-        {
-            return;
-        }
-        m_factory->CleanupHandle(std::move(m_handle.m_handle));
-        m_factory->CleanupMultiHandle(std::move(m_multi));
-    }
+    ~CurlDownloadRequest() override;
 
-    CurlDownloadRequest(CurlDownloadRequest&& rhs) noexcept(false)
-        : m_url(std::move(rhs.m_url)),
-          m_headers(std::move(rhs.m_headers)),
-          m_payload(std::move(rhs.m_payload)),
-          m_userAgent(std::move(rhs.m_userAgent)),
-          m_socketOptions(rhs.m_socketOptions),
-          m_downloadStallTimeout(rhs.m_downloadStallTimeout),
-          m_handle(std::move(rhs.m_handle)),
-          m_multi(std::move(rhs.m_multi)),
-          m_factory(std::move(rhs.m_factory)),
-          m_closing(rhs.m_closing),
-          m_curlClosed(rhs.m_curlClosed),
-          m_inMulti(rhs.m_inMulti),
-          m_paused(rhs.m_paused),
-          m_buffer(rhs.m_buffer),
-          m_bufferSize(rhs.m_bufferSize),
-          m_bufferOffset(rhs.m_bufferOffset),
-          m_spill(std::move(rhs.m_spill)),
-          m_spillOffset(rhs.m_spillOffset)
-    {
-        ResetOptions();
-    }
-
-    CurlDownloadRequest& operator=(CurlDownloadRequest&& rhs) noexcept
-    {
-        m_url = std::move(rhs.m_url);
-        m_headers = std::move(rhs.m_headers);
-        m_payload = std::move(rhs.m_payload);
-        m_userAgent = std::move(rhs.m_userAgent);
-        m_socketOptions = rhs.m_socketOptions;
-        m_downloadStallTimeout = rhs.m_downloadStallTimeout;
-        m_handle = std::move(rhs.m_handle);
-        m_multi = std::move(rhs.m_multi);
-        m_factory = std::move(rhs.m_factory);
-        m_closing = rhs.m_closing;
-        m_curlClosed = rhs.m_curlClosed;
-        m_inMulti = rhs.m_inMulti;
-        m_paused = rhs.m_paused;
-        m_buffer = rhs.m_buffer;
-        m_bufferSize = rhs.m_bufferSize;
-        m_bufferOffset = rhs.m_bufferOffset;
-        m_spill = std::move(rhs.m_spill);
-        m_spillOffset = rhs.m_spillOffset;
-        ResetOptions();
-        return *this;
-    }
+    CurlDownloadRequest(CurlDownloadRequest&&) = delete;
+    CurlDownloadRequest& operator=(CurlDownloadRequest&&) = delete;
+    CurlDownloadRequest(CurlDownloadRequest const&) = delete;
+    CurlDownloadRequest& operator=(CurlDownloadRequest const&) = delete;
 
     bool IsOpen() const override { return !(m_curlClosed && m_spillOffset == 0); }
     StatusOrVal<HttpResponse> Close() override;
@@ -109,19 +63,33 @@ public:
      */
     StatusOrVal<ReadSourceResult> Read(char* buf, std::size_t n) override;
 
+    /// Debug and test only, help identify download handles.
+    void* GetId() const { return m_handle.m_handle.get(); }
+
 private:
     friend class CurlRequestBuilder;
+    friend std::size_t CurlDownloadRequestWrite(char* ptr, size_t size, size_t nmemb, void* userdata);
+    friend std::size_t CurlDownloadRequestHeader(char* contents, std::size_t size, std::size_t nitems, void* userdata);
+
+    // Cleanup the CURL handles, leaving them ready for reuse.
+    void CleanupHandles();
+
     // Set the underlying CurlHandle options on a new CurlDownloadRequest.
     void SetOptions();
 
-    // Reset the underlying CurlHandle options after a move operation.
-    void ResetOptions();
+    // Handle a completed (even interrupted) download.
+    void OnTransferDone();
+
+    // Handle an error during a transfer
+    Status OnTransferError(Status status);
 
     // Copy any available data from the spill buffer to `m_buffer`
     void DrainSpillBuffer();
 
     // Called by libcurl to show that more data is available in the download.
     std::size_t WriteCallback(void* ptr, std::size_t size, std::size_t nmemb);
+
+    std::size_t HeaderCallback(char* contents, std::size_t size, std::size_t nitems);
 
     // Wait until a condition is met.
     template <typename Predicate>
@@ -140,7 +108,10 @@ private:
     CurlHeaders m_headers;
     std::string m_payload;
     std::string m_userAgent;
+    std::string m_httpVersion;
     CurlReceivedHeaders m_receivedHeaders;
+    std::int32_t m_httpCode = 0;
+    bool m_loggingEnabled = false;
     CurlHandle::SocketOptions m_socketOptions;
     std::chrono::seconds m_downloadStallTimeout;
     CurlHandle m_handle;

@@ -18,13 +18,19 @@
 
 #include "cloudstorageapi/client_options.h"
 #include "cloudstorageapi/internal/http_response.h"
+#include "cloudstorageapi/well_known_parameters.h"
 #include <curl/curl.h>
 #include <functional>
 #include <map>
 #include <memory>
+#include <string>
 
 namespace csa {
 namespace internal {
+
+#ifndef CURL_AT_LEAST_VERSION
+#define CURL_AT_LEAST_VERSION(Ma, Mi, Pa) (LIBCURL_VERSION_NUM >= ((((Ma) << 16) | ((Mi) << 8)) | (Pa)))
+#endif  // CURL_AT_LEAST_VERSION
 
 // Hold a CURL* handle and automatically clean it up.
 using CurlPtr = std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>;
@@ -46,13 +52,16 @@ using CurlShare = std::unique_ptr<CURLSH, decltype(&curl_share_cleanup)>;
 bool SslLockingCallbacksInstalled();
 
 // Initializes (if needed) the SSL locking callbacks.
-void CurlInitializeOnce(ClientOptions const& options);
+void CurlInitializeOnce(Options const& options);
 
 // Returns the id of the SSL library used by libcurl.
 std::string CurlSslLibraryId();
 
 // Determines if the SSL library requires locking.
 bool SslLibraryNeedsLocking(std::string const& curl_ssl_id);
+
+/// Convert a HTTP version string to the CURL codes
+long VersionToCurlCode(std::string const& v);
 
 }  // namespace internal
 }  // namespace csa

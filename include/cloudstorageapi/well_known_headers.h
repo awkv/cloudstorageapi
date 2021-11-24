@@ -35,12 +35,17 @@ template <typename H, typename T>
 class WellKnownHeader
 {
 public:
-    WellKnownHeader() : m_value{} {}
+    WellKnownHeader() = default;
     explicit WellKnownHeader(T value) : m_value(std::move(value)) {}
 
-    char const* header_name() const { return H::header_name(); }
+    char const* HeaderName() const { return H::HeaderName(); }
     bool HasValue() const { return m_value.has_value(); }
     T const& value() const { return m_value.value(); }
+    template <typename U>
+    T ValueOr(U&& default_val)
+    {
+        return m_value.value_or(std::forward<U>(default_val));
+    }
 
 private:
     std::optional<T> m_value;
@@ -51,9 +56,9 @@ std::ostream& operator<<(std::ostream& os, WellKnownHeader<H, T> const& rhs)
 {
     if (rhs.HasValue())
     {
-        return os << rhs.header_name() << ": " << rhs.value();
+        return os << rhs.HeaderName() << ": " << rhs.value();
     }
-    return os << rhs.header_name() << ": <not set>";
+    return os << rhs.HeaderName() << ": <not set>";
 }
 }  // namespace internal
 
@@ -66,7 +71,7 @@ std::ostream& operator<<(std::ostream& os, WellKnownHeader<H, T> const& rhs)
 struct ContentType : public internal::WellKnownHeader<ContentType, std::string>
 {
     using WellKnownHeader<ContentType, std::string>::WellKnownHeader;
-    static char const* header_name() { return "content-type"; }
+    static char const* HeaderName() { return "content-type"; }
 };
 
 /**
@@ -104,7 +109,7 @@ std::ostream& operator<<(std::ostream& os, CustomHeader const& rhs);
 struct IfMatchEtag : public internal::WellKnownHeader<IfMatchEtag, std::string>
 {
     using WellKnownHeader<IfMatchEtag, std::string>::WellKnownHeader;
-    static char const* header_name() { return "If-Match"; }
+    static char const* HeaderName() { return "If-Match"; }
 };
 
 /**
@@ -119,7 +124,7 @@ struct IfMatchEtag : public internal::WellKnownHeader<IfMatchEtag, std::string>
 struct IfNoneMatchEtag : public internal::WellKnownHeader<IfNoneMatchEtag, std::string>
 {
     using WellKnownHeader<IfNoneMatchEtag, std::string>::WellKnownHeader;
-    static char const* header_name() { return "If-None-Match"; }
+    static char const* HeaderName() { return "If-None-Match"; }
 };
 
 }  // namespace csa

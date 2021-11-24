@@ -14,6 +14,7 @@
 
 #include "cloudstorageapi/auth/google_oauth2_credentials.h"
 #include "cloudstorageapi/internal/curl_handle.h"
+#include <nlohmann/json.hpp>
 
 namespace csa {
 namespace auth {
@@ -36,7 +37,7 @@ std::string GoogleAuthHandler::BuildRequestPayload(OAuth2CredentialsInfo const& 
 StatusOrVal<RefreshingCredentialsWrapper::TemporaryToken> GoogleAuthHandler::ParseOAuth2RefreshResponse(
     internal::HttpResponse const& response, std::chrono::system_clock::time_point now)
 {
-    auto refreshJson = internal::nl::json::parse(response.m_payload, nullptr, false);
+    auto refreshJson = nlohmann::json::parse(response.m_payload, nullptr, false);
     if (refreshJson.is_discarded() || refreshJson.count("access_token") == 0 || refreshJson.count("expires_in") == 0 ||
         refreshJson.count("token_type") == 0)
     {
@@ -55,9 +56,15 @@ StatusOrVal<RefreshingCredentialsWrapper::TemporaryToken> GoogleAuthHandler::Par
     return RefreshingCredentialsWrapper::TemporaryToken{std::move(header), newExpiration};
 }
 
-StatusOrVal<OAuth2CredentialsInfo> GoogleAuthHandler::ParseOAuth2Credentials(internal::nl::json const& jsonCreds,
+StatusOrVal<OAuth2CredentialsInfo> GoogleAuthHandler::ParseOAuth2Credentials(std::string const& content,
                                                                              std::string const& source)
 {
+    auto jsonCreds = nlohmann::json::parse(content, nullptr, false);
+    if (jsonCreds.is_discarded())
+    {
+        return Status(StatusCode::InvalidArgument, "Invalid OAuth2Credentials, parsing failed on data from " + source);
+    }
+
     constexpr char const clientIdKey[] = "client_id";
     constexpr char const clientSecretKey[] = "client_secret";
     constexpr char const refreshTokenKey[] = "refresh_token";
@@ -79,7 +86,8 @@ StatusOrVal<OAuth2CredentialsInfo> GoogleAuthHandler::ParseOAuth2Credentials(int
     }
 
     return OAuth2CredentialsInfo{jsonCreds.value(clientIdKey, ""), jsonCreds.value(clientSecretKey, ""),
-                                 jsonCreds.value(refreshTokenKey, ""), OAuthRefreshEndPoint};
+                                 jsonCreds.value(refreshTokenKey, ""),
+                                 jsonCreds.value("token_uri", OAuthRefreshEndPoint)};
 }
 
 }  // namespace auth

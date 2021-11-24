@@ -16,7 +16,8 @@
 
 #pragma once
 
-#include "cloudstorageapi/internal/nljson.h"
+#include "cloudstorageapi/status_or_val.h"
+#include <nlohmann/json.hpp>
 #include <chrono>
 
 namespace csa {
@@ -29,31 +30,31 @@ public:
      * Parses a boolean field, even if it is represented by a string type in the
      * JSON object.
      */
-    static bool ParseBool(nl::json const& json, char const* fieldName);
+    static StatusOrVal<bool> ParseBool(nlohmann::json const& json, char const* fieldName);
 
     /**
      * Parses an integer field, even if it is represented by a string type in the
      * JSON object.
      */
-    static std::int32_t ParseInt(nl::json const& json, char const* field_nName);
+    static StatusOrVal<std::int32_t> ParseInt(nlohmann::json const& json, char const* field_nName);
 
     /**
      * Parses an unsigned integer field, even if it is represented by a string type
      * in the JSON object.
      */
-    static std::uint32_t ParseUnsignedInt(nl::json const& json, char const* fieldName);
+    static StatusOrVal<std::uint32_t> ParseUnsignedInt(nlohmann::json const& json, char const* fieldName);
 
     /**
      * Parses a long integer field, even if it is represented by a string type in
      * the JSON object.
      */
-    static std::int64_t ParseLong(nl::json const& json, char const* fieldName);
+    static StatusOrVal<std::int64_t> ParseLong(nlohmann::json const& json, char const* fieldName);
 
     /**
      * Parses an unsigned long integer field, even if it is represented by a string
      * type in the JSON object.
      */
-    static std::uint64_t ParseUnsignedLong(nl::json const& json, char const* fieldName);
+    static StatusOrVal<std::uint64_t> ParseUnsignedLong(nlohmann::json const& json, char const* fieldName);
 
     /**
      * Parses a RFC 3339 timestamp.
@@ -61,7 +62,8 @@ public:
      * @return the value of @p field_name in @p json, or the epoch if the field is
      * not present.
      */
-    static std::chrono::system_clock::time_point ParseRFC3339Timestamp(nl::json const& json, char const* fieldName);
+    static StatusOrVal<std::chrono::system_clock::time_point> ParseRFC3339Timestamp(nlohmann::json const& json,
+                                                                                    char const* fieldName);
 };
 
 }  // namespace internal

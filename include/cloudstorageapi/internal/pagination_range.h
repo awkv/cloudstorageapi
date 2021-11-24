@@ -16,91 +16,17 @@
 
 #pragma once
 
+#include "cloudstorageapi/internal/stream_range.h"
 #include "cloudstorageapi/status_or_val.h"
 #include <functional>
 #include <iterator>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 namespace csa {
 namespace internal {
-
-/**
- *  Single pass input iterator over given items from owner.
- *  It asks owner for next item and if next item is on
- *  the next page owner is responsible to load it first.
- */
-template <typename T, typename Range>
-class PaginationIterator
-{
-public:
-    //@{
-    /// @name Iterator traits
-    using iterator_category = std::input_iterator_tag;
-    using value_type = StatusOrVal<T>;
-    using difference_type = std::ptrdiff_t;
-    using pointer = value_type*;
-    using reference = value_type&;
-    //@}
-
-    PaginationIterator() : m_owner(nullptr) {}
-
-    PaginationIterator& operator++()
-    {
-        *this = m_owner->GetNext();
-        return *this;
-    }
-
-    PaginationIterator const operator++(int)
-    {
-        PaginationIterator tmp(*this);
-        operator++();
-        return tmp;
-    }
-
-    value_type const* operator->() const { return &m_value; }
-    value_type* operator->() { return &m_value; }
-
-    value_type const& operator*() const& { return m_value; }
-    value_type& operator*() & { return m_value; }
-    value_type const&& operator*() const&& { return std::move(m_value); }
-    value_type&& operator*() && { return std::move(m_value); }
-
-private:
-    friend Range;
-
-    friend bool operator==(PaginationIterator const& lhs, PaginationIterator const& rhs)
-    {
-        // Iterators on different streams are always different.
-        if (lhs.m_owner != rhs.m_owner)
-        {
-            return false;
-        }
-        // All end iterators are equal.
-        if (lhs.m_owner == nullptr)
-        {
-            return true;
-        }
-        // Iterators on the same stream are equal if they point to the same object.
-        if (lhs.m_value.Ok() && rhs.m_value.Ok())
-        {
-            return *lhs.m_value == *rhs.m_value;
-        }
-        // If one is an error and the other is not then they must be different,
-        // because only one iterator per range can have an error status. For the
-        // same reason, if both have an error they both are pointing to the same
-        // element.
-        return lhs.m_value.Ok() == rhs.m_value.Ok();
-    }
-
-    friend bool operator!=(PaginationIterator const& lhs, PaginationIterator const& rhs) { return !(lhs == rhs); }
-
-    explicit PaginationIterator(Range* owner, value_type value) : m_owner(owner), m_value(std::move(value)) {}
-
-    Range* m_owner;
-    value_type m_value;
-};
 
 /**
  * Adapt pagination APIs to look like input ranges.
@@ -109,99 +35,158 @@ private:
  * pagination APIs. The application calls a `List*()` RPC which returns
  * a "page" of elements and a token, calling the same `List*()` RPC with the
  * token returns the next "page". We want to expose these APIs as input ranges
- * in the C++ client libraries. This class performs that work.
+ * in the C++ client libraries.
+ *
+ * @tparam T the type of the items, typically a proto describing the resources
+ */
+template <typename T>
+using PaginationRange = StreamRange<T>;
+
+/**
+ * Returns `T`s one at a time from pages of responses.
+ *
+ * This class is an implementation detail. An instance of this class is wrapped
+ * in a lambda and passed as the `StreamReader<T>` to the `PaginationRange<T>`
+ * constructor. This class is responsible for loading pages and returning the
+ * next `T`.
+ *
+ * Users should not use this class directly. Use the `MakePaginationRange()`
+ * function (defined below) instead.
  *
  * @tparam T the type of the items, typically a proto describing the resources
  * @tparam Request the type of the request object for the `List` RPC.
  * @tparam Response the type of the response object for the `List` RPC.
  */
 template <typename T, typename Request, typename Response>
-class PaginationRange
+class PagedStreamReader
 {
 public:
     /**
-     * Create a new range to paginate over some elements.
+     * Create a new object.
      *
      * @param request the first request to start the iteration, the library may
      *    initialize this request with any filtering constraints.
      * @param loader makes the RPC request to fetch a new page of items.
+     * @param extractor extracts the items from the response using native C++
+     *     types (as opposed to the proto types used in `Response`).
      */
-    explicit PaginationRange(Request request, std::function<StatusOrVal<Response>(Request const& r)> loader)
-        : m_request(std::move(request)), m_nextPageLoader(std::move(loader)), m_nextPageToken(), m_onLastPage(false)
+    PagedStreamReader(Request request, std::function<StatusOrVal<Response>(Request const&)> loader,
+                      std::function<std::vector<T>(Response)> extractor)
+        : m_request(std::move(request)),
+          m_loader(std::move(loader)),
+          m_extractor(std::move(extractor)),
+          m_last_page(false)
     {
-        m_current = m_currentPage.begin();
+        m_current = m_page.begin();
     }
-
-    /// The iterator type for this Range.
-    using iterator = PaginationIterator<T, PaginationRange>;
-
-    /**
-     * Return an iterator over the list of items.
-     *
-     * The returned iterator is a single-pass input iterator.
-     *
-     * Creating, and particularly incrementing, multiple iterators on the same
-     * ListHmacKeysReader is unsupported and can produce incorrect results.
-     */
-    iterator begin() { return GetNext(); }
-
-    /// Return an iterator pointing to the end of the stream.
-    iterator end() { return PaginationIterator<T, PaginationRange>{}; }
-
-protected:
-    friend class PaginationIterator<T, PaginationRange>;
 
     /**
      * Fetches (or returns if already fetched) the next object from the stream.
      *
-     * @return An iterator pointing to the next element in the stream. On error,
-     *   it returns an iterator that is different from `.end()`, but has an error
-     *   status. If the stream is exhausted, it returns the `.end()` iterator.
+     * @return the next available `T`, if one exists (or can be loaded). Returns
+     *   a non-OK `Status` to indicate an error, and an OK `Status` to indicate a
+     *   successful end of stream.
      */
-    iterator GetNext()
+    typename StreamReader<T>::result_type GetNext()
     {
-        static Status const pastTheEndError(StatusCode::FailedPrecondition,
-                                            "Cannot iterating past the end of pagination range.");
-
-        if (m_currentPage.end() == m_current)
+        if (m_current == m_page.end())
         {
-            if (m_onLastPage)
-            {
-                return iterator(nullptr, pastTheEndError);
-            }
-            m_request.SetPageToken(std::move(m_nextPageToken));
-            auto response = m_nextPageLoader(m_request);
+            if (m_last_page)
+                return Status{};
+            m_request.SetPageToken(std::move(m_token));
+            auto response = m_loader(m_request);
             if (!response.Ok())
-            {
-                m_nextPageToken.clear();
-                m_currentPage.clear();
-                m_onLastPage = true;
-                m_current = m_currentPage.begin();
-                return iterator(this, std::move(response).GetStatus());
-            }
-            m_nextPageToken = std::move(response->m_nextPageToken);
-            m_currentPage = std::move(response->m_items);
-            m_current = m_currentPage.begin();
-            if (m_nextPageToken.empty())
-            {
-                m_onLastPage = true;
-            }
-            if (m_currentPage.end() == m_current)
-            {
-                return iterator(nullptr, pastTheEndError);
-            }
+                return std::move(response).GetStatus();
+            m_token = ExtractPageToken(*response);
+            if (m_token.empty())
+                m_last_page = true;
+            m_page = m_extractor(*std::move(response));
+            m_current = m_page.begin();
+            if (m_current == m_page.end())
+                return Status{};
         }
-        return iterator(this, std::move(*m_current++));
+        return std::move(*m_current++);
     }
 
 private:
+    /**
+     * ExtractPageToken() extracts (i.e., "moves") the page token out of the
+     * given response object. This function may be overloaded based on whether the
+     * response object has a `.next_page_token` field or some member function (e.g.,
+     * get_page_token()).
+     */
+    template <typename U>
+    static constexpr auto ExtractPageToken(U& u) -> decltype(std::move(u.m_nextPageToken))
+    {
+        return std::move(u.m_nextPageToken);
+    }
+
+    template <typename U>
+    static constexpr auto ExtractPageToken(U& u) -> decltype(std::move(*u.GetMutableNextPageToken()))
+    {
+        return std::move(*u.GetMutableNextPageToken());
+    }
+
     Request m_request;
-    std::function<StatusOrVal<Response>(Request const& r)> m_nextPageLoader;
-    std::vector<T> m_currentPage;
+    std::function<StatusOrVal<Response>(Request const&)> m_loader;
+    std::function<std::vector<T>(Response)> m_extractor;
+    std::vector<T> m_page;
     typename std::vector<T>::iterator m_current;
-    std::string m_nextPageToken;
-    bool m_onLastPage;
+    std::string m_token;
+    bool m_last_page;
 };
+
+/**
+ * A factory function for creating `PaginationRange<T>` instances.
+ *
+ * This function creates a `PaginationRange<T>` instance that will be fed from
+ * a `PagedStreamReader` (defined above).
+ *
+ * @par Example
+ *
+ * @code
+ *  auto loader = [](MyRequestProto const& r) -> StatusOrVal<MyResponseProto> {
+ *    ...
+ *  };
+ *  auto extractor = [](MyResponseProto r) -> std::vector<Foo> {
+ *    ...
+ *  };
+ *  using MyFooRange = PaginationRange<Foo>;
+ *  auto range = MakePaginationRange<MyFooRange>(
+ *      MyRequestProto{}, std::move(loader), std::move(extractor));
+ * @endcode
+ */
+template <typename Range, typename Request, typename Loader, typename Extractor>
+Range MakePaginationRange(Request request, Loader loader, Extractor extractor)
+{
+    using ValueType = typename Range::value_type::value_type;
+    using LoaderResult = std::invoke_result_t<Loader, Request>;
+    using Response = typename LoaderResult::value_type;
+    using ExtractorResult = std::invoke_result_t<Extractor, Response>;
+    // Some static asserts to make compiler errors easier to diagnose.
+    static_assert(std::is_same<Range, PaginationRange<ValueType>>::value,
+                  "Expected Range is of type PaginationRange<ValueType>");
+    static_assert(std::is_same<LoaderResult, StatusOrVal<Response>>::value,
+                  "Expected loader functor like StatusOrVal<Response>(Request)");
+    static_assert(std::is_same<ExtractorResult, std::vector<ValueType>>::value,
+                  "Expected extractor functor like vector<ValueType>(Response)");
+    using ReaderType = PagedStreamReader<ValueType, Request, Response>;
+    auto reader = std::make_shared<ReaderType>(std::move(request), std::move(loader), std::move(extractor));
+    return MakeStreamRange<ValueType>({[reader]() mutable { return reader->GetNext(); }});
+}
+
+/**
+ * A convenient function to make a `PaginationRange<T>` that contains a single
+ * error indicating "unimplemented".
+ */
+template <typename Range>
+Range MakeUnimplementedPaginationRange()
+{
+    using ValueType = typename Range::value_type::value_type;
+    return MakeStreamRange<ValueType>([]() -> typename StreamReader<ValueType>::result_type {
+        return Status{StatusCode::Unimplemented, "needs-override"};
+    });
+}
 
 }  // namespace internal
 }  // namespace csa

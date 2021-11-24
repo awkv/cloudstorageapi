@@ -37,8 +37,8 @@ public:
 private:
     friend std::ostream& operator<<(std::ostream& os, FolderMetadata const& rhs);
 
-    bool m_CanCreateFolders;
-    bool m_CanUploadFile;
+    bool m_CanCreateFolders{false};
+    bool m_CanUploadFile{false};
 };
 
 std::ostream& operator<<(std::ostream& os, FolderMetadata const& rhs);

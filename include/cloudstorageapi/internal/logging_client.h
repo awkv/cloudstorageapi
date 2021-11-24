@@ -30,7 +30,7 @@ public:
     LoggingClient(std::shared_ptr<RawClient> client);
     ~LoggingClient() override = default;
 
-    ClientOptions const& GetClientOptions() const override;
+    Options const& GetOptions() const override;
     std::string GetProviderName() const override;
     StatusOrVal<UserInfo> GetUserInfo() override;
     std::size_t GetFileChunkQuantum() const override;
@@ -50,6 +50,7 @@ public:
     StatusOrVal<std::unique_ptr<ResumableUploadSession>> CreateResumableSession(
         ResumableUploadRequest const& request) override;
     StatusOrVal<std::unique_ptr<ResumableUploadSession>> RestoreResumableSession(std::string const& sessionId) override;
+    StatusOrVal<EmptyResponse> DeleteResumableUpload(DeleteResumableUploadRequest const& request) override;
     StatusOrVal<FileMetadata> CopyFileObject(CopyFileRequest const& request) override;
 
     StatusOrVal<StorageQuota> GetQuota() override;

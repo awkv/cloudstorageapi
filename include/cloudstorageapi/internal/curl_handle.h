@@ -23,6 +23,38 @@
 
 namespace csa {
 namespace internal {
+void AssertOptionSuccessImpl(CURLcode e, CURLoption opt, char const* where,
+                             std::function<std::string()> const& format_parameter);
+
+inline void AssertOptionSuccess(CURLcode e, CURLoption opt, char const* where, char const* param)
+{
+    if (e == CURLE_OK)
+        return;
+    AssertOptionSuccessImpl(e, opt, where, [param] { return std::string{param}; });
+}
+
+inline void AssertOptionSuccess(CURLcode e, CURLoption opt, char const* where, std::intmax_t param)
+{
+    if (e == CURLE_OK)
+        return;
+    AssertOptionSuccessImpl(e, opt, where, [param] { return std::to_string(param); });
+}
+
+inline void AssertOptionSuccess(CURLcode e, CURLoption opt, char const* where, std::nullptr_t)
+{
+    if (e == CURLE_OK)
+        return;
+    AssertOptionSuccessImpl(e, opt, where, [] { return "nullptr"; });
+}
+
+template <typename T, typename std::enable_if<!std::is_integral<T>::value, int>::type = 0>
+void AssertOptionSuccess(CURLcode e, CURLoption opt, char const* where, T)
+{
+    if (e == CURLE_OK)
+        return;
+    AssertOptionSuccessImpl(e, opt, where, [] { return std::string{"a value of type="} + typeid(T).name(); });
+}
+
 /**
  * Wraps CURL* handles in a safer C++ interface.
  *
@@ -40,93 +72,15 @@ public:
     CurlHandle(CurlHandle const&) = delete;
     CurlHandle& operator=(CurlHandle const&) = delete;
 
-    // Allow moves, they immediately disable callbacks.
-    CurlHandle(CurlHandle&& rhs) noexcept : m_handle(std::move(rhs.m_handle))
-    {
-        ResetHeaderCallback();
-        ResetReaderCallback();
-        ResetWriterCallback();
-        ResetSocketCallback();
-    }
-
-    CurlHandle& operator=(CurlHandle&& rhs) noexcept
-    {
-        m_handle = std::move(rhs.m_handle);
-        ResetHeaderCallback();
-        ResetReaderCallback();
-        ResetWriterCallback();
-        ResetSocketCallback();
-        return *this;
-    }
-
-    /**
-     * Define the callback type for sending data.
-     *
-     * In the conventions of libcurl, the read callbacks are invoked by the
-     * library to gather more data to send to the server.
-     *
-     * @see https://curl.haxx.se/libcurl/c/CURLOPT_READFUNCTION.html
-     */
-    using ReaderCallback = std::function<std::size_t(char* ptr, std::size_t size, std::size_t nmemb)>;
-
-    /**
-     * Define the callback type for receiving data.
-     *
-     * In the conventions of libcurl, the write callbacks are invoked by the
-     * library when more data has been received.
-     *
-     * @see https://curl.haxx.se/libcurl/c/CURLOPT_WRITEFUNCTION.html
-     */
-    using WriterCallback = std::function<std::size_t(void* ptr, std::size_t size, std::size_t nmemb)>;
-
-    /**
-     * Define the callback type for receiving header data.
-     *
-     * In the conventions of libcurl, the header callbacks are invoked when new
-     * header-like data is received.
-     *
-     * @see https://curl.haxx.se/libcurl/c/CURLOPT_HEADERFUNCTION.html
-     */
-    using HeaderCallback = std::function<std::size_t(char* contents, std::size_t size, std::size_t nitems)>;
-
-    /**
-     * Sets the reader callback.
-     *
-     * @param callback this function must remain valid until either
-     *     `ResetReaderCallback` returns, or this object is destroyed.
-     *
-     * @see the notes on `ReaderCallback` for the semantics of the callback.
-     */
-    void SetReaderCallback(ReaderCallback callback);
-
-    // Resets the reader callback.
-    void ResetReaderCallback();
-
-    /**
-     * Sets the writer callback.
-     *
-     * @param callback this function must remain valid until either
-     *     `ResetWriterCallback` returns, or this object is destroyed.
-     *
-     * @see the notes on `WriterCallback` for the semantics of the callback.
-     */
-    void SetWriterCallback(WriterCallback callback);
-
-    // Resets the reader callback.
-    void ResetWriterCallback();
-
-    /**
-     * Sets the header callback.
-     *
-     * @param callback this function must remain valid until either
-     *    `ResetHeaderCallback` returns, or this object is destroyed
-     *
-     * @see the notes on `ReaderCallback` for the semantics of the callback.
-     */
-    void SetHeaderCallback(HeaderCallback callback);
-
-    /// Resets the reader callback.
-    void ResetHeaderCallback();
+    // Allow moves, some care is needed to guarantee the pointers passed to the
+    // libcurl C callbacks (`debug`, and `socket`) are stable.
+    // * For the `debug` callback (used rarely), we use a `std::shared_ptr<>`.
+    // * For the `socket` callback, the only classes that use it are
+    //   `CurlDownloadRequest` and `CurlRequest`.  These classes guarantee the
+    //   object is not move-constructed-from or move-assigned-from once the
+    //   callback is set up.
+    CurlHandle(CurlHandle&& rhs) = default;
+    CurlHandle& operator=(CurlHandle&& rhs) = default;
 
     // Set the callback to initialize each socket.
     struct SocketOptions
@@ -136,9 +90,6 @@ public:
     };
 
     void SetSocketCallback(SocketOptions const& options);
-
-    // Reset the socket callback.
-    void ResetSocketCallback();
 
     // URL-escapes a string.
     CurlString MakeEscapedString(std::string const& s)
@@ -150,11 +101,26 @@ public:
     void SetOption(CURLoption option, T&& param)
     {
         auto e = curl_easy_setopt(m_handle.get(), option, std::forward<T>(param));
-        if (e == CURLE_OK)
-        {
-            return;
-        }
-        ThrowSetOptionError(e, option, std::forward<T>(param));
+        AssertOptionSuccess(e, option, __func__, param);
+    }
+
+    void SetOption(CURLoption option, std::nullptr_t)
+    {
+        auto e = curl_easy_setopt(m_handle.get(), option, nullptr);
+        AssertOptionSuccess(e, option, __func__, nullptr);
+    }
+
+    /**
+     * Sets an option that may fail.
+     *
+     * The common case to use this is setting an option that sometimes is disabled
+     * in libcurl at compile-time. For example, libcurl can be compiled without
+     * HTTP/2 support, requesting HTTP/2 results in a (harmless) error.
+     */
+    template <typename T>
+    void SetOptionUnchecked(CURLoption option, T&& param)
+    {
+        (void)curl_easy_setopt(m_handle.get(), option, std::forward<T>(param));
     }
 
     Status EasyPerform()
@@ -163,16 +129,16 @@ public:
         return AsStatus(e, __func__);
     }
 
-    StatusOrVal<long> GetResponseCode()
-    {
-        long code;
-        auto e = curl_easy_getinfo(m_handle.get(), CURLINFO_RESPONSE_CODE, &code);
-        if (e == CURLE_OK)
-        {
-            return code;
-        }
-        return AsStatus(e, __func__);
-    }
+    /// Gets the HTTP response code, or an error.
+    StatusOrVal<std::int32_t> GetResponseCode();
+
+    /**
+     * Gets a string identifying the peer.
+     *
+     * It always returns a non-empty string, even if there is an error. The
+     * contents of the string if there was an error are otherwise unspecified.
+     */
+    std::string GetPeer();
 
     Status EasyPause(int bitmask)
     {
@@ -188,32 +154,24 @@ public:
     // Convert a CURLE_* error code to a google::cloud::Status().
     static Status AsStatus(CURLcode e, char const* where);
 
+    struct DebugInfo
+    {
+        std::string buffer;
+        std::uint64_t m_recvZeroCount = 0;
+        std::uint64_t m_recvCount = 0;
+        std::uint64_t m_sendZeroCount = 0;
+        std::uint64_t m_sendCount = 0;
+    };
+
 private:
     explicit CurlHandle(CurlPtr ptr) : m_handle(std::move(ptr)) {}
 
     friend class CurlDownloadRequest;
-    friend class CurlRequest;
     friend class CurlRequestBuilder;
-
-    [[noreturn]] void ThrowSetOptionError(CURLcode e, CURLoption opt, long param);
-    [[noreturn]] void ThrowSetOptionError(CURLcode e, CURLoption opt, char const* param);
-    [[noreturn]] void ThrowSetOptionError(CURLcode e, CURLoption opt, void* param);
-    template <typename T>
-    [[noreturn]] void ThrowSetOptionError(CURLcode e, CURLoption opt, T)
-    {
-        std::string param = "complex-type=<";
-        param += typeid(T).name();
-        param += ">";
-        ThrowSetOptionError(e, opt, param.c_str());
-    }
+    friend class CurlHandleFactory;
 
     CurlPtr m_handle;
-    std::string m_debugBuffer;
-
-    ReaderCallback m_readerCallback;
-    WriterCallback m_writerCallback;
-    HeaderCallback m_headerCallback;
-
+    std::shared_ptr<DebugInfo> m_debugInfo;
     SocketOptions m_socketOptions;
 };
 

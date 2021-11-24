@@ -209,7 +209,8 @@ public:
 std::string CurlSslLibraryId()
 {
     auto vinfo = curl_version_info(CURLVERSION_NOW);
-    return vinfo->ssl_version;
+    auto const is_null = vinfo == nullptr || vinfo->ssl_version == nullptr;
+    return is_null ? "" : vinfo->ssl_version;
 }
 
 bool SslLibraryNeedsLocking(std::string const& curlSslId)
@@ -219,6 +220,30 @@ bool SslLibraryNeedsLocking(std::string const& curlSslId)
     // Only these library prefixes require special configuration for using safely
     // with multiple threads.
     return (curlSslId.rfind("OpenSSL/1.0", 0) == 0 || curlSslId.rfind("LibreSSL/2", 0) == 0);
+}
+
+long VersionToCurlCode(std::string const& v)
+{
+    if (v == "1.0")
+        return CURL_HTTP_VERSION_1_0;
+    if (v == "1.1")
+        return CURL_HTTP_VERSION_1_1;
+#if CURL_AT_LEAST_VERSION(7, 33, 0)
+    // CURL_HTTP_VERSION_2_0 and CURL_HTTP_VERSION_2 are aliases.
+    if (v == "2.0" || v == "2")
+        return CURL_HTTP_VERSION_2_0;
+#endif  // CURL >= 7.33.0
+#if CURL_AT_LEAST_VERSION(7, 47, 0)
+    if (v == "2TLS")
+        return CURL_HTTP_VERSION_2TLS;
+#endif  // CURL >= 7.47.0
+#if CURL_AT_LEAST_VERSION(7, 66, 0)
+    // google-cloud-cpp requires curl >= 7.47.0. All the previous codes exist at
+    // that version, but the next one is more recent.
+    if (v == "3")
+        return CURL_HTTP_VERSION_3;
+#endif  // CURL >= 7.66.0
+    return CURL_HTTP_VERSION_NONE;
 }
 
 bool SslLockingCallbacksInstalled()
@@ -255,11 +280,11 @@ std::size_t CurlAppendHeaderData(CurlReceivedHeaders& receivedHeaders, char cons
     return size;
 }
 
-void CurlInitializeOnce(ClientOptions const& options)
+void CurlInitializeOnce(Options const& options)
 {
     static CurlInitializer curl_initializer;
-    std::call_once(SslLockingInitialized, InitializeSslLocking, options.GetEnableSslLockingCallbacks());
-    std::call_once(SigpipeHandlerInitialized, InitializeSigPipeHandler, options.GetEnableSigpipeHandler());
+    std::call_once(SslLockingInitialized, InitializeSslLocking, options.Get<EnableCurlSslLockingOption>());
+    std::call_once(SigpipeHandlerInitialized, InitializeSigPipeHandler, options.Get<EnableCurlSigpipeHandlerOption>());
 }
 
 }  // namespace internal

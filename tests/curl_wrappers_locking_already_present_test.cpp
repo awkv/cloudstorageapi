@@ -36,8 +36,10 @@ TEST(CurlWrappers, LockingDisabledTest)
     // Install a trivial callback, this should disable the installation of the
     // normal callbacks in the the curl wrappers.
     CRYPTO_set_locking_callback(testCb);
-    CurlInitializeOnce(
-        ClientOptions(EProvider::GoogleDrive, std::make_shared<NullCredentials>()).SetEnableSslLockingCallbacks(true));
+    CurlInitializeOnce(Options{}
+                           .Set<ProviderOption>(EProvider::GoogleDrive)
+                           .Set<Oauth2CredentialsOption>(std::make_shared<NullCredentials>())
+                           .Set<EnableCurlSslLockingOption>(true));
     EXPECT_FALSE(SslLockingCallbacksInstalled());
 }
 }  // namespace

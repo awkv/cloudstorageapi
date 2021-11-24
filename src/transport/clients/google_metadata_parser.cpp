@@ -14,7 +14,6 @@
 
 #include "cloudstorageapi/internal/clients/google_metadata_parser.h"
 #include "cloudstorageapi/internal/json_utils.h"
-#include "cloudstorageapi/internal/nljson.h"
 #include "cloudstorageapi/internal/rfc3339_time.h"
 
 namespace csa {
@@ -26,7 +25,7 @@ namespace {
  * This simplifies the implementation of ToJsonString() because we repeat this
  * check for many attributes.
  */
-void SetIfNotEmpty(nl::json& json, char const* key, std::string const& value)
+void SetIfNotEmpty(nlohmann::json& json, char const* key, std::string const& value)
 {
     if (value.empty())
     {
@@ -35,14 +34,15 @@ void SetIfNotEmpty(nl::json& json, char const* key, std::string const& value)
     json[key] = value;
 }
 
-void SetIfDifferent(nl::json& json, char const* key, std::string const& originalValue, std::string const& updatedValue)
+void SetIfDifferent(nlohmann::json& json, char const* key, std::string const& originalValue,
+                    std::string const& updatedValue)
 {
     if (originalValue != updatedValue)
         json[key] = updatedValue;
 }
 }  // namespace
 
-StatusOrVal<FileMetadata> GoogleMetadataParser::ParseFileMetadata(nl::json const& json)
+StatusOrVal<FileMetadata> GoogleMetadataParser::ParseFileMetadata(nlohmann::json const& json)
 {
     if (!json.is_object())
     {
@@ -57,7 +57,10 @@ StatusOrVal<FileMetadata> GoogleMetadataParser::ParseFileMetadata(nl::json const
     fileMetadata.SetMimeTypeOpt(json.value("mimeType", ""));
     if (json.contains("capabilities"))
     {
-        fileMetadata.SetDownloadable(JsonUtils::ParseBool(json["capabilities"], "canDownload"));
+        auto downloadable = JsonUtils::ParseBool(json["capabilities"], "canDownload");
+        if (!downloadable)
+            return std::move(downloadable).GetStatus();
+        fileMetadata.SetDownloadable(*downloadable);
     }
 
     return fileMetadata;
@@ -65,7 +68,7 @@ StatusOrVal<FileMetadata> GoogleMetadataParser::ParseFileMetadata(nl::json const
 
 StatusOrVal<FileMetadata> GoogleMetadataParser::ParseFileMetadata(std::string const& payload)
 {
-    auto json = nl::json::parse(payload, nullptr, false);
+    auto json = nlohmann::json::parse(payload, nullptr, false);
     if (json.is_discarded())
     {
         return Status(StatusCode::InvalidArgument,
@@ -75,7 +78,7 @@ StatusOrVal<FileMetadata> GoogleMetadataParser::ParseFileMetadata(std::string co
     return ParseFileMetadata(json);
 }
 
-StatusOrVal<FolderMetadata> GoogleMetadataParser::ParseFolderMetadata(nl::json const& json)
+StatusOrVal<FolderMetadata> GoogleMetadataParser::ParseFolderMetadata(nlohmann::json const& json)
 {
     if (!json.is_object())
     {
@@ -89,9 +92,11 @@ StatusOrVal<FolderMetadata> GoogleMetadataParser::ParseFolderMetadata(nl::json c
 
     if (json.contains("capabilities"))
     {
-        bool canAddChildren = JsonUtils::ParseBool(json["capabilities"], "canAddChildren");
-        folderMetadata.SetCanCreateFolders(canAddChildren);
-        folderMetadata.SetCanUploadFile(canAddChildren);
+        auto canAddChildren = JsonUtils::ParseBool(json["capabilities"], "canAddChildren");
+        if (!canAddChildren)
+            return std::move(canAddChildren).GetStatus();
+        folderMetadata.SetCanCreateFolders(*canAddChildren);
+        folderMetadata.SetCanUploadFile(*canAddChildren);
     }
 
     return folderMetadata;
@@ -99,7 +104,7 @@ StatusOrVal<FolderMetadata> GoogleMetadataParser::ParseFolderMetadata(nl::json c
 
 StatusOrVal<FolderMetadata> GoogleMetadataParser::ParseFolderMetadata(std::string const& payload)
 {
-    auto json = nl::json::parse(payload, nullptr, false);
+    auto json = nlohmann::json::parse(payload, nullptr, false);
     if (json.is_discarded())
     {
         return Status(StatusCode::InvalidArgument,
@@ -109,9 +114,9 @@ StatusOrVal<FolderMetadata> GoogleMetadataParser::ParseFolderMetadata(std::strin
     return ParseFolderMetadata(json);
 }
 
-StatusOrVal<nl::json> GoogleMetadataParser::ComposeFileMetadata(FileMetadata const& meta)
+StatusOrVal<nlohmann::json> GoogleMetadataParser::ComposeFileMetadata(FileMetadata const& meta)
 {
-    nl::json jmeta({});
+    nlohmann::json jmeta({});
     jmeta["kind"] = "drive#file";
     auto status = ComposeCommonMetadata(jmeta, meta);
     if (!status.Ok())
@@ -122,9 +127,9 @@ StatusOrVal<nl::json> GoogleMetadataParser::ComposeFileMetadata(FileMetadata con
     return jmeta;
 }
 
-StatusOrVal<nl::json> GoogleMetadataParser::ComposeFolderMetadata(FolderMetadata const& meta)
+StatusOrVal<nlohmann::json> GoogleMetadataParser::ComposeFolderMetadata(FolderMetadata const& meta)
 {
-    nl::json jmeta({});
+    nlohmann::json jmeta({});
     jmeta["kind"] = "drive#file";
     auto status = ComposeCommonMetadata(jmeta, meta);
     if (!status.Ok())
@@ -133,9 +138,10 @@ StatusOrVal<nl::json> GoogleMetadataParser::ComposeFolderMetadata(FolderMetadata
     return jmeta;
 }
 
-StatusOrVal<nl::json> GoogleMetadataParser::PatchFileMetadata(FileMetadata const& original, FileMetadata const& updated)
+StatusOrVal<nlohmann::json> GoogleMetadataParser::PatchFileMetadata(FileMetadata const& original,
+                                                                    FileMetadata const& updated)
 {
-    nl::json jmeta({});
+    nlohmann::json jmeta({});
     auto status = PatchCommonMetadata(jmeta, original, updated);
     if (!status.Ok())
         return status;
@@ -145,17 +151,17 @@ StatusOrVal<nl::json> GoogleMetadataParser::PatchFileMetadata(FileMetadata const
     return jmeta;
 }
 
-StatusOrVal<nl::json> GoogleMetadataParser::PatchFolderMetadata(FolderMetadata const& original,
-                                                                FolderMetadata const& updated)
+StatusOrVal<nlohmann::json> GoogleMetadataParser::PatchFolderMetadata(FolderMetadata const& original,
+                                                                      FolderMetadata const& updated)
 {
-    nl::json jmeta({});
+    nlohmann::json jmeta({});
     auto status = PatchCommonMetadata(jmeta, original, updated);
     if (!status.Ok())
         return status;
     return jmeta;
 }
 
-Status GoogleMetadataParser::ParseCommonMetadata(CommonMetadata& result, nl::json const& json)
+Status GoogleMetadataParser::ParseCommonMetadata(CommonMetadata& result, nlohmann::json const& json)
 {
     if (!json.is_object())
     {
@@ -170,21 +176,26 @@ Status GoogleMetadataParser::ParseCommonMetadata(CommonMetadata& result, nl::jso
         if (json["parents"].size() > 0)
             result.SetParentId(json["parents"].front());
     }
-    result.SetSize(JsonUtils::ParseLong(json, "size"));
+    auto size = JsonUtils::ParseLong(json, "size");
+    if (!size)
+        return std::move(size).GetStatus();
+    result.SetSize(*size);
     auto modifiedTime = JsonUtils::ParseRFC3339Timestamp(json, "modifiedTime");
-    result.SetChangeTime(modifiedTime);
-    result.SetModifyTime(modifiedTime);
-    result.SetAccessTime(modifiedTime);
+    if (!modifiedTime)
+        return std::move(modifiedTime).GetStatus();
+    result.SetChangeTime(*modifiedTime);
+    result.SetModifyTime(*modifiedTime);
+    result.SetAccessTime(*modifiedTime);
 
     return Status();
 }
 
-Status GoogleMetadataParser::ComposeCommonMetadata(nl::json& result, CommonMetadata const& meta)
+Status GoogleMetadataParser::ComposeCommonMetadata(nlohmann::json& result, CommonMetadata const& meta)
 {
     SetIfNotEmpty(result, "id", meta.GetCloudId());
     SetIfNotEmpty(result, "name", meta.GetName());
     if (!meta.GetParentId().empty())
-        result["parents"] = nl::json::array({meta.GetParentId()});
+        result["parents"] = nlohmann::json::array({meta.GetParentId()});
     // ? result["createdTime"] = FormatRfc3339Time(meta.GetChangeTime());
     const auto epochTimePoint = std::chrono::time_point<std::chrono::system_clock>{};
     if (meta.GetChangeTime() > epochTimePoint)
@@ -193,7 +204,7 @@ Status GoogleMetadataParser::ComposeCommonMetadata(nl::json& result, CommonMetad
     return Status();
 }
 
-Status GoogleMetadataParser::PatchCommonMetadata(nl::json& result, CommonMetadata const& original,
+Status GoogleMetadataParser::PatchCommonMetadata(nlohmann::json& result, CommonMetadata const& original,
                                                  CommonMetadata const& updated)
 {
     // Set only relevant fields: https://developers.google.com/drive/api/v3/reference/files/update

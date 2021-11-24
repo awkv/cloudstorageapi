@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/rfc3339_time.h"
+#include "cloudstorageapi/status.h"
 #include <array>
 #include <cctype>
 #include <cstdio>
@@ -24,12 +25,11 @@
 
 namespace {
 
-[[noreturn]] void ReportError(std::string const& timestamp, char const* msg)
+csa::Status ReportError(std::string const& timestamp, char const* msg)
 {
-    std::ostringstream os;
-    os << "Error parsing RFC 3339 timestamp: " << msg
-       << " Valid format is YYYY-MM-DD[Tt]HH:MM:SS[.s+](Z|[+-]HH:MM), got=" << timestamp;
-    throw std::invalid_argument(os.str());
+    return csa::Status(csa::StatusCode::InvalidArgument,
+                       std::string("Error parsing RFC 3339 timestamp: ") + msg +
+                           " Valid format is YYYY-MM-DD[Tt]HH:MM:SS[.s+](Z|[+-]HH:MM), got=" + timestamp);
 }
 
 bool IsLeapYear(int year) { return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)); }
@@ -42,7 +42,7 @@ auto constexpr SecondsInMinute = std::chrono::minutes(std::chrono::hours(1)).cou
 
 }  // namespace
 
-std::chrono::system_clock::time_point ParseDateTime(char const*& buffer, std::string const& timestamp)
+csa::StatusOrVal<std::chrono::system_clock::time_point> ParseDateTime(char const*& buffer, std::string const& timestamp)
 {
     // Use std::mktime to compute the number of seconds because RFC 3339 requires
     // working with civil time, including the annoying leap seconds, and mktime
@@ -59,13 +59,13 @@ std::chrono::system_clock::time_point ParseDateTime(char const*& buffer, std::st
     auto constexpr ExpectedFields = 7;
     if (count != ExpectedFields || pos != ExpectedWidth)
     {
-        ReportError(timestamp,
-                    "Invalid format for RFC 3339 timestamp detected while parsing"
-                    " the base date and time portion.");
+        return ReportError(timestamp,
+                           "Invalid format for RFC 3339 timestamp detected while parsing"
+                           " the base date and time portion.");
     }
     if (date_time_separator != 'T' && date_time_separator != 't')
     {
-        ReportError(timestamp, "Invalid date-time separator, expected 'T' or 't'.");
+        return ReportError(timestamp, "Invalid date-time separator, expected 'T' or 't'.");
     }
 
     // Double braces are needed to workaround a clang-3.8 bug.
@@ -86,23 +86,24 @@ std::chrono::system_clock::time_point ParseDateTime(char const*& buffer, std::st
     auto constexpr kMkTimeBaseYear = 1900;
     if (month < 1 || month > MonthsInYear)
     {
-        ReportError(timestamp, "Out of range month.");
+        return ReportError(timestamp, "Out of range month.");
     }
     if (day < 1 || day > MaxDaysInMonth[month - 1])
     {
-        ReportError(timestamp, "Out of range day for given month.");
+        return ReportError(timestamp, "Out of range day for given month.");
     }
+
     if (2 == month && day > MaxDaysInMonth[1] - 1 && !IsLeapYear(year))
     {
-        ReportError(timestamp, "Out of range day for given month.");
+        return ReportError(timestamp, "Out of range day for given month.");
     }
     if (hours < 0 || hours >= HoursInDay)
     {
-        ReportError(timestamp, "Out of range hour.");
+        return ReportError(timestamp, "Out of range hour.");
     }
     if (minutes < 0 || minutes >= MinutesInHour)
     {
-        ReportError(timestamp, "Out of range minute.");
+        return ReportError(timestamp, "Out of range minute.");
     }
     // RFC-3339 points out that the seconds field can only assume value '60' for
     // leap seconds, so theoretically, we should validate that (furthermore, we
@@ -111,7 +112,7 @@ std::chrono::system_clock::time_point ParseDateTime(char const*& buffer, std::st
     // value.
     if (seconds < 0 || seconds > SecondsInMinute)
     {
-        ReportError(timestamp, "Out of range second.");
+        return ReportError(timestamp, "Out of range second.");
     }
     // Advance the pointer for all the characters read.
     buffer += pos;
@@ -126,7 +127,8 @@ std::chrono::system_clock::time_point ParseDateTime(char const*& buffer, std::st
     return std::chrono::system_clock::from_time_t(std::mktime(&tm));
 }
 
-std::chrono::system_clock::duration ParseFractionalSeconds(char const*& buffer, std::string const& timestamp)
+csa::StatusOrVal<std::chrono::system_clock::duration> ParseFractionalSeconds(char const*& buffer,
+                                                                             std::string const& timestamp)
 {
     if (buffer[0] != '.')
     {
@@ -139,7 +141,7 @@ std::chrono::system_clock::duration ParseFractionalSeconds(char const*& buffer, 
     auto count = std::sscanf(buffer, "%9ld%n", &fractional_seconds, &pos);
     if (count != 1)
     {
-        ReportError(timestamp, "Invalid fractional seconds component.");
+        return ReportError(timestamp, "Invalid fractional seconds component.");
     }
     auto constexpr MaxNanosecondDigits = 9;
     auto constexpr NanosecondsBase = 10;
@@ -159,7 +161,7 @@ std::chrono::system_clock::duration ParseFractionalSeconds(char const*& buffer, 
         std::chrono::nanoseconds(fractional_seconds));
 }
 
-std::chrono::seconds ParseOffset(char const*& buffer, std::string const& timestamp)
+csa::StatusOrVal<std::chrono::seconds> ParseOffset(char const*& buffer, std::string const& timestamp)
 {
     if (buffer[0] == '+' || buffer[0] == '-')
     {
@@ -172,15 +174,15 @@ std::chrono::seconds ParseOffset(char const*& buffer, std::string const& timesta
         auto constexpr ExpectedOffsetFields = 2;
         if (count != ExpectedOffsetFields || pos != ExpectedOffsetWidth)
         {
-            ReportError(timestamp, "Invalid timezone offset, expected [+-]HH:MM.");
+            return ReportError(timestamp, "Invalid timezone offset, expected [+-]HH:MM.");
         }
         if (hours < 0 || hours >= HoursInDay)
         {
-            ReportError(timestamp, "Out of range offset hour.");
+            return ReportError(timestamp, "Out of range offset hour.");
         }
         if (minutes < 0 || minutes >= MinutesInHour)
         {
-            ReportError(timestamp, "Out of range offset minute.");
+            return ReportError(timestamp, "Out of range offset minute.");
         }
         buffer += pos;
         using std::chrono::duration_cast;
@@ -192,7 +194,7 @@ std::chrono::seconds ParseOffset(char const*& buffer, std::string const& timesta
     }
     if (buffer[0] != 'Z' && buffer[0] != 'z')
     {
-        ReportError(timestamp, "Invalid timezone offset, expected 'Z' or 'z'.");
+        return ReportError(timestamp, "Invalid timezone offset, expected 'Z' or 'z'.");
     }
     ++buffer;
     return std::chrono::seconds(0);
@@ -257,7 +259,7 @@ std::tm AsUtcTm(std::chrono::system_clock::time_point tp)
 namespace csa {
 namespace internal {
 
-std::chrono::system_clock::time_point ParseRfc3339(std::string const& timestamp)
+StatusOrVal<std::chrono::system_clock::time_point> ParseRfc3339(std::string const& timestamp)
 {
     // TODO: dynamically change the timezone offset.
     // Because this computation is a bit expensive, assume the timezone offset
@@ -279,17 +281,23 @@ std::chrono::system_clock::time_point ParseRfc3339(std::string const& timestamp)
 
     char const* buffer = timestamp.c_str();
     auto timePoint = ParseDateTime(buffer, timestamp);
+    if (!timePoint)
+        return std::move(timePoint).GetStatus();
     auto fractionalSeconds = ParseFractionalSeconds(buffer, timestamp);
-    std::chrono::seconds offset = ParseOffset(buffer, timestamp);
+    if (!fractionalSeconds)
+        return std::move(fractionalSeconds).GetStatus();
+    auto offset = ParseOffset(buffer, timestamp);
+    if (!offset)
+        return std::move(offset).GetStatus();
 
     if (buffer[0] != '\0')
     {
-        ReportError(timestamp, "Additional text after RFC 3339 date.");
+        return ReportError(timestamp, "Additional text after RFC 3339 date.");
     }
 
-    timePoint += fractionalSeconds;
-    timePoint -= offset;
-    timePoint -= LocalTimeOffset;
+    *timePoint += *fractionalSeconds;
+    *timePoint -= *offset;
+    *timePoint -= LocalTimeOffset;
     return timePoint;
 }
 

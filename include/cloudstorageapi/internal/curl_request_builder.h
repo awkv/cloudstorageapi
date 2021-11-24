@@ -49,7 +49,7 @@ public:
      * This function invalidates the builder. The application should not use this
      * builder once this function is called.
      */
-    CurlDownloadRequest BuildDownloadRequest(std::string payload);
+    std::unique_ptr<CurlDownloadRequest> BuildDownloadRequest() &&;
 
     // Adds one of the well-known parameters as a query parameter
     template <typename P>
@@ -91,7 +91,22 @@ public:
     {
         if (p.HasValue())
         {
-            AddHeader(std::string(p.header_name()) + ": " + p.value());
+            AddHeader(std::string(p.HeaderName()) + ": " + p.value());
+        }
+        return *this;
+    }
+
+    // Adds one of the well-known headers to the request.
+    template <typename P, typename V,
+              typename Enabled = typename std::enable_if<std::is_arithmetic<V>::value, void>::type>
+    CurlRequestBuilder& AddOption(WellKnownHeader<P, V> const& p)
+    {
+        if (p.HasValue())
+        {
+            std::string header = p.HeaderName();
+            header += ": ";
+            header += std::to_string(p.value());
+            AddHeader(header);
         }
         return *this;
     }
@@ -127,7 +142,7 @@ public:
     CurlRequestBuilder& SetMethod(std::string const& method);
 
     // Copy interesting configuration parameters from the client options.
-    CurlRequestBuilder& ApplyClientOptions(ClientOptions const& options);
+    CurlRequestBuilder& ApplyClientOptions(Options const& options);
 
     // Sets the CURLSH* handle to share resources.
     CurlRequestBuilder& SetCurlShare(CURLSH* share);
@@ -153,8 +168,10 @@ private:
     char const* m_queryParameterSeparator;
 
     std::string m_userAgentPrefix;
+    bool m_loggingEnabled;
     CurlHandle::SocketOptions m_socketOptions;
     std::chrono::seconds m_downloadStallTimeout;
+    std::string m_httpVersion;
 };
 
 }  // namespace internal

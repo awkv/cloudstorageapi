@@ -1,6 +1,6 @@
-// Copyright 2020 Andrew Karasyov
+// Copyright 2021 Andrew Karasyov
 //
-// Copyright 2018 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,63 +16,17 @@
 
 #pragma once
 
-#include "cloudstorageapi/internal/http_response.h"
-#include "cloudstorageapi/internal/object_read_source.h"
+#include "cloudstorageapi/auto_finalize.h"
+#include "cloudstorageapi/internal/const_buffer.h"
 #include "cloudstorageapi/internal/resumable_upload_session.h"
 #include "cloudstorageapi/status_or_val.h"
 #include <iostream>
-#include <map>
 #include <memory>
-#include <vector>
 
 namespace csa {
-class FileMetadata;
+class FileWriteStream;
 
 namespace internal {
-
-class ReadFileRangeRequest;
-
-/**
- * Defines a compilation barrier for libcurl.
- *
- * We do not want to expose the libcurl objects through `FileReadStream`,
- * this class abstracts away the implementation so applications are not impacted
- * by the implementation details.
- */
-class FileReadStreambuf : public std::basic_streambuf<char>
-{
-public:
-    FileReadStreambuf(ReadFileRangeRequest const& request, std::unique_ptr<ObjectReadSource> source);
-
-    /// Create a streambuf in a permanent error status.
-    FileReadStreambuf(ReadFileRangeRequest const& request, Status status);
-
-    ~FileReadStreambuf() override = default;
-
-    FileReadStreambuf(FileReadStreambuf&&) noexcept = delete;
-    FileReadStreambuf& operator=(FileReadStreambuf&&) noexcept = delete;
-    FileReadStreambuf(FileReadStreambuf const&) = delete;
-    FileReadStreambuf& operator=(FileReadStreambuf const&) = delete;
-
-    bool IsOpen() const;
-    void Close();
-
-    Status const& GetStatus() const { return m_status; }
-    std::multimap<std::string, std::string> const& GetHeaders() const { return m_headers; }
-
-private:
-    int_type ReportError(Status status);
-    void SetEmptyRegion();
-    StatusOrVal<int_type> Peek();
-
-    int_type underflow() override;
-    std::streamsize xsgetn(char* s, std::streamsize count) override;
-
-    std::unique_ptr<ObjectReadSource> m_source;
-    std::vector<char> m_currentIosBuffer;
-    Status m_status;
-    std::multimap<std::string, std::string> m_headers;
-};
 
 /**
  * Defines a compilation barrier for libcurl.
@@ -86,7 +40,8 @@ class FileWriteStreambuf : public std::basic_streambuf<char>
 public:
     FileWriteStreambuf() = default;
 
-    FileWriteStreambuf(std::unique_ptr<ResumableUploadSession> uploadSession, std::size_t maxBufferSize);
+    FileWriteStreambuf(std::unique_ptr<ResumableUploadSession> uploadSession, std::size_t maxBufferSize,
+                       AutoFinalizeConfig autoFinalize);
 
     ~FileWriteStreambuf() override = default;
 
@@ -112,17 +67,35 @@ protected:
     int_type overflow(int_type ch) override;
 
 private:
-    /// Flush any data if possible.
-    StatusOrVal<ResumableUploadResponse> Flush();
+    friend class csa::FileWriteStream;
 
-    /// Flush any remaining data and commit the upload.
-    StatusOrVal<ResumableUploadResponse> FlushFinal();
+    /**
+     * Automatically finalize the upload unless configured to not do so.
+     *
+     * Called by the FileWriteStream destructor, some applications prefer to
+     * explicitly finalize an upload. For example, they may start an upload,
+     * checkpoint the upload id, then upload in chunks and may *not* want to
+     * finalize the upload in the presence of exceptions that destroy any
+     * FileWriteStream.
+     */
+    void AutoFlushFinal();
+
+    /// Flush any data if possible.
+    void Flush();
+
+    /// Flush any remaining data and finalize the upload.
+    void FlushFinal();
+
+    /// Upload a round chunk
+    void FlushRoundChunk(ConstBufferSequence buffers);
+
+    /// The current used bytes in the put area (aka m_currentIosBuffer)
+    std::size_t PutAreaSize() const { return pptr() - pbase(); }
 
     std::unique_ptr<ResumableUploadSession> m_uploadSession;
-
     std::vector<char> m_currentIosBuffer;
     std::size_t m_maxBufferSize;
-
+    AutoFinalizeConfig m_autoFinalize = AutoFinalizeConfig::Disabled;
     StatusOrVal<ResumableUploadResponse> m_lastResponse;
 };
 

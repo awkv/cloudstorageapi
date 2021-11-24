@@ -43,12 +43,7 @@ public:
     using LockFunction = std::function<void(CURL*, curl_lock_data, curl_lock_access)>;
     using UnlockFunction = std::function<void(CURL*, curl_lock_data)>;
 
-    ClientOptions const& GetClientOptions() const override { return m_options; }
-
-    StatusOrVal<std::string> AuthorizationHeader(std::shared_ptr<auth::Credentials> const&);
-
-    void LockShared(curl_lock_data data);
-    void UnlockShared(curl_lock_data data);
+    Options const& GetOptions() const override { return m_options; }
 
     //@{
     // @name Implement the CurlResumableSession operations.
@@ -64,7 +59,7 @@ public:
 protected:
     // The constructor is protected because the class must always be created
     // as a shared_ptr<>.
-    explicit CurlClientBase(ClientOptions options);
+    explicit CurlClientBase(Options options);
 
     /// Setup the configuration parameters that do not depend on the request.
     Status SetupBuilderCommon(CurlRequestBuilder& builder, char const* method);
@@ -73,15 +68,7 @@ protected:
     template <typename Request>
     Status SetupBuilder(CurlRequestBuilder& builder, Request const& request, char const* method);
 
-    ClientOptions m_options;
-
-    // These mutexes are used to protect different portions of `share_`.
-    std::mutex m_muShare;
-    std::mutex m_muDns;
-    std::mutex m_muSslSession;
-    std::mutex m_muConnect;
-    std::mutex m_muPsl;
-    CurlShare m_share;
+    Options m_options;
 
     std::mutex m_muRNG;
     DefaultPRNG m_generator;  // GUARDED_BY(m_muRNG);

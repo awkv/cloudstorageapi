@@ -14,8 +14,8 @@
 
 #include "cloudstorageapi/internal/file_requests.h"
 #include "cloudstorageapi/file_metadata.h"
-#include "cloudstorageapi/internal/nljson.h"
 #include "cloudstorageapi/internal/utils.h"
+#include <nlohmann/json.hpp>
 #include <sstream>
 
 namespace csa {
@@ -38,9 +38,18 @@ std::ostream& operator<<(std::ostream& os, PatchFileMetadataRequest const& r)
 
 std::ostream& operator<<(std::ostream& os, InsertFileRequest const& r)
 {
-    os << "InsertFileRequest={folder_id=" << r.GetFolderId() << ", name=" << r.GetName()
-       << ", content=" << r.GetContent();
+    os << "InsertFileRequest={folder_id=" << r.GetFolderId() << ", name=" << r.GetName();
     r.DumpOptions(os, ", ");
+    std::size_t constexpr MaxDumpSize = 1024;
+
+    if (r.GetContent().size() > MaxDumpSize)
+    {
+        os << ", content[0..1024]=\n" << BinaryDataAsDebugString(r.GetContent().data(), MaxDumpSize);
+    }
+    else
+    {
+        os << ", content=\n" << BinaryDataAsDebugString(r.GetContent().data(), r.GetContent().size());
+    }
     return os << "}";
 }
 
@@ -58,6 +67,13 @@ std::ostream& operator<<(std::ostream& os, ResumableUploadRequest const& r)
     return os << "}";
 }
 
+std::ostream& operator<<(std::ostream& os, DeleteResumableUploadRequest const& r)
+{
+    os << "DeleteResumableUploadRequest={upload_session_url=" << r.GetUploadSessionUrl();
+    r.DumpOptions(os, ", ");
+    return os << "}";
+}
+
 std::ostream& operator<<(std::ostream& os, UploadChunkRequest const& r)
 {
     os << "UploadChunkRequest={file_id="
@@ -66,7 +82,15 @@ std::ostream& operator<<(std::ostream& os, UploadChunkRequest const& r)
        << ", source_size=" << r.GetSourceSize() << ", last_chunk=" << (r.IsLastChunk() ? "true" : "false");
 
     r.DumpOptions(os, ", ");
-    return os << "}";
+    os << ", payload={";
+    auto constexpr MaxOutputBytes = 128;
+    char const* sep = "";
+    for (auto const& b : r.GetPayload())
+    {
+        os << sep << "{" << BinaryDataAsDebugString(b.data(), b.size(), MaxOutputBytes) << "}";
+        sep = ", ";
+    }
+    return os << "}}";
 }
 
 std::ostream& operator<<(std::ostream& os, QueryResumableUploadRequest const& r)
@@ -76,7 +100,7 @@ std::ostream& operator<<(std::ostream& os, QueryResumableUploadRequest const& r)
     return os << "}";
 }
 
-bool ReadFileRangeRequest::RequiresRangeHeader() const
+bool ReadFileRangeRequest::RequiresNoCache() const
 {
     if (HasOption<ReadRange>())
     {
@@ -88,6 +112,8 @@ bool ReadFileRangeRequest::RequiresRangeHeader() const
     }
     return HasOption<ReadLast>();
 }
+
+bool ReadFileRangeRequest::RequiresRangeHeader() const { return RequiresNoCache(); }
 
 std::int64_t ReadFileRangeRequest::GetStartingByte() const
 {
@@ -117,8 +143,8 @@ std::ostream& operator<<(std::ostream& os, ReadFileRangeRequest const& r)
 
 std::ostream& operator<<(std::ostream& os, CopyFileRequest const& r)
 {
-    os << "CopyFileRequest={file_id" << r.GetObjectId() << ", new_parent_id = " << r.GetNewParentId()
-       << ", new_file_name = " << r.GetNewFileName();
+    os << "CopyFileRequest={file_id" << r.GetObjectId() << ", destination_parent_id = " << r.GetDestinationParentId()
+       << ", destination_file_name = " << r.GetDestinationFileName();
     r.DumpOptions(os, ", ");
     return os << "}";
 }

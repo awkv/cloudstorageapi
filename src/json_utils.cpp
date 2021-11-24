@@ -20,7 +20,7 @@
 namespace csa {
 namespace internal {
 
-bool JsonUtils::ParseBool(nl::json const& json, char const* fieldName)
+StatusOrVal<bool> JsonUtils::ParseBool(nlohmann::json const& json, char const* fieldName)
 {
     if (json.count(fieldName) == 0)
     {
@@ -45,10 +45,10 @@ bool JsonUtils::ParseBool(nl::json const& json, char const* fieldName)
     }
     std::ostringstream os;
     os << "Error parsing field <" << fieldName << "> as a boolean, json=" << json;
-    throw std::invalid_argument(os.str());
+    return Status(StatusCode::InvalidArgument, std::move(os).str());
 }
 
-std::int32_t JsonUtils::ParseInt(nl::json const& json, char const* fieldName)
+StatusOrVal<std::int32_t> JsonUtils::ParseInt(nlohmann::json const& json, char const* fieldName)
 {
     if (json.count(fieldName) == 0)
     {
@@ -61,14 +61,21 @@ std::int32_t JsonUtils::ParseInt(nl::json const& json, char const* fieldName)
     }
     if (f.is_string())
     {
-        return std::stol(f.get_ref<std::string const&>());
+        try
+        {
+            return std::stoi(f.get_ref<std::string const&>());
+        }
+        catch (...)
+        {
+            // Empty. Error is reported below.
+        }
     }
     std::ostringstream os;
     os << "Error parsing field <" << fieldName << "> as an std::int32_t, json=" << json;
-    throw std::invalid_argument(os.str());
+    return Status(StatusCode::InvalidArgument, std::move(os).str());
 }
 
-std::uint32_t JsonUtils::ParseUnsignedInt(nl::json const& json, char const* fieldName)
+StatusOrVal<std::uint32_t> JsonUtils::ParseUnsignedInt(nlohmann::json const& json, char const* fieldName)
 {
     if (json.count(fieldName) == 0)
     {
@@ -81,14 +88,25 @@ std::uint32_t JsonUtils::ParseUnsignedInt(nl::json const& json, char const* fiel
     }
     if (f.is_string())
     {
-        return std::stoul(f.get_ref<std::string const&>());
+        try
+        {
+            auto v = std::stoul(f.get_ref<std::string const&>());
+            if (v <= (std::numeric_limits<std::uint32_t>::max)())
+            {
+                return static_cast<std::uint32_t>(v);
+            }
+        }
+        catch (...)
+        {
+            // Empty. Error is reported below.
+        }
     }
     std::ostringstream os;
     os << "Error parsing field <" << fieldName << "> as an std::uint32_t, json=" << json;
-    throw std::invalid_argument(os.str());
+    return Status(StatusCode::InvalidArgument, std::move(os).str());
 }
 
-std::int64_t JsonUtils::ParseLong(nl::json const& json, char const* fieldName)
+StatusOrVal<std::int64_t> JsonUtils::ParseLong(nlohmann::json const& json, char const* fieldName)
 {
     if (json.count(fieldName) == 0)
     {
@@ -101,14 +119,21 @@ std::int64_t JsonUtils::ParseLong(nl::json const& json, char const* fieldName)
     }
     if (f.is_string())
     {
-        return std::stoll(f.get_ref<std::string const&>());
+        try
+        {
+            return std::stoll(f.get_ref<std::string const&>());
+        }
+        catch (...)
+        {
+            // Empty. Error is reported below.
+        }
     }
     std::ostringstream os;
     os << "Error parsing field <" << fieldName << "> as an std::int64_t, json=" << json;
-    throw std::invalid_argument(os.str());
+    return Status(StatusCode::InvalidArgument, std::move(os).str());
 }
 
-std::uint64_t JsonUtils::ParseUnsignedLong(nl::json const& json, char const* fieldName)
+StatusOrVal<std::uint64_t> JsonUtils::ParseUnsignedLong(nlohmann::json const& json, char const* fieldName)
 {
     if (json.count(fieldName) == 0)
     {
@@ -121,20 +146,33 @@ std::uint64_t JsonUtils::ParseUnsignedLong(nl::json const& json, char const* fie
     }
     if (f.is_string())
     {
-        return std::stoull(f.get_ref<std::string const&>());
+        try
+        {
+            return std::stoull(f.get_ref<std::string const&>());
+        }
+        catch (...)
+        {
+            // Empty. Error is reported below.
+        }
     }
     std::ostringstream os;
     os << "Error parsing field <" << fieldName << "> as an std::uint64_t, json=" << json;
-    throw std::invalid_argument(os.str());
+    return Status(StatusCode::InvalidArgument, std::move(os).str());
 }
 
-std::chrono::system_clock::time_point JsonUtils::ParseRFC3339Timestamp(nl::json const& json, char const* fieldName)
+StatusOrVal<std::chrono::system_clock::time_point> JsonUtils::ParseRFC3339Timestamp(nlohmann::json const& json,
+                                                                                    char const* fieldName)
 {
     if (json.count(fieldName) == 0)
     {
         return std::chrono::system_clock::time_point{};
     }
-    return ParseRfc3339(json[fieldName]);
+    auto const& f = json[fieldName];
+    if (f.is_string())
+        return ParseRfc3339(f);
+    std::ostringstream os;
+    os << "Error parsing field <" << fieldName << "> as a timestamp, json=" << json;
+    return Status(StatusCode::InvalidArgument, std::move(os).str());
 }
 
 }  // namespace internal

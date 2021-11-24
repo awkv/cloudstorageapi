@@ -23,20 +23,19 @@ namespace csa {
 namespace internal {
 /**
  * Implement a ResumableUploadSession that delegates to a CurlClient.
- * TODO: make sure it could be generic. Otherwise create more specific
- * classes like `CurlGoogledDriveResumableUploadSession`
  */
 class CurlResumableUploadSession : public ResumableUploadSession
 {
 public:
-    explicit CurlResumableUploadSession(std::shared_ptr<CurlClientBase> client, std::string sessionId)
-        : m_client(std::move(client)), m_sessionId(std::move(sessionId))
+    explicit CurlResumableUploadSession(std::shared_ptr<CurlClientBase> client, std::string sessionId,
+                                        CustomHeader customHeader = CustomHeader())
+        : m_client(std::move(client)), m_sessionId(std::move(sessionId)), m_customHeader(std::move(customHeader))
     {
     }
 
-    StatusOrVal<ResumableUploadResponse> UploadChunk(std::string const& buffer) override;
+    StatusOrVal<ResumableUploadResponse> UploadChunk(ConstBufferSequence const& buffers) override;
 
-    StatusOrVal<ResumableUploadResponse> UploadFinalChunk(std::string const& buffer,
+    StatusOrVal<ResumableUploadResponse> UploadFinalChunk(ConstBufferSequence const& buffers,
                                                           std::uint64_t upload_size) override;
 
     StatusOrVal<ResumableUploadResponse> ResetSession() override;
@@ -45,6 +44,8 @@ public:
 
     std::string const& GetSessionId() const override { return m_sessionId; }
 
+    CustomHeader const& GetCustomHeader() const { return m_customHeader; }
+
     std::size_t GetFileChunkSizeQuantum() const { return m_client->GetFileChunkQuantum(); }
 
     bool Done() const override { return m_done; }
@@ -52,10 +53,11 @@ public:
     StatusOrVal<ResumableUploadResponse> const& GetLastResponse() const override { return m_lastResponse; }
 
 private:
-    void Update(StatusOrVal<ResumableUploadResponse> const& result, std::size_t chunk_size);
+    void Update(StatusOrVal<ResumableUploadResponse> const& result, std::size_t chunkSize);
 
     std::shared_ptr<CurlClientBase> m_client;
     std::string m_sessionId;
+    CustomHeader m_customHeader;
     std::uint64_t m_nextExpected = 0;
     bool m_done = false;
     StatusOrVal<ResumableUploadResponse> m_lastResponse;

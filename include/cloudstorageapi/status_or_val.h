@@ -81,6 +81,13 @@ class StatusOrVal final
 {
 public:
     /**
+     * A `value_type` member for use in generic programming.
+     *
+     * This is analogous to that of `std::optional::value_type`.
+     */
+    using value_type = T;
+
+    /**
      * Initializes with an error status (UNKNOWN).
      */
     StatusOrVal() : StatusOrVal(Status(StatusCode::Unknown, "default")) {}
@@ -110,7 +117,7 @@ public:
      */
     StatusOrVal& operator=(Status status) { return *this = StatusOrVal(std::move(status)); }
 
-    StatusOrVal(StatusOrVal&& rhs) : m_status(std::move(rhs.m_status))
+    StatusOrVal(StatusOrVal&& rhs) noexcept(noexcept(T(std::move(*rhs)))) : m_status(std::move(rhs.m_status))
     {
         if (m_status.Ok())
         {
@@ -118,7 +125,7 @@ public:
         }
     }
 
-    StatusOrVal& operator=(StatusOrVal&& rhs) = default;
+    StatusOrVal& operator=(StatusOrVal&& rhs) noexcept(noexcept(T(std::move(*rhs)))) = default;
     StatusOrVal(StatusOrVal const& rhs) = default;
     StatusOrVal& operator=(StatusOrVal const& rhs) = default;
 

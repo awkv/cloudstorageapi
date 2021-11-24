@@ -16,12 +16,17 @@
 
 #pragma once
 
+#include "cloudstorageapi/internal/const_buffer.h"
 #include "cloudstorageapi/internal/curl_handle.h"
 #include "cloudstorageapi/internal/curl_handle_factory.h"
 #include "cloudstorageapi/internal/http_response.h"
 
 namespace csa {
 namespace internal {
+
+extern "C" size_t CurlRequestOnWriteData(char*, size_t, size_t, void*);
+extern "C" size_t CurlRequestOnHeaderData(char*, size_t, size_t, void*);
+
 /**
  * Makes RPC-like requests using CURL.
  *
@@ -32,62 +37,46 @@ namespace internal {
 class CurlRequest
 {
 public:
-    CurlRequest();
+    CurlRequest() = default;
 
     ~CurlRequest()
     {
-        if (!m_factory)
+        if (m_factory)
         {
-            return;
+            m_factory->CleanupHandle(std::move(m_handle));
         }
-        m_factory->CleanupHandle(std::move(m_handle.m_handle));
     }
 
-    CurlRequest(CurlRequest&& rhs) noexcept(false)
-        : m_url(std::move(rhs.m_url)),
-          m_headers(std::move(rhs.m_headers)),
-          m_userAgent(std::move(rhs.m_userAgent)),
-          m_responsePayload(std::move(rhs.m_responsePayload)),
-          m_receivedHeaders(std::move(rhs.m_receivedHeaders)),
-          m_socketOptions(rhs.m_socketOptions),
-          m_handle(std::move(rhs.m_handle)),
-          m_factory(std::move(rhs.m_factory))
-    {
-        ResetOptions();
-    }
-
-    CurlRequest& operator=(CurlRequest&& rhs) noexcept(false)
-    {
-        m_url = std::move(rhs.m_url);
-        m_headers = std::move(rhs.m_headers);
-        m_userAgent = std::move(rhs.m_userAgent);
-        m_responsePayload = std::move(rhs.m_responsePayload);
-        m_receivedHeaders = std::move(rhs.m_receivedHeaders);
-        m_socketOptions = rhs.m_socketOptions;
-        m_handle = std::move(rhs.m_handle);
-        m_factory = std::move(rhs.m_factory);
-
-        ResetOptions();
-        return *this;
-    }
+    CurlRequest(CurlRequest&&) = default;
+    CurlRequest& operator=(CurlRequest&& rhs) = default;
 
     /**
      * Makes the prepared request.
      * This function can be called multiple times on the same request.
      * @return The response HTTP error code and the response payload.
-     * @throw std::runtime_error if the request cannot be made at all.
      */
     StatusOrVal<HttpResponse> MakeRequest(std::string const& payload);
 
+    /** Overloaded function */
+    StatusOrVal<HttpResponse> MakeUploadRequest(ConstBufferSequence payload);
+
 private:
+    StatusOrVal<HttpResponse> MakeRequestImpl();
+
     friend class CurlRequestBuilder;
-    void ResetOptions();
+    friend size_t CurlRequestOnWriteData(char*, size_t, size_t, void*);
+    friend size_t CurlRequestOnHeaderData(char*, size_t, size_t, void*);
+
+    std::size_t OnWriteData(char* contents, std::size_t size, std::size_t nmemb);
+    std::size_t OnHeaderData(char* contents, std::size_t size, std::size_t nitems);
 
     std::string m_url;
-    CurlHeaders m_headers;
+    CurlHeaders m_headers = CurlHeaders(nullptr, &curl_slist_free_all);
     std::string m_userAgent;
+    std::string m_httpVersion;
     std::string m_responsePayload;
     CurlReceivedHeaders m_receivedHeaders;
+    bool m_loggingEnabled = false;
     CurlHandle::SocketOptions m_socketOptions;
     CurlHandle m_handle;
     std::shared_ptr<CurlHandleFactory> m_factory;

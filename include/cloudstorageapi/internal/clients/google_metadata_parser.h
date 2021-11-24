@@ -16,8 +16,8 @@
 
 #include "cloudstorageapi/file_metadata.h"
 #include "cloudstorageapi/folder_metadata.h"
-#include "cloudstorageapi/internal/nljson.h"
 #include "cloudstorageapi/status_or_val.h"
+#include <nlohmann/json.hpp>
 
 namespace csa {
 namespace internal {
@@ -27,23 +27,25 @@ class GoogleMetadataParser
 public:
     GoogleMetadataParser() = delete;
 
-    static StatusOrVal<CommonMetadataSharedPtr> ParseMetadata(nl::json const& json);
+    static StatusOrVal<CommonMetadataSharedPtr> ParseMetadata(nlohmann::json const& json);
     static StatusOrVal<CommonMetadataSharedPtr> ParseMetadata(std::string const& payload);
-    static StatusOrVal<FileMetadata> ParseFileMetadata(nl::json const& json);
+    static StatusOrVal<FileMetadata> ParseFileMetadata(nlohmann::json const& json);
     static StatusOrVal<FileMetadata> ParseFileMetadata(std::string const& payload);
-    static StatusOrVal<FolderMetadata> ParseFolderMetadata(nl::json const& json);
+    static StatusOrVal<FolderMetadata> ParseFolderMetadata(nlohmann::json const& json);
     static StatusOrVal<FolderMetadata> ParseFolderMetadata(std::string const& payload);
 
-    static StatusOrVal<nl::json> ComposeFileMetadata(FileMetadata const& meta);
-    static StatusOrVal<nl::json> ComposeFolderMetadata(FolderMetadata const& meta);
+    static StatusOrVal<nlohmann::json> ComposeFileMetadata(FileMetadata const& meta);
+    static StatusOrVal<nlohmann::json> ComposeFolderMetadata(FolderMetadata const& meta);
 
-    static StatusOrVal<nl::json> PatchFileMetadata(FileMetadata const& original, FileMetadata const& updated);
-    static StatusOrVal<nl::json> PatchFolderMetadata(FolderMetadata const& original, FolderMetadata const& updated);
+    static StatusOrVal<nlohmann::json> PatchFileMetadata(FileMetadata const& original, FileMetadata const& updated);
+    static StatusOrVal<nlohmann::json> PatchFolderMetadata(FolderMetadata const& original,
+                                                           FolderMetadata const& updated);
 
 private:
-    static Status ParseCommonMetadata(CommonMetadata& result, nl::json const& json);
-    static Status ComposeCommonMetadata(nl::json& result, CommonMetadata const& meta);
-    static Status PatchCommonMetadata(nl::json& result, CommonMetadata const& original, CommonMetadata const& updated);
+    static Status ParseCommonMetadata(CommonMetadata& result, nlohmann::json const& json);
+    static Status ComposeCommonMetadata(nlohmann::json& result, CommonMetadata const& meta);
+    static Status PatchCommonMetadata(nlohmann::json& result, CommonMetadata const& original,
+                                      CommonMetadata const& updated);
 };
 }  // namespace internal
 }  // namespace csa

@@ -17,14 +17,18 @@
 #include "cloudstorageapi/internal/utils.h"
 #include "cloudstorageapi/internal/random.h"
 #include <gmock/gmock.h>
+#include <cerrno>
+#include <cstring>
 
 namespace csa {
 namespace {
 
 /// Environment variable utils
-using csa::internal::SetEnv;
 using csa::internal::GetEnv;
+using csa::internal::SetEnv;
 using csa::internal::UnsetEnv;
+using ::testing::AnyOf;
+using ::testing::HasSubstr;
 
 TEST(SetEnvTest, SetEmptyEnvVar)
 {
@@ -66,8 +70,7 @@ TEST(BinaryDataAsDebugStringTest, Simple)
 
 TEST(BinaryDataAsDebugStringTest, Multiline)
 {
-    auto actual =
-        BinaryDataAsDebugString(" 123456789 123456789 123456789 123456789", 40);
+    auto actual = BinaryDataAsDebugString(" 123456789 123456789 123456789 123456789", 40);
     EXPECT_EQ(
         " 123456789 123456789 123 "
         "203132333435363738392031323334353637383920313233\n"
@@ -96,8 +99,7 @@ TEST(BinaryDataAsDebugStringTest, NonPrintable)
 
 TEST(BinaryDataAsDebugStringTest, Limit)
 {
-    auto actual = BinaryDataAsDebugString(
-        " 123456789 123456789 123456789 123456789", 40, 24);
+    auto actual = BinaryDataAsDebugString(" 123456789 123456789 123456789 123456789", 40, 24);
     EXPECT_EQ(
         " 123456789 123456789 123 "
         "203132333435363738392031323334353637383920313233\n",
@@ -106,33 +108,29 @@ TEST(BinaryDataAsDebugStringTest, Limit)
 
 // GenerateMessageBoundary test
 
+using csa::internal::GenerateMessageBoundary;
 using ::testing::HasSubstr;
 using ::testing::Not;
-using csa::internal::GenerateMessageBoundary;
 
 TEST(GenerateMessageBoundaryTest, Simple)
 {
     auto generator = csa::internal::MakeDefaultPRNG();
 
-    auto string_generator = [&generator](int n)
-    {
-        static std::string const chars =
-            "abcdefghijklmnopqrstuvwxyz012456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    auto string_generator = [&generator](int n) {
+        static std::string const chars = "abcdefghijklmnopqrstuvwxyz012456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         return csa::internal::Sample(generator, n, chars);
     };
 
     // The magic constants here are uninteresting. We just want a large message
     // and a relatively short string to start searching for a boundary.
     auto message = string_generator(1024);
-    auto boundary =
-        GenerateMessageBoundary(message, std::move(string_generator), 16, 4);
+    auto boundary = GenerateMessageBoundary(message, std::move(string_generator), 16, 4);
     EXPECT_THAT(message, Not(HasSubstr(boundary)));
 }
 
 TEST(GenerateMessageBoundaryTest, RequiresGrowth)
 {
-    static std::string const chars =
-        "abcdefghijklmnopqrstuvwxyz012456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    static std::string const chars = "abcdefghijklmnopqrstuvwxyz012456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     auto generator = csa::internal::MakeDefaultPRNG();
 
@@ -142,29 +140,23 @@ TEST(GenerateMessageBoundaryTest, RequiresGrowth)
     int constexpr MismatchedStringLength = 512;
 
     auto g1 = csa::internal::MakeDefaultPRNG();
-    std::string message =
-        csa::internal::Sample(g1, MismatchedStringLength, chars);
+    std::string message = csa::internal::Sample(g1, MismatchedStringLength, chars);
     // Copy the PRNG to obtain the same sequence of random numbers that
     // `generator` will create later.
     g1 = generator;
     message += csa::internal::Sample(g1, MatchedStringLength, chars);
     g1 = csa::internal::MakeDefaultPRNG();
-    message +=
-        csa::internal::Sample(g1, MismatchedStringLength, chars);
+    message += csa::internal::Sample(g1, MismatchedStringLength, chars);
 
-    auto string_generator = [&generator](int n)
-    {
-        return csa::internal::Sample(generator, n, chars);
-    };
+    auto string_generator = [&generator](int n) { return csa::internal::Sample(generator, n, chars); };
 
     // The initial_size and growth_size parameters are set to
     // (MatchedStringLength / 2) and (MatchedStringLength / 4) respectively,
     // that forces the algorithm to find the initial string, and to grow it
     // several times before the MatchedStringLength common characters are
     // exhausted.
-    auto boundary = GenerateMessageBoundary(message, std::move(string_generator),
-        MatchedStringLength / 2,
-        MatchedStringLength / 4);
+    auto boundary =
+        GenerateMessageBoundary(message, std::move(string_generator), MatchedStringLength / 2, MatchedStringLength / 4);
     EXPECT_THAT(message, Not(HasSubstr(boundary)));
 
     // We expect that the string is longer than the common characters.
@@ -192,20 +184,20 @@ struct RoundUpToQuantumTestData
     {0, 256, 0},
     {1, 256, 256},
     {256, 256, 256},
-    {257, 256, 2*256},// 512
-    {400, 256, 2*256},// 512
-    {512, 256, 2*256},// 512
-    {513, 256, 3*256},// 768
-    {1000, 256, 4*256},// 1024
-    {1025, 256, 5*256}, // 1280
-    {2049, 256, 9*256}, // 2304
+    {257, 256, 2 * 256},   // 512
+    {400, 256, 2 * 256},   // 512
+    {512, 256, 2 * 256},   // 512
+    {513, 256, 3 * 256},   // 768
+    {1000, 256, 4 * 256},  // 1024
+    {1025, 256, 5 * 256},  // 1280
+    {2049, 256, 9 * 256},  // 2304
 };
 
 struct RoundUpToQuantumTest : public ::testing::TestWithParam<RoundUpToQuantumTestData>
 {
 };
 
-} // namespace
+}  // namespace
 
 INSTANTIATE_TEST_SUITE_P(RoundUpToQuantumTestInst, RoundUpToQuantumTest, ::testing::ValuesIn(roundUpToQuantumTestData));
 
@@ -215,6 +207,30 @@ TEST_P(RoundUpToQuantumTest, Simple)
 
     EXPECT_EQ(RoundUpToQuantum(param.m_val, param.m_quantumSize), param.m_expected);
 }
+
+#include "cloudstorageapi/internal/disable_msvc_crt_secure_warnings.inc"
+TEST(StrErrorTest, Simple)
+{
+    auto const actual = csa::internal::strerror(EDOM);
+    // In the test we can call `std::strerror()` because the test is single
+    // threaded.
+    std::string const expected = std::strerror(EDOM);
+    EXPECT_EQ(actual, expected);
+}
+
+TEST(StrErrorTest, InvalidErrno)
+{
+    auto constexpr InvalidErrno = -1234;
+    auto const actual = csa::internal::strerror(InvalidErrno);
+    EXPECT_FALSE(actual.empty());
+    // In the test we can call `std::strerror()` because the test is single
+    // threaded.
+    std::string const expected = std::strerror(InvalidErrno);
+    // On Windows the library returns `Unknown Error` instead of an error
+    // condition, so we cannot print why this failed.
+    EXPECT_THAT(actual, AnyOf(HasSubstr("-1234"), HasSubstr(expected)));
+}
+#include "cloudstorageapi/internal/diagnostics_pop.inc"
 
 }  // namespace
 }  // namespace csa

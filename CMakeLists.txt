@@ -16,7 +16,7 @@ cmake_minimum_required(VERSION 3.17)
 
 set(PROJECT_NAME cloudstorageapi)
 project(${PROJECT_NAME} VERSION 0.0.1 LANGUAGES CXX C)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -34,6 +34,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 # Pick the right MSVC runtime libraries.
 include(SelectMSVCRuntime)
 
+include(IncludeNlohmannJson)
 include(FindCurlWithTargets)
 find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)

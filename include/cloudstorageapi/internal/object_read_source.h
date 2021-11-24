@@ -27,7 +27,7 @@ namespace internal {
  *
  * Reading data may result in several outcomes:
  * - There was an error trying to read the data: we wrap this object in a
- *   StatusOr for this case.
+ *   StatusOrVal for this case.
  *
  * Other reads are considered successful, even if the "read" an HTTP error code.
  * Successful reads return:

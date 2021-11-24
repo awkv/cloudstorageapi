@@ -15,7 +15,7 @@
 #pragma once
 
 #include "cloudstorageapi/auth/oauth2_credentials.h"
-#include "cloudstorageapi/internal/nljson.h"
+#include <string>
 
 namespace csa {
 namespace auth {
@@ -32,7 +32,7 @@ public:
     static std::string BuildRequestPayload(OAuth2CredentialsInfo const& info);
     static StatusOrVal<RefreshingCredentialsWrapper::TemporaryToken> ParseOAuth2RefreshResponse(
         internal::HttpResponse const& response, std::chrono::system_clock::time_point now);
-    static StatusOrVal<OAuth2CredentialsInfo> ParseOAuth2Credentials(internal::nl::json const& jsonCreds,
+    static StatusOrVal<OAuth2CredentialsInfo> ParseOAuth2Credentials(std::string const& content,
                                                                      std::string const& source);
 };
 

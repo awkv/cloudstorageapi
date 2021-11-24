@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "cloudstorageapi/cloud_storage_client.h"
+#include "cloudstorageapi/internal/algorithm.h"
 #include "cloudstorageapi/internal/clients/curl_client_factory.h"
 #include "cloudstorageapi/internal/log.h"
 #include "cloudstorageapi/internal/utils.h"
@@ -27,35 +28,65 @@ static_assert(std::is_copy_constructible<csa::CloudStorageClient>::value,
               "csa::CloudStorageClient must be constructible");
 static_assert(std::is_copy_assignable<csa::CloudStorageClient>::value, "csa::CloudStorageClient must be assignable");
 
-StatusOrVal<CloudStorageClient> CloudStorageClient::CreateDefaultClient(EProvider provider)
+CloudStorageClient::CloudStorageClient(Options opts)
+    : CloudStorageClient(CloudStorageClient::CreateDefaultRawClient(std::move(opts)))
 {
-    auto opts = ClientOptions::CreateDefaultClientOptions(provider);
-    if (!opts)
-    {
-        return StatusOrVal<CloudStorageClient>(opts.GetStatus());
-    }
-    return StatusOrVal<CloudStorageClient>(CloudStorageClient(*opts));
 }
 
-std::shared_ptr<internal::RawClient> CloudStorageClient::CreateDefaultRawClient(ClientOptions options)
+std::shared_ptr<internal::RawClient> CloudStorageClient::CreateDefaultRawClient(Options options)
 {
-    return internal::CurlClientFactory::CreateClient(std::move(options));
+    if (!options.Has<ProviderOption>())
+        return nullptr;
+    options = internal::CreateDefaultOptionsWithCredentials(std::move(options));
+    return CreateDefaultRawClient(options, internal::CurlClientFactory::CreateClient(options));
 }
 
-bool CloudStorageClient::UseSimpleUpload(std::string const& file_name) const
+std::shared_ptr<internal::RawClient> CloudStorageClient::CreateDefaultRawClient(
+    Options const& options, std::shared_ptr<internal::RawClient> client)
+{
+    auto contains_fn = [](auto& c, auto& v) {
+        auto e = std::end(c);
+        return e != std::find(std::begin(c), e, v);
+    };
+    auto const& tracing_opt = options.Get<TracingComponentsOption>();
+    auto const enable_logging = contains_fn(tracing_opt, "raw-client") || contains_fn(tracing_opt, "http");
+    if (enable_logging)
+        client = std::make_shared<internal::LoggingClient>(std::move(client));
+
+    return std::make_shared<internal::RetryClient>(std::move(client), options);
+}
+
+bool CloudStorageClient::UseSimpleUpload(std::string const& file_name, std::size_t& size) const
 {
     auto status = std::filesystem::status(file_name);
     if (!std::filesystem::is_regular_file(status))
     {
         return false;
     }
-    auto size = std::filesystem::file_size(file_name);
-    return size <= m_RawClient->GetClientOptions().GetMaximumSimpleUploadSize();
+    auto const fs = std::filesystem::file_size(file_name);
+    if (fs <= m_RawClient->GetOptions().Get<MaximumSimpleUploadSizeOption>())
+    {
+        size = static_cast<std::size_t>(fs);
+        return true;
+    }
+    return false;
 }
 
-StatusOrVal<FileMetadata> CloudStorageClient::UploadFileSimple(std::string const& fileName,
+StatusOrVal<FileMetadata> CloudStorageClient::UploadFileSimple(std::string const& fileName, std::size_t fileSize,
                                                                internal::InsertFileRequest request)
 {
+    auto uploadOffset = request.GetOption<UploadFromOffset>().ValueOr(0);
+    if (fileSize < uploadOffset)
+    {
+        std::ostringstream os;
+        os << __func__ << "(" << request << ", " << fileName << "): UploadFromOffset (" << uploadOffset
+           << ") is bigger than the size of file source (" << fileSize << ")";
+        return Status(StatusCode::InvalidArgument, std::move(os).str());
+    }
+
+    auto uploadSize =
+        (std::min)(request.GetOption<UploadLimit>().ValueOr(fileSize - uploadOffset), fileSize - uploadOffset);
+
     std::ifstream is(fileName, std::ios::binary);
     if (!is.is_open())
     {
@@ -64,15 +95,27 @@ StatusOrVal<FileMetadata> CloudStorageClient::UploadFileSimple(std::string const
         return Status(StatusCode::NotFound, std::move(os).str());
     }
 
-    std::string payload(std::istreambuf_iterator<char>{is}, {});
+    std::string payload(static_cast<std::size_t>(uploadSize), char{});
+    is.seekg(uploadOffset, std::ios::beg);
+    is.read(&payload[0], payload.size());
+    if (static_cast<std::size_t>(is.gcount()) < payload.size())
+    {
+        std::ostringstream os;
+        os << __func__ << "(" << request << ", " << fileName << "): Actual read (" << is.gcount()
+           << ") is smaller than uploadSize (" << payload.size() << ")";
+        return Status(StatusCode::Internal, std::move(os).str());
+    }
+
+    is.close();
     request.SetContent(std::move(payload));
 
     return m_RawClient->InsertFile(request);
 }
 
 StatusOrVal<FileMetadata> CloudStorageClient::UploadFileResumable(std::string const& fileName,
-                                                                  internal::ResumableUploadRequest const& request)
+                                                                  internal::ResumableUploadRequest request)
 {
+    auto uploadOffset = request.GetOption<UploadFromOffset>().ValueOr(0);
     auto fileStatus = std::filesystem::status(fileName);
     if (!std::filesystem::is_regular_file(fileStatus))
     {
@@ -87,6 +130,26 @@ StatusOrVal<FileMetadata> CloudStorageClient::UploadFileResumable(std::string co
             "Consider using CloudStorageClient::WriteFile() instead.",
             fileName);
     }
+    else
+    {
+        std::error_code sizeErr;
+        auto fileSize = std::filesystem::file_size(fileName, sizeErr);
+        if (sizeErr)
+        {
+            return Status(StatusCode::NotFound, sizeErr.message());
+        }
+        if (fileSize < uploadOffset)
+        {
+            std::ostringstream os;
+            os << __func__ << "(" << request << ", " << fileName << "): UploadFromOffset (" << uploadOffset
+               << ") is bigger than the size of file source (" << fileSize << ")";
+            return Status(StatusCode::InvalidArgument, std::move(os).str());
+        }
+
+        auto uploadSize =
+            (std::min)(request.GetOption<UploadLimit>().ValueOr(fileSize - uploadOffset), fileSize - uploadOffset);
+        request.SetOption(UploadContentLength(uploadSize));
+    }
 
     std::ifstream source(fileName, std::ios::binary);
     if (!source.is_open())
@@ -95,6 +158,10 @@ StatusOrVal<FileMetadata> CloudStorageClient::UploadFileResumable(std::string co
         os << __func__ << "(" << request << ", " << fileName << "): cannot open upload file source";
         return Status(StatusCode::NotFound, std::move(os).str());
     }
+
+    // We set its offset before passing it to `UploadStreamResumable` so we don't
+    // need to compute `UploadFromOffset` again.
+    source.seekg(uploadOffset, std::ios::beg);
 
     return UploadStreamResumable(source, request);
 }
@@ -111,32 +178,52 @@ StatusOrVal<FileMetadata> CloudStorageClient::UploadStreamResumable(std::istream
 
     auto session = std::move(*sessionStatus);
 
+    // How many bytes of the local file are uploaded to the GCS server.
+    auto serverSize = session->GetNextExpectedByte();
+    auto uploadLimit = request.GetOption<UploadLimit>().ValueOr((std::numeric_limits<std::uint64_t>::max)());
+    // If `serverSize == uploadLimit`, we will upload an empty string and
+    // finalize the upload.
+    if (serverSize > uploadLimit)
+    {
+        return Status(StatusCode::OutOfRange, "UploadLimit (" + std::to_string(uploadLimit) +
+                                                  ") is not bigger than the uploaded size (" +
+                                                  std::to_string(serverSize) + ") on cloud storage server");
+    }
+    source.seekg(serverSize, std::ios::cur);
+
     // Some cloud storages require chunks to be a multiple of some quantum in size.
-    auto chunkSize = internal::RoundUpToQuantum(m_RawClient->GetClientOptions().GetUploadBufferSize(),
+    auto chunkSize = internal::RoundUpToQuantum(m_RawClient->GetOptions().Get<UploadBufferSizeOption>(),
                                                 m_RawClient->GetFileChunkQuantum());
 
     StatusOrVal<internal::ResumableUploadResponse> uploadResponse(internal::ResumableUploadResponse{});
 
-    // We iterate while `source` is good and the retry policy has not been
-    // exhausted.
-    while (!source.eof() && uploadResponse && !uploadResponse->m_payload.has_value())
+    // We iterate while `source` is good, the upload size does not reach the
+    // `UploadLimit` and the retry policy has not been exhausted.
+    bool reachUploadLimit = false;
+    internal::ConstBufferSequence buffers(1);
+    std::vector<char> buffer(chunkSize);
+    while (!source.eof() && uploadResponse && !uploadResponse->m_payload.has_value() && !reachUploadLimit)
     {
         // Read a chunk of data from the source file.
-        std::string buffer(chunkSize, '\0');
+        if (uploadLimit - serverSize <= chunkSize)
+        {
+            // We don't want the `source_size` to exceed `upload_limit`.
+            chunkSize = static_cast<std::size_t>(uploadLimit - serverSize);
+            reachUploadLimit = true;
+        }
         source.read(buffer.data(), buffer.size());
         auto gcount = static_cast<std::size_t>(source.gcount());
-        bool finalChunk = (gcount < buffer.size());
+        bool finalChunk = (gcount < buffer.size()) || reachUploadLimit;
         auto sourceSize = session->GetNextExpectedByte() + gcount;
-        buffer.resize(gcount);
-
-        auto expected = session->GetNextExpectedByte() + gcount;
+        auto expected = sourceSize;
+        buffers[0] = internal::ConstBuffer{buffer.data(), gcount};
         if (finalChunk)
         {
-            uploadResponse = session->UploadFinalChunk(buffer, sourceSize);
+            uploadResponse = session->UploadFinalChunk(buffers, sourceSize);
         }
         else
         {
-            uploadResponse = session->UploadChunk(buffer);
+            uploadResponse = session->UploadChunk(buffers);
         }
         if (!uploadResponse)
         {
@@ -144,12 +231,14 @@ StatusOrVal<FileMetadata> CloudStorageClient::UploadStreamResumable(std::istream
         }
         if (session->GetNextExpectedByte() != expected)
         {
-            CSA_LOG_WARNING(
-                "Unexpected last committed byte: "
-                " expected={} got={}",
-                expected, session->GetNextExpectedByte());
-            source.seekg(session->GetNextExpectedByte(), std::ios::beg);
+            // Defensive programming: unless there is a bug, this should be dead code.
+            return Status(StatusCode::Internal, "Unexpected last committed byte expected=" + std::to_string(expected) +
+                                                    " got=" + std::to_string(session->GetNextExpectedByte()) +
+                                                    ". This is a bug, please report it at "
+                                                    "https://github.com/awkv/cloudstorageapi/issues/new");
         }
+        // We only update `serverSize` when uploading is successful.
+        serverSize = expected;
     }
 
     if (!uploadResponse)
@@ -167,14 +256,16 @@ FileWriteStream CloudStorageClient::WriteObjectImpl(internal::ResumableUploadReq
     {
         auto error = std::make_unique<internal ::ResumableUploadSessionError>(std::move(session).GetStatus());
 
-        FileWriteStream errorStream(std::make_unique<internal::FileWriteStreambuf>(std::move(error), 0));
+        FileWriteStream errorStream(
+            std::make_unique<internal::FileWriteStreambuf>(std::move(error), 0, AutoFinalizeConfig::Disabled));
         errorStream.setstate(std::ios::badbit | std::ios::eofbit);
         errorStream.Close();
         return errorStream;
     }
 
     return FileWriteStream(std::make_unique<internal::FileWriteStreambuf>(
-        *std::move(session), m_RawClient->GetClientOptions().GetUploadBufferSize()));
+        *std::move(session), m_RawClient->GetOptions().Get<UploadBufferSizeOption>(),
+        request.GetOption<AutoFinalize>().ValueOr(AutoFinalizeConfig::Enabled)));
 }
 
 FileReadStream CloudStorageClient::ReadObjectImpl(internal::ReadFileRangeRequest const& request)
@@ -187,7 +278,8 @@ FileReadStream CloudStorageClient::ReadObjectImpl(internal::ReadFileRangeRequest
         errorStream.setstate(std::ios::badbit | std::ios::eofbit);
         return errorStream;
     }
-    auto stream = FileReadStream(std::make_unique<internal::FileReadStreambuf>(request, *std::move(source)));
+    auto stream = FileReadStream(std::make_unique<internal::FileReadStreambuf>(
+        request, *std::move(source), request.GetOption<ReadFromOffset>().ValueOr(0)));
     (void)stream.peek();
 
     // Without exceptions the streambuf cannot report errors, so we have to
@@ -225,7 +317,7 @@ Status CloudStorageClient::DownloadFileImpl(internal::ReadFileRangeRequest const
     }
 
     std::string buffer;
-    buffer.resize(m_RawClient->GetClientOptions().GetDownloadBufferSize(), '\0');
+    buffer.resize(m_RawClient->GetOptions().Get<DownloadBufferSizeOption>(), '\0');
     do
     {
         stream.read(&buffer[0], buffer.size());

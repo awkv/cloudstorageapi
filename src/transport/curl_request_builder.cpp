@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/curl_request_builder.h"
+#include "cloudstorageapi/internal/algorithm.h"
 
 namespace csa {
 namespace internal {
@@ -25,6 +26,7 @@ CurlRequestBuilder::CurlRequestBuilder(std::string base_url, std::shared_ptr<Cur
       m_headers(nullptr, &curl_slist_free_all),
       m_url(std::move(base_url)),
       m_queryParameterSeparator("?"),
+      m_loggingEnabled(false),
       m_downloadStallTimeout(0)
 {
 }
@@ -36,37 +38,42 @@ CurlRequest CurlRequestBuilder::BuildRequest()
     request.m_url = std::move(m_url);
     request.m_headers = std::move(m_headers);
     request.m_userAgent = m_userAgentPrefix + UserAgentSuffix();
+    request.m_httpVersion = std::move(m_httpVersion);
     request.m_handle = std::move(m_handle);
     request.m_factory = std::move(m_factory);
+    request.m_loggingEnabled = m_loggingEnabled;
     request.m_socketOptions = m_socketOptions;
-    request.ResetOptions();
     return request;
 }
 
-CurlDownloadRequest CurlRequestBuilder::BuildDownloadRequest(std::string payload)
+std::unique_ptr<CurlDownloadRequest> CurlRequestBuilder::BuildDownloadRequest() &&
 {
     ValidateBuilderState(__func__);
-    CurlDownloadRequest request;
-    request.m_url = std::move(m_url);
-    request.m_headers = std::move(m_headers);
-    request.m_userAgent = m_userAgentPrefix + UserAgentSuffix();
-    request.m_payload = std::move(payload);
-    request.m_handle = std::move(m_handle);
-    request.m_multi = m_factory->CreateMultiHandle();
-    request.m_factory = m_factory;
-    request.m_socketOptions = m_socketOptions;
-    request.m_downloadStallTimeout = m_downloadStallTimeout;
-    request.SetOptions();
+    auto agent = m_userAgentPrefix + UserAgentSuffix();
+    auto request = std::make_unique<CurlDownloadRequest>(std::move(m_headers), std::move(m_handle),
+                                                         m_factory->CreateMultiHandle());
+    request->m_url = std::move(m_url);
+    request->m_userAgent = std::move(agent);
+    request->m_httpVersion = std::move(m_httpVersion);
+    request->m_factory = m_factory;
+    request->m_loggingEnabled = m_loggingEnabled;
+    request->m_socketOptions = m_socketOptions;
+    request->m_downloadStallTimeout = m_downloadStallTimeout;
+    request->SetOptions();
     return request;
 }
 
-CurlRequestBuilder& CurlRequestBuilder::ApplyClientOptions(ClientOptions const& options)
+CurlRequestBuilder& CurlRequestBuilder::ApplyClientOptions(Options const& options)
 {
     ValidateBuilderState(__func__);
-    m_socketOptions.m_recvBufferSize = options.GetMaximumSocketRecvSize();
-    m_socketOptions.m_sendBufferSize = options.GetMaximumSocketSendSize();
-    m_userAgentPrefix = options.GetUserAgentPrefix() + m_userAgentPrefix;
-    m_downloadStallTimeout = options.GetDownloadStallTimeout();
+    m_loggingEnabled = Contains(options.Get<TracingComponentsOption>(), "http");
+    m_socketOptions.m_recvBufferSize = options.Get<MaximumCurlSocketRecvSizeOption>();
+    m_socketOptions.m_sendBufferSize = options.Get<MaximumCurlSocketSendSizeOption>();
+    auto agents = options.Get<UserAgentProductsOption>();
+    agents.push_back(m_userAgentPrefix);
+    m_userAgentPrefix = StrJoin(agents, " ");
+    m_httpVersion = std::move(options.Get<HttpVersionOption>());
+    m_downloadStallTimeout = options.Get<DownloadStallTimeoutOption>();
     return *this;
 }
 

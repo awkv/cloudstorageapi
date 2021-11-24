@@ -16,11 +16,15 @@
 
 #pragma once
 
-#include <algorithm>
 #include <random>
 
 namespace csa {
 namespace internal {
+
+/**
+ * Retrieve at least @p desiredBits of entropy from `std::random_device`.
+ */
+std::vector<unsigned int> FetchEntropy(std::size_t desiredBits);
 
 // While std::mt19937_64 is not the best PRNG ever, it is fairly good for
 // most purposes.  Please read:
@@ -35,32 +39,14 @@ using DefaultPRNG = std::mt19937_64;
 template <typename Generator>
 Generator MakePRNG()
 {
-    // We use the default C++ random device to generate entropy.  The quality of
-    // this source of entropy is implementation-defined. The version in
-    // Linux with libstdc++ (the most common library on Linux) it is based on
-    // either `/dev/urandom`, or (if available) the RDRAND CPU instruction.
-    //     http://en.cppreference.com/w/cpp/numeric/random/random_device/random_device
-    // On Linux with libc++ it is also based on `/dev/urandom`, but it is not
-    // known if it uses the RDRND CPU instruction (though `/dev/urandom` does).
-    // On Windows the documentation says that the numbers are not deterministic,
-    // and cryptographically secure, but no further details are available:
-    //     https://docs.microsoft.com/en-us/cpp/standard-library/random-device-class
-    // One would want to simply pass this object to the constructor for the
-    // generator, but the C++11 approach is annoying, see this critique for
-    // the details:
-    //     http://www.pcg-random.org/posts/simple-portable-cpp-seed-entropy.html
-    // Instead we will do a lot of work below.
-    std::random_device rd;
-
     // We need to get enough entropy to fully initialize the PRNG, that depends
     // on the size of its state.  The size in bits is `Generator::state_size`.
     // We convert that to the number of `unsigned int` values; as this is what
     // std::random_device returns.
-    auto const S = Generator::state_size * (Generator::word_size / std::numeric_limits<unsigned int>::digits);
+    auto const desired_bits = Generator::state_size * Generator::word_size;
 
     // Extract the necessary number of entropy bits.
-    std::vector<unsigned int> entropy(S);
-    std::generate(entropy.begin(), entropy.end(), [&rd]() { return rd(); });
+    auto const entropy = FetchEntropy(desired_bits);
 
     // Finally, put the entropy into the form that the C++11 PRNG classes want.
     std::seed_seq seq(entropy.begin(), entropy.end());

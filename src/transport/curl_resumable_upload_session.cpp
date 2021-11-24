@@ -19,20 +19,21 @@
 namespace csa {
 namespace internal {
 
-StatusOrVal<ResumableUploadResponse> CurlResumableUploadSession::UploadChunk(std::string const& buffer)
+StatusOrVal<ResumableUploadResponse> CurlResumableUploadSession::UploadChunk(ConstBufferSequence const& buffers)
 {
-    UploadChunkRequest request(m_sessionId, m_nextExpected, buffer);
+    UploadChunkRequest request(m_sessionId, m_nextExpected, buffers);
     auto result = m_client->UploadChunk(request);
-    Update(result, buffer.size());
+    Update(result, TotalBytes(buffers));
     return result;
 }
 
-StatusOrVal<ResumableUploadResponse> CurlResumableUploadSession::UploadFinalChunk(std::string const& buffer,
+StatusOrVal<ResumableUploadResponse> CurlResumableUploadSession::UploadFinalChunk(ConstBufferSequence const& buffers,
                                                                                   std::uint64_t upload_size)
 {
-    UploadChunkRequest request(m_sessionId, m_nextExpected, buffer, upload_size);
+    UploadChunkRequest request(m_sessionId, m_nextExpected, buffers, upload_size);
+    request.SetOption(GetCustomHeader());
     auto result = m_client->UploadChunk(request);
-    Update(result, buffer.size());
+    Update(result, TotalBytes(buffers));
     return result;
 }
 
@@ -71,7 +72,7 @@ void CurlResumableUploadSession::Update(StatusOrVal<ResumableUploadResponse> con
         // Nothing has been committed on the server side yet, keep resending.
         m_nextExpected = 0;
     }
-    if (!result->m_uploadSessionUrl.empty())
+    if (m_sessionId.empty() && !result->m_uploadSessionUrl.empty())
     {
         m_sessionId = result->m_uploadSessionUrl;
     }

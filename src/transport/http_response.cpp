@@ -26,22 +26,24 @@ Status AsStatus(HttpResponse const& http_response)
     // just to make it readable. There are probably shorter (and/or more
     // efficient) ways to write this, but we went for readability.
 
-    if (http_response.m_statusCode < 100)
+    if (http_response.m_statusCode < HttpStatusCode::MinContinue)
     {
         return Status(StatusCode::Unknown, http_response.m_payload);
     }
-    if (http_response.m_statusCode < 200)
+    if (HttpStatusCode::MinContinue <= http_response.m_statusCode &&
+        http_response.m_statusCode < HttpStatusCode::MinSuccess)
     {
         // We treat the 100s (e.g. 100 Continue) as OK results. They normally are
         // ignored by libcurl, so we do not really expect to see them.
         return Status(StatusCode::Ok, std::string{});
     }
-    if (http_response.m_statusCode < 300)
+    if (HttpStatusCode::MinSuccess <= http_response.m_statusCode &&
+        http_response.m_statusCode < HttpStatusCode::MinRedirects)
     {
         // We treat the 200s as Okay results.
         return Status(StatusCode::Ok, std::string{});
     }
-    if (http_response.m_statusCode == 308)
+    if (http_response.m_statusCode == HttpStatusCode::ResumeIncomplete)
     {
         // 308 - Resume Incomplete: this one is terrible. When performing a PUT
         // for a resumable upload this means "The client and server are out of sync
@@ -53,92 +55,114 @@ Status AsStatus(HttpResponse const& http_response)
         // handle, i.e., the mapping depends on the operation.
         return Status(StatusCode::FailedPrecondition, http_response.m_payload);
     }
-    if (http_response.m_statusCode < 400)
+    if (http_response.m_statusCode == HttpStatusCode::NotModified)
+    {
+        // 304 - Not Modified: evidently some storages (googledirve) return 304 for some failed
+        // pre-conditions. It is somewhat strange that it also returns this error
+        // code for downloads, which is always read-only and was not going to modify
+        // anything. In any case, it seems too confusing to return anything other
+        // than FailedPrecondition here.
+        return Status(StatusCode::FailedPrecondition, http_response.m_payload);
+    }
+    if (HttpStatusCode::MinRedirects <= http_response.m_statusCode &&
+        http_response.m_statusCode < HttpStatusCode::MinRequestErrors)
     {
         // The 300s should be handled by libcurl, we should not get them.
+        // E.g. according to the Google Cloud Storage documentation these are:
+        // 302 - Found
+        // 303 - See Other
+        // 307 - Temporary Redirect
         return Status(StatusCode::Unknown, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 400)
+    if (http_response.m_statusCode == HttpStatusCode::BadRequest)
     {
         // 400 - Bad Request
         return Status(StatusCode::InvalidArgument, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 401)
+    if (http_response.m_statusCode == HttpStatusCode::Unauthorized)
     {
         // 401 - Unauthorized
         return Status(StatusCode::Unauthenticated, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 403)
+    if (http_response.m_statusCode == HttpStatusCode::Forbidden)
     {
         // 403 - Forbidden
         return Status(StatusCode::PermissionDenied, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 404)
+    if (http_response.m_statusCode == HttpStatusCode::NotFound)
     {
         // 404 - Not Found
         return Status(StatusCode::NotFound, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 405)
+    if (http_response.m_statusCode == HttpStatusCode::MethodNotAllowed)
     {
         // 405 - Method Not Allowed
         return Status(StatusCode::PermissionDenied, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 409)
+    if (http_response.m_statusCode == HttpStatusCode::RequestTimeout)
+    {
+        // Some storages (google) uses a 408 to signal that an upload has suffered a broken
+        // connection, and that the client should retry.
+        return Status(StatusCode::Unavailable, http_response.m_payload);
+    }
+    if (http_response.m_statusCode == HttpStatusCode::Conflict)
     {
         // 409 - Conflict
         return Status(StatusCode::Aborted, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 410)
+    if (http_response.m_statusCode == HttpStatusCode::Gone)
     {
         // 410 - Gone
         return Status(StatusCode::NotFound, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 411)
+    if (http_response.m_statusCode == HttpStatusCode::LengthRequired)
     {
         // 411 - Length Required
         return Status(StatusCode::InvalidArgument, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 412)
+    if (http_response.m_statusCode == HttpStatusCode::PreconditionFailed)
     {
         // 412 - Precondition Failed
         return Status(StatusCode::FailedPrecondition, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 413)
+    if (http_response.m_statusCode == HttpStatusCode::PayloadTooLarge)
     {
         // 413 - Payload Too Large
         return Status(StatusCode::OutOfRange, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 416)
+    if (http_response.m_statusCode == HttpStatusCode::RequestRangeNotSatisfiable)
     {
         // 416 - Request Range Not Satisfiable
         return Status(StatusCode::OutOfRange, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 429)
+    if (http_response.m_statusCode == HttpStatusCode::TooManyRequests)
     {
         // 429 - Too Many Requests
         return Status(StatusCode::Unavailable, http_response.m_payload);
     }
-    if (http_response.m_statusCode < 500)
+    if (HttpStatusCode::MinRequestErrors <= http_response.m_statusCode &&
+        http_response.m_statusCode < HttpStatusCode::MinInternalErrors)
     {
         // 4XX - A request error.
         return Status(StatusCode::InvalidArgument, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 500)
+    if (http_response.m_statusCode == HttpStatusCode::InternalServerError)
     {
         // 500 - Internal Server Error
         return Status(StatusCode::Unavailable, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 502)
+    if (http_response.m_statusCode == HttpStatusCode::BadGateway)
     {
         // 502 - Bad Gateway
         return Status(StatusCode::Unavailable, http_response.m_payload);
     }
-    if (http_response.m_statusCode == 503)
+    if (http_response.m_statusCode == HttpStatusCode::ServiceUnavailable)
     {
         // 503 - Service Unavailable
         return Status(StatusCode::Unavailable, http_response.m_payload);
     }
-    if (http_response.m_statusCode < 600)
+    if (HttpStatusCode::MinInternalErrors <= http_response.m_statusCode &&
+        http_response.m_statusCode < HttpStatusCode::MinInvalidCode)
     {
         // 5XX - server errors are mapped to kInternal.
         return Status(StatusCode::Internal, http_response.m_payload);

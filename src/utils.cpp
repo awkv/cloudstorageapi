@@ -20,7 +20,10 @@
 // On Unix-like systems we need setenv()/unsetenv(), which are defined here:
 #include <cstdlib>
 #endif  // _WIN32
+#include <cstring>
 #include <memory>
+#include <sstream>
+#include <type_traits>
 
 namespace csa {
 namespace internal {
@@ -77,16 +80,14 @@ void SetEnv(char const* variable, std::optional<std::string> value)
     SetEnv(variable, value->data());
 }
 
-std::string BinaryDataAsDebugString(char const* data, std::size_t size,
-    std::size_t max_output_bytes)
+std::string BinaryDataAsDebugString(char const* data, std::size_t size, std::size_t max_output_bytes)
 {
     std::string result;
     std::size_t text_width = 24;
     std::string text_column(text_width, ' ');
     std::string hex_column(2 * text_width, ' ');
 
-    auto flush = [&result, &text_column, &hex_column, text_width]
-    {
+    auto flush = [&result, &text_column, &hex_column, text_width] {
         result += text_column;
         result += ' ';
         result += hex_column;
@@ -146,6 +147,53 @@ std::size_t RoundUpToQuantum(std::size_t maxChunkSize, std::size_t quantumSize)
     }
     auto n = maxChunkSize / quantumSize;
     return (n + 1) * quantumSize;
+}
+
+namespace {
+
+// Depending on the platform `strerror_r()` returns
+// - `int` on macOS (and Linux with the XSI compilation flags)
+// - `char*` on Linux with the GNU flags.
+// Meanwhile `strerror_s()` (on WIN32) returns `errno_t`.
+//
+// We use overload resolution to handle all cases, and SFINAE to avoid the
+// "unused function" warnings.
+template <typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+std::string handle_strerror_r_error(char const* msg, int errnum, T result)
+{
+    if (result == 0)
+        return msg;
+    std::ostringstream os;
+    os << "Cannot get error message for errno=" << errnum << ", result=" << result << ", errno=" << errno;
+    return std::move(os).str();
+}
+
+template <typename T, typename std::enable_if<std::is_pointer<T>::value, int>::type = 0>
+std::string handle_strerror_r_error(char const*, int errnum, T result)
+{
+    if (result != nullptr)
+        return result;
+    std::ostringstream os;
+    os << "Cannot get error message for errno=" << errnum << ", result=nullptr"
+       << ", errno=" << errno;
+    return std::move(os).str();
+}
+
+}  // namespace
+
+std::string strerror(int errnum)
+{
+    auto constexpr MaxErrorMessageLength = 1024;
+    char error_msg[MaxErrorMessageLength];
+#ifdef _WIN32
+    auto const result = strerror_s(error_msg, sizeof(error_msg) - 1, errnum);
+#else
+    // Cannot use `auto const*` because on macOS (and with the right settings on
+    // Linux) this can return `int`.
+    // NOLINTNEXTLINE(readability-qualified-auto)
+    auto const result = strerror_r(errnum, error_msg, sizeof(error_msg) - 1);
+#endif  // _WIN32
+    return handle_strerror_r_error(error_msg, errnum, result);
 }
 
 }  // namespace internal

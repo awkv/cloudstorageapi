@@ -15,10 +15,12 @@
 set(csa_sources
     auth/credential_factory.cpp
     auth/default_credentials_file.cpp
+    auth/error_credentials.cpp
     auth/google_oauth2_credentials.cpp
     auth/refreshing_credentials_wrapper.cpp
     transport/clients/curl_googledrive_client.cpp
     transport/clients/google_metadata_parser.cpp
+    transport/clients/google_utils.cpp
     transport/curl_client_base.cpp
     transport/curl_download_request.cpp
     transport/curl_handle.cpp
@@ -36,16 +38,27 @@ set(csa_sources
     transport/logging_client.cpp
     transport/logging_resumable_upload_session.cpp
     transport/resumable_upload_session.cpp
+    transport/retry_client.cpp
+    transport/retry_resumable_upload_session.cpp
+    algorithm.cpp
+    auto_finalize.cpp
+    backoff_policy_internal.cpp
     client_options.cpp
     cloud_storage_client.cpp
+    const_buffer.cpp
     common_metadata.cpp
     file_metadata.cpp
-    file_stream.cpp
-    file_streambuf.cpp
+    file_read_stream.cpp
+    file_read_streambuf.cpp
+    file_write_stream.cpp
+    file_write_streambuf.cpp
     folder_metadata.cpp
     json_utils.cpp
+    list_folder_reader.cpp
     log.cpp
+    options.cpp
     random.cpp
+    retry_object_read_source.cpp
     rfc3339_time.cpp
     status.cpp
     terminate_handler.cpp
@@ -61,7 +74,8 @@ target_link_libraries(cloudstorageapi
                              OpenSSL::SSL
                              OpenSSL::Crypto
                              ZLIB::ZLIB
-                             spdlog::spdlog)
+                             spdlog::spdlog
+                             nlohmann_json::nlohmann_json)
 
 target_include_directories(cloudstorageapi
                            PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>

@@ -1,0 +1,47 @@
+// Copyright 2021 Andrew Karasyov
+//
+// Copyright 2017 Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#pragma once
+
+#include <chrono>
+
+namespace csa {
+namespace testing {
+namespace util {
+namespace chrono_literals {
+
+// NOLINTNEXTLINE(google-runtime-int)
+std::chrono::hours constexpr operator"" _h(unsigned long long h) { return std::chrono::hours(h); }
+
+// NOLINTNEXTLINE(google-runtime-int)
+std::chrono::minutes constexpr operator"" _min(unsigned long long m) { return std::chrono::minutes(m); }
+
+// NOLINTNEXTLINE(google-runtime-int)
+std::chrono::seconds constexpr operator"" _s(unsigned long long s) { return std::chrono::seconds(s); }
+
+// NOLINTNEXTLINE(google-runtime-int)
+std::chrono::milliseconds constexpr operator"" _ms(unsigned long long ms) { return std::chrono::milliseconds(ms); }
+
+// NOLINTNEXTLINE(google-runtime-int)
+std::chrono::microseconds constexpr operator"" _us(unsigned long long us) { return std::chrono::microseconds(us); }
+
+// NOLINTNEXTLINE(google-runtime-int)
+std::chrono::nanoseconds constexpr operator"" _ns(unsigned long long ns) { return std::chrono::nanoseconds(ns); }
+
+}  // namespace chrono_literals
+}  // namespace util
+}  // namespace testing
+}  // namespace csa

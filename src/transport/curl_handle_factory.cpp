@@ -22,6 +22,11 @@ namespace internal {
 std::once_flag defaultCurlHandleFactoryInitialized;
 std::shared_ptr<CurlHandleFactory> defaultCurlHandleFactory;
 
+void CurlHandleFactory::SetCurlStringOption(CURL* handle, CURLoption option_tag, char const* value)
+{
+    curl_easy_setopt(handle, option_tag, value);
+}
+
 std::shared_ptr<CurlHandleFactory> GetDefaultCurlHandleFactory()
 {
     std::call_once(defaultCurlHandleFactoryInitialized,
@@ -29,29 +34,66 @@ std::shared_ptr<CurlHandleFactory> GetDefaultCurlHandleFactory()
     return defaultCurlHandleFactory;
 }
 
-CurlPtr DefaultCurlHandleFactory::CreateHandle() { return CurlPtr(curl_easy_init(), &curl_easy_cleanup); }
-
-void DefaultCurlHandleFactory::CleanupHandle(CurlPtr&& h)
+std::shared_ptr<CurlHandleFactory> GetDefaultCurlHandleFactory(Options const& options)
 {
+    if (!options.Get<CARootsFilePathOption>().empty())
+    {
+        return std::make_shared<DefaultCurlHandleFactory>(options);
+    }
+    return GetDefaultCurlHandleFactory();
+}
+
+DefaultCurlHandleFactory::DefaultCurlHandleFactory(Options const& o)
+{
+    if (o.Has<CARootsFilePathOption>())
+        m_cainfo = o.Get<CARootsFilePathOption>();
+    if (o.Has<CAPathOption>())
+        m_capath = o.Get<CAPathOption>();
+}
+
+CurlPtr DefaultCurlHandleFactory::CreateHandle()
+{
+    CurlPtr curl(curl_easy_init(), &curl_easy_cleanup);
+    SetCurlOptions(curl.get());
+    return curl;
+}
+
+void DefaultCurlHandleFactory::CleanupHandle(CurlHandle&& h)
+{
+    if (GetHandle(h) == nullptr)
+        return;
     char* ip;
-    auto res = curl_easy_getinfo(h.get(), CURLINFO_LOCAL_IP, &ip);
+    auto res = curl_easy_getinfo(GetHandle(h), CURLINFO_LOCAL_IP, &ip);
     if (res == CURLE_OK && ip != nullptr)
     {
         std::lock_guard<std::mutex> lk(m_mutex);
         m_lastClientIpAddress = ip;
     }
-
-    h.reset();
+    ResetHandle(h);
 }
 
 CurlMulti DefaultCurlHandleFactory::CreateMultiHandle() { return CurlMulti(curl_multi_init(), &curl_multi_cleanup); }
 
 void DefaultCurlHandleFactory::CleanupMultiHandle(CurlMulti&& m) { m.reset(); }
 
-PooledCurlHandleFactory::PooledCurlHandleFactory(std::size_t maximum_size) : m_maximumSize(maximum_size)
+void DefaultCurlHandleFactory::SetCurlOptions(CURL* handle)
 {
-    m_handles.reserve(maximum_size);
-    m_multiHandles.reserve(maximum_size);
+    if (m_cainfo)
+    {
+        SetCurlStringOption(handle, CURLOPT_CAINFO, m_cainfo->c_str());
+    }
+    if (m_capath)
+    {
+        SetCurlStringOption(handle, CURLOPT_CAPATH, m_capath->c_str());
+    }
+}
+
+PooledCurlHandleFactory::PooledCurlHandleFactory(std::size_t maximumSize, Options const& o) : m_maximumSize(maximumSize)
+{
+    if (o.Has<CARootsFilePathOption>())
+        m_cainfo = o.Get<CARootsFilePathOption>();
+    if (o.Has<CAPathOption>())
+        m_capath = o.Get<CAPathOption>();
 }
 
 PooledCurlHandleFactory::~PooledCurlHandleFactory()
@@ -75,29 +117,35 @@ CurlPtr PooledCurlHandleFactory::CreateHandle()
         // Clear all the options in the handle so we do not leak its previous state.
         (void)curl_easy_reset(handle);
         m_handles.pop_back();
-        return CurlPtr(handle, &curl_easy_cleanup);
+        CurlPtr curl(handle, &curl_easy_cleanup);
+        SetCurlOptions(curl.get());
+        return curl;
     }
-    return CurlPtr(curl_easy_init(), &curl_easy_cleanup);
+    CurlPtr curl(curl_easy_init(), &curl_easy_cleanup);
+    SetCurlOptions(curl.get());
+    return curl;
 }
 
-void PooledCurlHandleFactory::CleanupHandle(CurlPtr&& h)
+void PooledCurlHandleFactory::CleanupHandle(CurlHandle&& h)
 {
+    if (GetHandle(h) == nullptr)
+        return;
     std::unique_lock<std::mutex> lk(m_mutex);
     char* ip;
-    auto res = curl_easy_getinfo(h.get(), CURLINFO_LOCAL_IP, &ip);
+    auto res = curl_easy_getinfo(GetHandle(h), CURLINFO_LOCAL_IP, &ip);
     if (res == CURLE_OK && ip != nullptr)
     {
         m_lastClientIpAddress = ip;
     }
-    if (m_handles.size() >= m_maximumSize)
+    while (m_handles.size() >= m_maximumSize)
     {
         CURL* tmp = m_handles.front();
         m_handles.erase(m_handles.begin());
         curl_easy_cleanup(tmp);
     }
-    m_handles.push_back(h.get());
+    m_handles.push_back(GetHandle(h));
     // The handles_ vector now has ownership, so release it.
-    (void)h.release();
+    ReleaseHandle(h);
 }
 
 CurlMulti PooledCurlHandleFactory::CreateMultiHandle()
@@ -114,16 +162,30 @@ CurlMulti PooledCurlHandleFactory::CreateMultiHandle()
 
 void PooledCurlHandleFactory::CleanupMultiHandle(CurlMulti&& m)
 {
+    if (!m)
+        return;
     std::unique_lock<std::mutex> lk(m_mutex);
-    if (m_multiHandles.size() >= m_maximumSize)
+    while (m_multiHandles.size() >= m_maximumSize)
     {
-        CURLM* tmp = m_multiHandles.front();
+        auto* tmp = m_multiHandles.front();
         m_multiHandles.erase(m_multiHandles.begin());
         curl_multi_cleanup(tmp);
     }
     m_multiHandles.push_back(m.get());
     // The multi_handles_ vector now has ownership, so release it.
     (void)m.release();
+}
+
+void PooledCurlHandleFactory::SetCurlOptions(CURL* handle)
+{
+    if (m_cainfo)
+    {
+        SetCurlStringOption(handle, CURLOPT_CAINFO, m_cainfo->c_str());
+    }
+    if (m_capath)
+    {
+        SetCurlStringOption(handle, CURLOPT_CAPATH, m_capath->c_str());
+    }
 }
 
 }  // namespace internal

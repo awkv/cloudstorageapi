@@ -14,12 +14,13 @@
 
 #pragma once
 
+#include "cloudstorageapi/internal/clients/google_metadata_parser.h"
 #include "cloudstorageapi/internal/file_requests.h"
 #include "cloudstorageapi/internal/folder_requests.h"
 #include "cloudstorageapi/internal/json_utils.h"
-#include "cloudstorageapi/internal/nljson.h"
 #include "cloudstorageapi/internal/resumable_upload_session.h"
 #include "cloudstorageapi/status_or_val.h"
+#include <nlohmann/json.hpp>
 #include <sstream>
 
 namespace csa {
@@ -37,7 +38,7 @@ public:
     // Base function templates. They overload on json and string. They have no body because
     // only specializations will be used.
     template <typename ResponseType>
-    static StatusOrVal<ResponseType> ParseResponse(nl::json const& json);  // no implementation
+    static StatusOrVal<ResponseType> ParseResponse(nlohmann::json const& json);  // no implementation
     template <typename ResponseType>
     static StatusOrVal<ResponseType> ParseResponse(std::string const& payload);  // no implementation
     template <typename ResponseType>
@@ -45,7 +46,7 @@ public:
 
     // Specializations for concrete response types
     template <>
-    static StatusOrVal<ListFolderResponse> ParseResponse<ListFolderResponse>(nl::json const& json);
+    static StatusOrVal<ListFolderResponse> ParseResponse<ListFolderResponse>(nlohmann::json const& json);
     template <>
     static StatusOrVal<ListFolderResponse> ParseResponse<ListFolderResponse>(std::string const& payload);
     template <>
@@ -53,7 +54,8 @@ public:
 };
 
 template <>
-inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListFolderResponse>(nl::json const& json)
+inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListFolderResponse>(
+    nlohmann::json const& json)
 {
     if (json.empty())
     {
@@ -113,7 +115,7 @@ template <>
 inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListFolderResponse>(
     std::string const& payload)
 {
-    auto json = nl::json::parse(payload, nullptr, false);
+    auto json = nlohmann::json::parse(payload, nullptr, false);
     if (json.is_discarded())
     {
         return Status(StatusCode::InvalidArgument,
@@ -129,7 +131,7 @@ inline StatusOrVal<ResumableUploadResponse> GoogleResponseParser::ParseResponse<
     HttpResponse response)
 {
     ResumableUploadResponse result;
-    if (response.m_statusCode == 200 || response.m_statusCode == 201)
+    if (response.m_statusCode == HttpStatusCode::Ok || response.m_statusCode == HttpStatusCode::Created)
     {
         result.m_uploadState = ResumableUploadResponse::UploadState::Done;
     }
