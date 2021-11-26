@@ -65,19 +65,12 @@ std::shared_ptr<Credentials> CredentialFactory::CreateAuthorizedUserCredentialsF
 std::shared_ptr<Credentials> CredentialFactory::CreateAuthorizedUserCredentialsFromJsonContents(
     EProvider provider, std::string const& contents, std::string const& sourceFile)
 {
-    auto credJson = nlohmann::json::parse(contents, nullptr, false);
-    if (credJson.is_discarded())
-    {
-        return std::make_shared<ErrorCredentials>(
-            Status(StatusCode::InvalidArgument, "Invalid credentials file " + sourceFile));
-    }
-
     std::shared_ptr<Credentials> creds = nullptr;
     switch (provider)
     {
     case EProvider::GoogleDrive:
     {
-        auto info = GoogleAuthHandler::ParseOAuth2Credentials(credJson, sourceFile);
+        auto info = GoogleAuthHandler::ParseOAuth2Credentials(contents, sourceFile);
         if (!info)
             creds = std::make_shared<ErrorCredentials>(info.GetStatus());
         else
