@@ -12,5 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_executable(csa_example csa_example.cpp)
+add_executable(csa_example csa_example.cpp csa_example_helper.cpp)
 target_link_libraries(csa_example cloudstorageapi)
