@@ -21,7 +21,7 @@ namespace internal {
 
 std::unique_ptr<BackoffPolicy> ExponentialBackoffPolicy::Clone() const
 {
-    return std::make_unique<ExponentialBackoffPolicy>(*this);
+    return std::make_unique<ExponentialBackoffPolicy>(m_initialDelay, m_maximumDelay, m_scaling);
 }
 
 std::chrono::milliseconds ExponentialBackoffPolicy::OnCompletion()

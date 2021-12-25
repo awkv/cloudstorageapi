@@ -120,7 +120,8 @@ public:
     template <typename Rep1, typename Period1, typename Rep2, typename Period2>
     ExponentialBackoffPolicy(std::chrono::duration<Rep1, Period1> initialDelay,
                              std::chrono::duration<Rep2, Period2> maximumDelay, double scaling)
-        : m_currentDelayRange(std::chrono::duration_cast<std::chrono::microseconds>(2 * initialDelay)),
+        : m_initialDelay(std::chrono::duration_cast<std::chrono::microseconds>(initialDelay)),
+          m_currentDelayRange(std::chrono::duration_cast<std::chrono::microseconds>(2 * initialDelay)),
           m_maximumDelay(std::chrono::duration_cast<std::chrono::microseconds>(maximumDelay)),
           m_scaling(scaling)
     {
@@ -135,7 +136,10 @@ public:
     //    know specifically which one is at fault)
     //  - We want uncorrelated data streams for each copy anyway.
     ExponentialBackoffPolicy(ExponentialBackoffPolicy const& rhs) noexcept
-        : m_currentDelayRange(rhs.m_currentDelayRange), m_maximumDelay(rhs.m_maximumDelay), m_scaling(rhs.m_scaling)
+        : m_initialDelay(rhs.m_initialDelay),
+          m_currentDelayRange(rhs.m_currentDelayRange),
+          m_maximumDelay(rhs.m_maximumDelay),
+          m_scaling(rhs.m_scaling)
     {
     }
 
@@ -143,6 +147,7 @@ public:
     std::chrono::milliseconds OnCompletion() override;
 
 private:
+    std::chrono::microseconds m_initialDelay;
     std::chrono::microseconds m_currentDelayRange;
     std::chrono::microseconds m_maximumDelay;
     double m_scaling;
