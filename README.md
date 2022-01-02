@@ -125,7 +125,7 @@ For example (on Windows)
 - using code
     ```cc
     auto cred = csa::auth::CredentialFactory::CreateAuthorizedUserCredentialsFromJsonContents(csa::EProvider::GoogleDrive, <json-credentials-string>, "");
-    auto client =         csa::CloudStorageClient(csa::Options{}.Set<csa::ProviderOption>(csa::EProvider::GoogleDrive).Set<Oauth2CredentialsOption>(cred));
+    auto client = csa::CloudStorageClient(csa::Options{}.Set<csa::ProviderOption>(csa::EProvider::GoogleDrive).Set<Oauth2CredentialsOption>(cred));
     ```
 
 Credentials file or credential string is the following json structure:
