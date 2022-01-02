@@ -15,7 +15,7 @@
 namespace csa {
 // clang-format off
 constexpr auto CSA_VERSION_MAJOR = 0;
-constexpr auto CSA_VERSION_MINOR = 1;
+constexpr auto CSA_VERSION_MINOR = 2;
 constexpr auto CSA_VERSION_PATCH = 0;
 // clang-format on
 }  // namespace csa
