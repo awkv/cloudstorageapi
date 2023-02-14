@@ -1,4 +1,4 @@
-// Copyright 2020 Andrew Karasyov
+// Copyright 2021 Andrew Karasyov
 //
 // Copyright 2020 Google LLC
 //
@@ -14,21 +14,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "scoped_environment.h"
-#include "cloudstorageapi/internal/utils.h"
+#include "testing_util/mock_fake_clock.h"
 
 namespace csa {
-namespace testing {
 namespace internal {
 
-ScopedEnvironment::ScopedEnvironment(std::string variable, std::optional<std::string> const& value)
-    : m_variable(std::move(variable)), m_prevValue(csa::internal::GetEnv(m_variable.c_str()))
-{
-    csa::internal::SetEnv(m_variable.c_str(), value);
-}
-
-ScopedEnvironment::~ScopedEnvironment() { csa::internal::SetEnv(m_variable.c_str(), std::move(m_prevValue)); }
+// We need to define this value since it is static; set it to an arbitrary
+// value.
+std::time_t FakeClock::m_nowValue = 1530060324;
 
 }  // namespace internal
-}  // namespace testing
 }  // namespace csa

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/clients/google_utils.h"
-#include "util/status_matchers.h"
+#include "testing_util/status_matchers.h"
 #include <gmock/gmock.h>
 #include <nlohmann/json.hpp>
 

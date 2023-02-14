@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "scoped_log.h"
+#include "testing_util/scoped_log.h"
 #include <iterator>
 
 namespace csa {

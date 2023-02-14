@@ -18,10 +18,10 @@
 #include "cloudstorageapi/cloud_storage_client.h"
 #include "cloudstorageapi/retry_policy.h"
 #include "canonical_errors.h"
-#include "mock_cloud_storage_client.h"
-#include "mock_object_read_source.h"
-#include "util/chrono_literals.h"
-#include "util/status_matchers.h"
+#include "testing_util/mock_cloud_storage_client.h"
+#include "testing_util/mock_object_read_source.h"
+#include "testing_util/chrono_literals.h"
+#include "testing_util/status_matchers.h"
 #include <gmock/gmock.h>
 
 namespace csa {

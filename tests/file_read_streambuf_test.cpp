@@ -15,8 +15,8 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/file_read_streambuf.h"
-#include "mock_cloud_storage_client.h"
-#include "mock_object_read_source.h"
+#include "testing_util/mock_cloud_storage_client.h"
+#include "testing_util/mock_object_read_source.h"
 #include <gmock/gmock.h>
 
 namespace csa {

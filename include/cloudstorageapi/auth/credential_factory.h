@@ -17,6 +17,7 @@
 #include "cloudstorageapi/auth/credentials.h"
 #include "cloudstorageapi/providers.h"
 #include "cloudstorageapi/status_or_val.h"
+#include <memory>
 
 namespace csa {
 namespace auth {

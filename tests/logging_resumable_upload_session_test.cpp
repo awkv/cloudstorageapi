@@ -16,12 +16,12 @@
 
 #include "cloudstorageapi/internal/logging_resumable_upload_session.h"
 #include "cloudstorageapi/internal/log.h"
-#include "mock_cloud_storage_client.h"
-#include "mock_resumable_upload_session.h"
-#include "util/const_buffer_equality.h"
-#include "util/contains_once.h"
-#include "util/scoped_log.h"
-#include "util/status_matchers.h"
+#include "testing_util/mock_cloud_storage_client.h"
+#include "testing_util/mock_resumable_upload_session.h"
+#include "testing_util/const_buffer_equality.h"
+#include "testing_util/contains_once.h"
+#include "testing_util/scoped_log.h"
+#include "testing_util/status_matchers.h"
 #include <gmock/gmock.h>
 
 namespace csa {

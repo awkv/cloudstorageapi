@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mock_http_request.h"
+#include "testing_util/mock_http_request.h"
 
 namespace csa {
 namespace internal {

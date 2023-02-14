@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "testing_types.h"
+#include "testing_util/testing_types.h"
 
 namespace csa {
 namespace testing {

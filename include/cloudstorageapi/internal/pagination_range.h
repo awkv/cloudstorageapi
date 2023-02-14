@@ -20,6 +20,7 @@
 #include "cloudstorageapi/status_or_val.h"
 #include <functional>
 #include <iterator>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>

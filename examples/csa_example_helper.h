@@ -16,6 +16,7 @@
 
 #include "cloudstorageapi/internal/random.h"
 #include "cloudstorageapi/status.h"
+#include <exception>
 #include <chrono>
 #include <string>
 
@@ -24,12 +25,11 @@ namespace csa {
 class CloudStorageClient;
 
 namespace example {
-class NeedUsage : public std::exception
+class NeedUsage : public std::runtime_error
 {
 public:
-    NeedUsage() : std::exception() {}
-    NeedUsage(const char* const msg) : std::exception(msg) {}
-    NeedUsage(std::string const& msg) : std::exception(msg.c_str()) {}
+    NeedUsage(const char* const msg) : std::runtime_error(msg) {}
+    NeedUsage(std::string const& msg) : std::runtime_error(msg.c_str()) {}
 };
 
 using time_point = std::chrono::system_clock::time_point;

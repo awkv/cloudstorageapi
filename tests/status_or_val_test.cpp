@@ -15,9 +15,9 @@
 // limitations under the License.
 
 #include "cloudstorageapi/status_or_val.h"
-#include "tests/util/assert_ok.h"
-#include "util/expect_exception.h"
-#include "util/testing_types.h"
+#include "testing_util/assert_ok.h"
+#include "testing_util/expect_exception.h"
+#include "testing_util/testing_types.h"
 #include <gmock/gmock.h>
 
 namespace csa {

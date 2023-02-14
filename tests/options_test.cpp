@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "cloudstorageapi/options.h"
-#include "util/scoped_log.h"
+#include "testing_util/scoped_log.h"
 #include <gmock/gmock.h>
 #include <set>
 #include <string>

@@ -136,8 +136,7 @@ void AssertOptionSuccessImpl(CURLcode e, CURLoption opt, char const* where,
     std::ostringstream os;
     os << where << "() - error [" << e << "] while setting curl option [" << opt << "] to [" << format_parameter()
        << "], error description=" << curl_easy_strerror(e);
-    CSA_LOG_ERROR(os.str());
-    // TODO: change/introduce log level FATAL which calls std::abort().
+    CSA_LOG_ERROR("{}", os.str());
     throw std::logic_error(std::move(os).str());
 }
 

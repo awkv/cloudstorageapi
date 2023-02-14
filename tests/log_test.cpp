@@ -16,6 +16,27 @@
 #include "spdlog/fmt/ostr.h"  // must be included to enable operator<< for user defined types to work for logging.
 #include <gmock/gmock.h>
 
+namespace {
+/// A class to count calls to IOStream operator.
+struct IOStreamCounter
+{
+    mutable int m_count;
+};
+
+std::ostream& operator<<(std::ostream& os, IOStreamCounter const& rhs)
+{
+    ++rhs.m_count;
+    return os;
+}
+
+}  // namespace
+
+// Need to declare outside of any namespace
+template <>
+struct fmt::formatter<IOStreamCounter> : ostream_formatter
+{
+};
+
 namespace csa {
 namespace internal {
 namespace {
@@ -80,20 +101,6 @@ TEST(LoggerSinkTest, MultiSinkMessage)
 
     GetLogger()->ClearSinks();
 }
-
-namespace {
-/// A class to count calls to IOStream operator.
-struct IOStreamCounter
-{
-    mutable int m_count;
-};
-
-std::ostream& operator<<(std::ostream& os, IOStreamCounter const& rhs)
-{
-    ++rhs.m_count;
-    return os;
-}
-}  // namespace
 
 TEST(LoggerSinkTest, LogCheckCounter)
 {

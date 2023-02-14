@@ -16,10 +16,10 @@
 
 #include "cloudstorageapi/internal/file_write_streambuf.h"
 #include "cloudstorageapi/file_metadata.h"
-#include "mock_cloud_storage_client.h"
-#include "mock_resumable_upload_session.h"
-#include "util/const_buffer_equality.h"
-#include "util/status_matchers.h"
+#include "testing_util/const_buffer_equality.h"
+#include "testing_util/mock_cloud_storage_client.h"
+#include "testing_util/mock_resumable_upload_session.h"
+#include "testing_util/status_matchers.h"
 #include <gmock/gmock.h>
 
 namespace csa {

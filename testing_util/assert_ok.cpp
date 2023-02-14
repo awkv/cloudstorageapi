@@ -14,10 +14,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <gtest/gtest.h>
+#include "testing_util/assert_ok.h"
 
-int main(int argc, char* argv[])
+namespace csa {
+namespace testing {
+namespace internal {
+
+// A unary predicate-formatter for csa::Status.
+::testing::AssertionResult IsOkPredFormat(char const* expr, ::csa::Status const& status)
 {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    if (status.Ok())
+    {
+        return ::testing::AssertionSuccess();
+    }
+    return ::testing::AssertionFailure() << "Value of: " << expr << "\nExpected: is OK\nActual: " << status;
 }
+
+}  // namespace internal
+}  // namespace testing
+}  // namespace csa

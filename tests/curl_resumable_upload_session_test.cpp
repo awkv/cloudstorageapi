@@ -17,7 +17,7 @@
 #include "cloudstorageapi/internal/curl_resumable_upload_session.h"
 #include "cloudstorageapi/auth/credential_factory.h"
 #include "cloudstorageapi/internal/curl_client_base.h"
-#include "util/status_matchers.h"
+#include "testing_util/status_matchers.h"
 #include <gmock/gmock.h>
 
 namespace csa {

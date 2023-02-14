@@ -19,7 +19,7 @@
 #include "cloudstorageapi/folder_metadata.h"
 #include "cloudstorageapi/internal/log.h"
 #include "canonical_errors.h"
-#include "mock_cloud_storage_client.h"
+#include "testing_util/mock_cloud_storage_client.h"
 #include <gmock/gmock.h>
 
 namespace csa {

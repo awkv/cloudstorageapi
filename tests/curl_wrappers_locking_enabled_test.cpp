@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/curl_wrappers.h"
-#include "util/null_credentials.h"
+#include "testing_util/null_credentials.h"
 #include <gmock/gmock.h>
 
 namespace csa {

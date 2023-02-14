@@ -26,6 +26,22 @@
 namespace csa {
 namespace internal {
 
+namespace detail {
+
+// GCC limitation: see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85282
+// GCC fail to compile full function template specialization in non namespace scope.
+// So, declare them in this namespace.
+// Base function templates. They overload on json and string. They have no body because
+// only specializations will be used.
+template <typename ResponseType>
+StatusOrVal<ResponseType> ParseResponse(nlohmann::json const& json);  // no implementation
+template <typename ResponseType>
+StatusOrVal<ResponseType> ParseResponse(std::string const& payload);  // no implementation
+template <typename ResponseType>
+StatusOrVal<ResponseType> ParseResponse(HttpResponse response);  // no implementation
+
+}  // namespace detail
+
 class GoogleResponseParser
 {
 public:
@@ -35,36 +51,40 @@ public:
 
     GoogleResponseParser() = delete;
 
-    // Base function templates. They overload on json and string. They have no body because
-    // only specializations will be used.
     template <typename ResponseType>
-    static StatusOrVal<ResponseType> ParseResponse(nlohmann::json const& json);  // no implementation
-    template <typename ResponseType>
-    static StatusOrVal<ResponseType> ParseResponse(std::string const& payload);  // no implementation
-    template <typename ResponseType>
-    static StatusOrVal<ResponseType> ParseResponse(HttpResponse response);  // no implementation
+    static StatusOrVal<ResponseType> ParseResponse(nlohmann::json const& json)
+    {
+        return detail::ParseResponse<ResponseType>(json);
+    }
 
-    // Specializations for concrete response types
-    template <>
-    static StatusOrVal<ListFolderResponse> ParseResponse<ListFolderResponse>(nlohmann::json const& json);
-    template <>
-    static StatusOrVal<ListFolderResponse> ParseResponse<ListFolderResponse>(std::string const& payload);
-    template <>
-    static StatusOrVal<ResumableUploadResponse> ParseResponse<ResumableUploadResponse>(HttpResponse response);
+    template <typename ResponseType>
+    static StatusOrVal<ResponseType> ParseResponse(std::string const& payload)
+    {
+        return detail::ParseResponse<ResponseType>(payload);
+    }
+
+    template <typename ResponseType>
+    static StatusOrVal<ResponseType> ParseResponse(HttpResponse response)
+    {
+        return detail::ParseResponse<ResponseType>(response);
+    }
 };
 
+namespace detail {
+
+// Specializations for concrete response types
+
 template <>
-inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListFolderResponse>(
-    nlohmann::json const& json)
+inline StatusOrVal<ListFolderResponse> ParseResponse<ListFolderResponse>(nlohmann::json const& json)
 {
     if (json.empty())
     {
         return Status(StatusCode::Internal, "Empty folder list response. Expected some generic fields are present.");
     }
-    else if (json.value("kind", "") != ResponseKindFileList)
+    else if (json.value("kind", "") != GoogleResponseParser::ResponseKindFileList)
     {
         return Status(StatusCode::Internal, "Unexpected folder list response kind: " + json.value("kind", "") +
-                                                ". Expected: " + ResponseKindFileList);
+                                                ". Expected: " + GoogleResponseParser::ResponseKindFileList);
     }
 
     ListFolderResponse result{};
@@ -74,9 +94,9 @@ inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListF
     {
         for (auto const& file : json["files"])
         {
-            if (file.value("kind", "") == ObjectKindFile)
+            if (file.value("kind", "") == GoogleResponseParser::ObjectKindFile)
             {
-                if (file.value("mimeType", "") == FolderMimetype)
+                if (file.value("mimeType", "") == GoogleResponseParser::FolderMimetype)
                 {
                     auto objectMetadata = GoogleMetadataParser::ParseFolderMetadata(file);
                     if (objectMetadata.Ok())
@@ -112,8 +132,7 @@ inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListF
 }
 
 template <>
-inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListFolderResponse>(
-    std::string const& payload)
+inline StatusOrVal<ListFolderResponse> ParseResponse<ListFolderResponse>(std::string const& payload)
 {
     auto json = nlohmann::json::parse(payload, nullptr, false);
     if (json.is_discarded())
@@ -127,8 +146,7 @@ inline StatusOrVal<ListFolderResponse> GoogleResponseParser::ParseResponse<ListF
 }
 
 template <>
-inline StatusOrVal<ResumableUploadResponse> GoogleResponseParser::ParseResponse<ResumableUploadResponse>(
-    HttpResponse response)
+inline StatusOrVal<ResumableUploadResponse> ParseResponse<ResumableUploadResponse>(HttpResponse response)
 {
     ResumableUploadResponse result;
     if (response.m_statusCode == HttpStatusCode::Ok || response.m_statusCode == HttpStatusCode::Created)
@@ -199,6 +217,7 @@ inline StatusOrVal<ResumableUploadResponse> GoogleResponseParser::ParseResponse<
 
     return result;
 }
+}  // namespace detail
 
 }  // namespace internal
 }  // namespace csa

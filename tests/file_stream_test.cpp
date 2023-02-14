@@ -16,7 +16,7 @@
 
 #include "cloudstorageapi/file_stream.h"
 #include "cloudstorageapi/internal/raw_client.h"
-#include "util/status_matchers.h"
+#include "testing_util/status_matchers.h"
 #include <gmock/gmock.h>
 
 namespace csa {

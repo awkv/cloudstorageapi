@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "cloudstorageapi/internal/const_buffer.h"
-#include "util/const_buffer_equality.h"
+#include "testing_util/const_buffer_equality.h"
 #include <gmock/gmock.h>
 
 namespace csa {

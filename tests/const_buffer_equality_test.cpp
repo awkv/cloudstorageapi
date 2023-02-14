@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "util/const_buffer_equality.h"
+#include "testing_util/const_buffer_equality.h"
 #include <gmock/gmock.h>
 
 namespace csa {

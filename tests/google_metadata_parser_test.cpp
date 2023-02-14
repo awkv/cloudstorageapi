@@ -16,7 +16,7 @@
 
 #include "cloudstorageapi/internal/clients/google_metadata_parser.h"
 #include "cloudstorageapi/internal/rfc3339_time.h"
-#include "util/status_matchers.h"
+#include "testing_util/status_matchers.h"
 #include <gmock/gmock.h>
 #include <nlohmann/json.hpp>
 

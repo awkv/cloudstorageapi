@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "cloudstorageapi/auth/default_credentials_file.h"
-#include "util/scoped_environment.h"
+#include "testing_util/scoped_environment.h"
 #include <gmock/gmock.h>
 
 namespace csa {

@@ -16,6 +16,7 @@
 
 #include "cloudstorageapi/internal/logging_resumable_upload_session.h"
 #include "cloudstorageapi/internal/log.h"
+#include "cloudstorageapi/internal/resumable_upload_session.h"
 #include <ios>
 
 namespace csa {

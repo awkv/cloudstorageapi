@@ -36,11 +36,22 @@ include(SelectMSVCRuntime)
 
 include(IncludeNlohmannJson)
 include(FindCurlWithTargets)
+include(CsaCommon)
+
+# Enable unit tests
+include(CTest)
+
+if (BUILD_TESTING)
+    # Discover and add targets for the GTest::gtest and GTest::gmock libraries.
+    include(FindGMockWithTargets)
+endif ()
+
 find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(spdlog REQUIRED)
 
 add_subdirectory(src)
+add_subdirectory(testing_util)
 add_subdirectory(tests)
 add_subdirectory(examples)
 add_subdirectory(quickstart)

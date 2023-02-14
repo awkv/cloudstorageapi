@@ -18,6 +18,7 @@
 #include "cloudstorageapi/internal/file_requests.h"
 #include "cloudstorageapi/internal/utils.h"
 #include <algorithm>
+#include <cstring>
 #include <sstream>
 
 namespace csa {

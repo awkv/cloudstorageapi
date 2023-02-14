@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "cloudstorageapi/auth/anonymous_credentials.h"
-#include "util/status_matchers.h"
+#include "testing_util/status_matchers.h"
 #include <gmock/gmock.h>
 
 namespace csa {

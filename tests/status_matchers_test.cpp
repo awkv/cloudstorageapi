@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "util/status_matchers.h"
+#include "testing_util/status_matchers.h"
 #include "cloudstorageapi/status_or_val.h"
 #include <gtest/gtest-spi.h>
 #include <gtest/gtest.h>

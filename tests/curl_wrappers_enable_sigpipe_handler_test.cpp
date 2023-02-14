@@ -33,21 +33,22 @@ TEST(CurlWrappers, SigpipeHandlerEnabledTest)
 #if !defined(SIGPIPE)
     return;  // nothing to do
 #else
-    auto initial_handler = std::signal(SIGPIPE, &test_handler);
-    CurlInitializeOnce(Options{}
-                           .Set<Oauth2CredentialsOption>(auth::CreateAnonymousCredentials())
-                           .Set<EnableCurlSigpipeHandlerOption>(true));
-    auto actual = std::signal(SIGPIPE, initialHandler);
-    EXPECT_EQ(actual, SIG_IGN);
-
-    // Also verify a second call has no effect.
+    auto initialHandler = std::signal(SIGPIPE, &testHandler);
     EProvider provider = EProvider::GoogleDrive;
     CurlInitializeOnce(Options{}
                            .Set<ProviderOption>(provider)
                            .Set<Oauth2CredentialsOption>(auth::CredentialFactory::CreateAnonymousCredentials(provider))
                            .Set<EnableCurlSigpipeHandlerOption>(true));
-    actual = std::signal(SIGPIPE, initial_handler);
-    EXPECT_EQ(actual, initial_handler);
+    auto actual = std::signal(SIGPIPE, initialHandler);
+    EXPECT_EQ(actual, SIG_IGN);
+
+    // Also verify a second call has no effect.
+    CurlInitializeOnce(Options{}
+                           .Set<ProviderOption>(provider)
+                           .Set<Oauth2CredentialsOption>(auth::CredentialFactory::CreateAnonymousCredentials(provider))
+                           .Set<EnableCurlSigpipeHandlerOption>(true));
+    actual = std::signal(SIGPIPE, initialHandler);
+    EXPECT_EQ(actual, initialHandler);
 #endif  // defined(SIGPIPE)
 }
 

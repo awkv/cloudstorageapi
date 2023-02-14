@@ -16,7 +16,7 @@
 
 #include "cloudstorageapi/internal/retry_policy_internal.h"
 #include "cloudstorageapi/status.h"
-#include "util/check_predicate_becomes_false.h"
+#include "testing_util/check_predicate_becomes_false.h"
 #include <gmock/gmock.h>
 
 namespace csa {

@@ -13,11 +13,7 @@
 # limitations under the License.
 
 set(csa_tests
-    util/assert_ok.cpp
-    util/scoped_environment.cpp
-    util/scoped_log.cpp
-    util/status_matchers.cpp
-    util/testing_types.cpp
+    # cmake-format : sort
     algorithm_test.cpp
     anonymous_credentials_test.cpp
     assert_ok_test.cpp
@@ -56,9 +52,6 @@ set(csa_tests
     log_test.cpp
     logging_client_test.cpp
     logging_resumable_upload_session_test.cpp
-    main.cpp
-    mock_fake_clock.cpp
-    mock_http_request.cpp
     oauth2_credentials_test.cpp
     options_test.cpp
     pagination_range_test.cpp
@@ -80,16 +73,18 @@ set(csa_tests
     well_known_headers_test.cpp
     well_known_parameters_test.cpp)
 
-find_package(GTest CONFIG REQUIRED)
+    foreach (fname ${csa_tests})
 
-add_executable(csa_tests ${csa_tests})
-target_link_libraries(csa_tests
-                      PRIVATE GTest::gtest GTest::gtest_main GTest::gmock
-                      cloudstorageapi
-                      nlohmann_json::nlohmann_json)
+        csa_add_executable(target "csa" "${fname}")
+        target_link_libraries(
+            ${target}
+            PRIVATE GTest::gtest
+                    GTest::gmock_main
+                    GTest::gmock
+                    csa_testing_util
+                    cloudstorageapi
+                    nlohmann_json::nlohmann_json)
 
-target_include_directories(csa_tests
-                           PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-                                  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                                  $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
-                                  $<INSTALL_INTERFACE:include>)
+    add_test(NAME ${target} COMMAND ${target})
+
+endforeach ()

@@ -1,6 +1,6 @@
-// Copyright 2019 Andrew Karasyov
+// Copyright 2020 Andrew Karasyov
 //
-// Copyright 2018 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,21 +14,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "assert_ok.h"
+#include "testing_util/scoped_environment.h"
+#include "cloudstorageapi/internal/utils.h"
 
 namespace csa {
 namespace testing {
 namespace internal {
 
-// A unary predicate-formatter for csa::Status.
-::testing::AssertionResult IsOkPredFormat(char const* expr, ::csa::Status const& status)
+ScopedEnvironment::ScopedEnvironment(std::string variable, std::optional<std::string> const& value)
+    : m_variable(std::move(variable)), m_prevValue(csa::internal::GetEnv(m_variable.c_str()))
 {
-    if (status.Ok())
-    {
-        return ::testing::AssertionSuccess();
-    }
-    return ::testing::AssertionFailure() << "Value of: " << expr << "\nExpected: is OK\nActual: " << status;
+    csa::internal::SetEnv(m_variable.c_str(), value);
 }
+
+ScopedEnvironment::~ScopedEnvironment() { csa::internal::SetEnv(m_variable.c_str(), std::move(m_prevValue)); }
 
 }  // namespace internal
 }  // namespace testing

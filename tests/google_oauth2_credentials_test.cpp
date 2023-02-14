@@ -14,9 +14,9 @@
 
 #include "cloudstorageapi/auth/google_oauth2_credentials.h"
 #include "cloudstorageapi/auth/credential_constants.h"
-#include "mock_fake_clock.h"
-#include "mock_http_request.h"
-#include "util/status_matchers.h"
+#include "testing_util/mock_fake_clock.h"
+#include "testing_util/mock_http_request.h"
+#include "testing_util/status_matchers.h"
 #include <gmock/gmock.h>
 #include <nlohmann/json.hpp>
 #include <cstring>

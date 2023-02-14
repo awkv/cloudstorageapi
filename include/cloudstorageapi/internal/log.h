@@ -55,6 +55,7 @@
 #include "spdlog/sinks/base_sink.h"
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/spdlog.h"
+#include "cloudstorageapi/internal/log_spdlog_fmt_support_user_defined_types.h"
 #include <map>
 
 namespace csa {
@@ -113,6 +114,10 @@ private:
     std::shared_ptr<detail::SpdSinkProxy> m_SpdSinkProxy;
 };
 
+// Using spdlog format string.
+template<typename... Args>
+using format_string_t = spdlog::format_string_t<Args...>;
+
 class Logger
 {
 public:
@@ -135,8 +140,8 @@ public:
     void Flush();
 
     template <typename... Args>
-    void Log(std::string file, std::string function, int lineNo, ELogLevel logLevel, std::string fmt,
-             const Args&... args)
+    void Log(std::string file, std::string function, int lineNo, ELogLevel logLevel, format_string_t<Args...> fmt,
+             Args&&... args)
     {
         if (ELogLevel::Off == logLevel)
             return;
@@ -164,7 +169,7 @@ public:
             assert(0 && "Unexpected log level.");
         }
 
-        m_spdLogger->log(spdlog::source_loc{file.c_str(), lineNo, function.c_str()}, level, fmt, args...);
+        m_spdLogger->log(spdlog::source_loc{file.c_str(), lineNo, function.c_str()}, level, fmt, std::forward<Args>(args)...);
     }
 
 private:

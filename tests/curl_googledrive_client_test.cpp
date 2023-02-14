@@ -20,8 +20,8 @@
 #include "cloudstorageapi/auth/google_oauth2_credentials.h"
 #include "cloudstorageapi/internal/curl_request_builder.h"
 #include "cloudstorageapi/internal/utils.h"
-#include "util/scoped_environment.h"
-#include "util/status_matchers.h"
+#include "testing_util/scoped_environment.h"
+#include "testing_util/status_matchers.h"
 #include <gmock/gmock.h>
 #include <memory>
 #include <utility>

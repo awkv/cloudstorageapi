@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "status_matchers.h"
+#include "testing_util/status_matchers.h"
 
 namespace csa {
 namespace testing {
