@@ -7,8 +7,8 @@ Storage service | Version
 Google drive | v3
 
 ## Supported platforms
-* Windows, coming on macOS and Linux
-* C++20 compilers
+* Windows, Linux and coming on macOS
+* C++20 compilers. Tested with GCC(12.1.0), MSVC(>=2019)
 * CMake builds
 
 ## Documentation
@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
 ## Building on Windows (static library)
 
 Prerequisites:
-- [CMake](https://cmake.org/)
+- [CMake](https://cmake.org/download)
 - [Git](https://git-scm.com/downloads)
 - [vcpkg](https://github.com/microsoft/vcpkg)
     ```cmd
