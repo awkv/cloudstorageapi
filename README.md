@@ -94,12 +94,12 @@ int main(int argc, char* argv[])
 Prerequisites:
 - [CMake](https://cmake.org/download)
 - [Git](https://git-scm.com/downloads)
+- [Visual Studio](https://visualstudio.microsoft.com/) 2019 or greater
 - [vcpkg](https://github.com/microsoft/vcpkg)
     ```cmd
     > git clone https://github.com/microsoft/vcpkg
     > .\vcpkg\bootstrap-vcpkg.bat
     ```
-- [Visual Studio](https://visualstudio.microsoft.com/) 2019 or greater
 
 Building instructions:
 ```cmd
@@ -112,6 +112,41 @@ Building instructions:
 ```
 
 Binaries can be found in `cloudstorageapi\build\binaries`
+
+Run the tests
+```cmd
+> ctest -C Release
+```
+
+## Building on Linux (static library)
+
+Prerequisites:
+- tools
+    ```cmd
+    > sudo apt update
+    > sudo apt install -y build-essential cmake git gcc g++ cmake
+    ```
+- [vcpkg](https://github.com/microsoft/vcpkg)
+    ```cmd
+    > VCPKG_ROOT=~/projects/vcpkg
+    > git clone https://github.com/microsoft/vcpkg "${VCPKG_ROOT}"
+    > ${VCPKG_ROOT}/bootstrap-vcpkg.sh
+    ```
+Building instructions:
+```cmd
+> "${VCPKG_ROOT}/vcpkg" install curl gtest nlohmann-json openssl spdlog --triplet=x64-linux
+> git clone --recursive https://github.com/awkv/cloudstorageapi.git
+> mkdir cloudstorageapi/build
+> cd cloudstorageapi/build
+> cmake -S .. -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-linux
+> cmake --build . -- -j $(nproc)
+```
+Binaries can be found in `cloudstorageapi/build/binaries`
+
+Run the tests
+```cmd
+> ctest
+```
 
 ## Authentication
 
